@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#174c35">
+  <meta name="description" content="Plants and Vegetables vs Candle — um tower defense saudável.">
+  <title>Plants and Vegetables vs Candle</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="game-shell">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Healthy Family Home apresenta</p>
+        <h1>Plants &amp; Vegetables <span>vs Candle</span></h1>
+      </div>
+      <button id="soundButton" class="icon-button" type="button" aria-label="Desativar som" aria-pressed="false">🔊</button>
+    </header>
+
+    <section class="status-bar" aria-label="Status da partida">
+      <div class="stat"><span>☀️ Energia</span><strong id="sunValue">150</strong></div>
+      <div class="stat house-stat">
+        <span>🏡 Casa</span>
+        <div class="health-track"><div id="houseHealthBar" class="health-fill"></div></div>
+        <strong id="houseHealthValue">1000</strong>
+      </div>
+      <div class="stat"><span>🌊 Onda</span><strong id="waveValue">1</strong></div>
+      <div class="stat"><span>🌱 Seed</span><strong id="seedValue">------</strong></div>
+      <div class="stat"><span>⭐ Pontos</span><strong id="scoreValue">0</strong></div>
+      <div class="stat"><span>🏆 Recorde</span><strong id="bestScoreValue">0</strong></div>
+      <div class="game-controls">
+        <button id="speedButton" class="speed-button" type="button" aria-label="Alterar velocidade do jogo">⏩ 1×</button>
+        <button id="pauseButton" class="pause-button" type="button">⏸ Pausar</button>
+      </div>
+    </section>
+
+    <section class="defender-tray" aria-label="Escolha um defensor">
+      <button class="defender-card" data-defender="corn" type="button">
+        <span class="card-icon">🌽</span><span class="card-copy"><strong>Milho</strong><small>50 ☀️ · tiro certeiro</small></span>
+      </button>
+      <button class="defender-card" data-defender="carrot" type="button">
+        <span class="card-icon">🥕</span><span class="card-copy"><strong>Cenoura</strong><small>75 ☀️ · tiro rápido</small></span>
+      </button>
+      <button class="defender-card" data-defender="broccoli" type="button">
+        <span class="card-icon">🥦</span><span class="card-copy"><strong>Brócolis</strong><small>100 ☀️ · escudo</small></span>
+      </button>
+      <button class="defender-card locked" data-defender="pepper" type="button" aria-label="Pimenta bloqueada; complete o hábito de comer vegetais">
+        <span class="card-icon">🌶️</span><span class="card-copy"><strong>Pimenta 🔒</strong><small>125 ☀️ · fogo</small></span>
+      </button>
+      <button class="defender-card" data-defender="tomato" type="button">
+        <span class="card-icon">🍅</span><span class="card-copy"><strong>Tomate</strong><small>150 ☀️ · área</small></span>
+      </button>
+      <button class="defender-card" data-defender="watermelon" type="button">
+        <span class="card-icon">🍉</span><span class="card-copy"><strong>Melancia</strong><small>175 ☀️ · engole doces</small></span>
+      </button>
+      <button id="shovelButton" class="defender-card shovel" type="button">
+        <span class="card-icon">🪏</span><span class="card-copy"><strong>Pá</strong><small>remover defensor</small></span>
+      </button>
+    </section>
+
+    <section id="wavePreview" class="wave-preview" aria-live="polite">
+      <div class="wave-preview-copy">
+        <span id="wavePreviewMode" class="eyebrow">Próxima ameaça</span>
+        <strong id="wavePreviewTitle">Onda 1</strong>
+        <div id="wavePreviewEnemies" class="wave-preview-enemies"></div>
+        <div id="waveProgress" class="wave-progress" hidden>
+          <div class="wave-progress-track"><div id="waveProgressFill" class="wave-progress-fill"></div></div>
+          <small id="waveProgressText">0 de 0 resolvidos</small>
+        </div>
+      </div>
+      <button id="startWaveButton" class="start-wave-button" type="button">Iniciar onda</button>
+    </section>
+
+    <section class="board-wrap">
+      <canvas id="gameCanvas" width="1000" height="620" aria-label="Campo do jogo"></canvas>
+      <div id="gameOverlay" class="overlay visible">
+        <div class="overlay-card">
+          <span class="overlay-mascot">🥕🌽🥦</span>
+          <h2 id="overlayTitle">Defenda a Healthy Family Home!</h2>
+          <p id="overlayText">Posicione vegetais, colete sóis e impeça o exército de doces da Vela Mestra.</p>
+          <fieldset id="modeSelector" class="mode-selector">
+            <legend>Escolha o modo</legend>
+            <div>
+              <button data-mode="easy" type="button"><strong>🌱 Tranquilo</strong><small>Mais energia e resistência</small></button>
+              <button data-mode="normal" type="button"><strong>🥕 Normal</strong><small>A experiência equilibrada</small></button>
+              <button data-mode="hard" type="button"><strong>🔥 Desafio</strong><small>Doces mais fortes e rápidos</small></button>
+              <button data-mode="endless" type="button"><strong>♾️ Infinito</strong><small>Ondas sem limite</small></button>
+            </div>
+          </fieldset>
+          <div id="resultSummary" class="result-summary" hidden>
+            <div id="resultStars" class="result-stars" aria-label="Estrelas conquistadas"></div>
+            <div id="resultStats" class="result-stats"></div>
+          </div>
+          <button id="overlayButton" class="primary-button" type="button">Começar aventura</button>
+        </div>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <aside id="tutorialPanel" class="tutorial-panel" aria-live="polite" hidden>
+        <div>
+          <strong id="tutorialStep">Tutorial 1/3</strong>
+          <p id="tutorialText">Escolha um vegetal para começar.</p>
+        </div>
+        <button id="skipTutorialButton" type="button">Pular</button>
+      </aside>
+      <aside id="upgradePanel" class="upgrade-panel" role="dialog" aria-label="Melhorar defensor" hidden>
+        <div class="upgrade-heading">
+          <span id="upgradeIcon" class="upgrade-icon">🌽</span>
+          <div><strong id="upgradeName">Milho Atirador</strong><small id="upgradeLevel">Nível 1</small></div>
+          <button id="closeUpgradeButton" class="upgrade-close" type="button" aria-label="Fechar melhorias">×</button>
+        </div>
+        <p id="upgradeStats" class="upgrade-stats"></p>
+        <div class="upgrade-actions">
+          <button id="powerUpgradeButton" type="button"><strong>Ataque</strong><small></small></button>
+          <button id="healthUpgradeButton" type="button"><strong>Vitalidade</strong><small></small></button>
+          <button id="abilityButton" class="ability-button" type="button"><strong>Habilidade especial</strong><small>Desbloqueia no nível 2</small></button>
+        </div>
+        <small class="upgrade-refund">A pá devolve 50% de todo o investimento.</small>
+      </aside>
+    </section>
+
+    <section class="habit-panel">
+      <div class="habit-heading">
+        <div>
+          <p class="eyebrow">Missões do mundo real</p>
+          <h2>Bônus do Levi Esperto</h2>
+        </div>
+        <p>Toque ao concluir um hábito. Cada bônus pode ser usado uma vez por partida.</p>
+      </div>
+      <div class="habit-grid">
+        <button class="habit" data-habit="water" type="button"><span>💧</span><strong>Beber água</strong><small>+50 Energia</small></button>
+        <button class="habit" data-habit="fruit" type="button"><span>🍎</span><strong>Comer fruta</strong><small>+100 Energia</small></button>
+        <button class="habit" data-habit="vegetables" type="button"><span>🥗</span><strong>Comer vegetais</strong><small>Libera Pimenta</small></button>
+        <button class="habit" data-habit="exercise" type="button"><span>🏃</span><strong>30 min de exercício</strong><small>Ataque rápido por 20s</small></button>
+        <button class="habit" data-habit="teeth" type="button"><span>🪥</span><strong>Escovar os dentes</strong><small>+300 HP da Casa</small></button>
+        <button class="habit" data-habit="sleep" type="button"><span>😴</span><strong>Dormir no horário</strong><small>Ataque especial</small></button>
+      </div>
+    </section>
+
+    <details class="enemy-guide">
+      <summary>🍬 Conheça o exército dos doces</summary>
+      <p>Abra o bestiário para planejar sua defesa contra as habilidades especiais.</p>
+      <div id="enemyGuideGrid" class="enemy-guide-grid"></div>
+    </details>
+
+    <footer>
+      <p><strong>Como jogar:</strong> escolha um vegetal (teclas 1-6) e toque na grade. Toque em um defensor colocado para melhorá-lo e usar sua habilidade. Colete sóis, ajuste a velocidade e use a pá para reorganizar a defesa.</p>
+    </footer>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/scenes/MainScene.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
