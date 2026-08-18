@@ -17,30 +17,32 @@ class MainScene extends Phaser.Scene {
     this.HOUSE_X = 118;
   }
 
+  preload() {
+    this.load.image("hero_avatar", "assets/levi_avatar.jpg");
+  }
+
   create() {
-    this.audioCtx = null;
     this.soundOn = true;
-    this.upgradeTarget = null;
     this.bestScore = readNumber(STORAGE_KEYS.bestScore);
     this.tutorialSeen = readFlag(STORAGE_KEYS.tutorialSeen);
     this.selectedMode = readMode();
     this.bestEndlessWave = readNumber(STORAGE_KEYS.bestEndlessWave);
+
+    // Initialize Entity Systems
+    this.soundManager = new SoundManager(this);
+    this.effectsSystem = new EffectsSystem(this);
+    this.projectileSystem = new ProjectileSystem(this);
+    this.defenderSystem = new DefenderSystem(this);
+    this.enemySystem = new EnemySystem(this);
 
     this.gameState = this.createFreshState();
     
     this.drawBackgroundGraphics();
     this.drawGridGraphics();
     this.drawHouseGraphics();
+    this.createHeroMascot();
 
-    this.particlesGroup = this.add.group();
-    this.floatersGroup = this.add.group();
-    this.defendersGroup = this.add.group();
-    this.enemiesGroup = this.add.group();
-    this.projectilesGroup = this.add.group();
-    this.sunsGroup = this.add.group();
-
-    this.graphicsOverlay = this.add.graphics();
-    this.uiOverlayText = this.add.text(887, 34, "Prepare sua defesa", {
+    this.uiOverlayText = this.add.text(887, 34, "🌱 Prepare sua defesa", {
       fontFamily: "Trebuchet MS",
       fontSize: "14px",
       fontStyle: "bold",
@@ -86,10 +88,11 @@ class MainScene extends Phaser.Scene {
       defenders: [],
       enemies: [],
       projectiles: [],
+      enemyProjectiles: [],
       particles: [],
       suns: [],
       floaters: [],
-      spawnQueue: generateProceduralWave(1, seed),
+      spawnQueue: generateProceduralWave(1, seed, this.selectedMode),
       usedHabits: new Set(),
       nextSun: 5,
       tutorialStep: this.tutorialSeen ? -1 : 0,
@@ -115,13 +118,25 @@ class MainScene extends Phaser.Scene {
     if (!this.bgGraphics) this.bgGraphics = this.add.graphics();
     this.bgGraphics.clear();
     const biome = getBiomeForWave(this.gameState ? this.gameState.wave : 1);
-    this.bgGraphics.fillGradientStyle(biome.skyTop, biome.skyTop, biome.skyBottom, biome.skyBottom, 1);
-    this.bgGraphics.fillRect(0, 0, this.W, this.H);
+
+    const cTop = Phaser.Display.Color.IntegerToColor(biome.skyTop);
+    const cBot = Phaser.Display.Color.IntegerToColor(biome.skyBottom);
+    const steps = 24;
+    const stepH = this.H / steps;
+    for (let i = 0; i < steps; i++) {
+      const ratio = i / steps;
+      const r = Math.round(cTop.r + (cBot.r - cTop.r) * ratio);
+      const g = Math.round(cTop.g + (cBot.g - cTop.g) * ratio);
+      const b = Math.round(cTop.b + (cBot.b - cTop.b) * ratio);
+      const hex = Phaser.Display.Color.GetColor(r, g, b);
+      this.bgGraphics.fillStyle(hex, 1);
+      this.bgGraphics.fillRect(0, i * stepH, this.W, stepH + 1);
+    }
 
     this.bgGraphics.fillStyle(0xffffff, 0.85);
-    this.drawCloudGraphics(this.bgGraphics, 270, 53, .9);
-    this.drawCloudGraphics(this.bgGraphics, 675, 40, .7);
-    this.drawCloudGraphics(this.bgGraphics, 880, 74, .5);
+    this.drawCloudGraphics(this.bgGraphics, 270, 53, 0.9);
+    this.drawCloudGraphics(this.bgGraphics, 675, 40, 0.7);
+    this.drawCloudGraphics(this.bgGraphics, 880, 74, 0.5);
 
     this.bgGraphics.fillStyle(biome.bushColor, 1);
     for (let x = 0; x < this.W; x += 38) {
@@ -142,9 +157,9 @@ class MainScene extends Phaser.Scene {
     for (let row = 0; row < this.ROWS; row++) {
       for (let col = 0; col < this.COLS; col++) {
         const color = (row + col) % 2 ? biome.gridColor1 : biome.gridColor2;
-        this.gridGraphics.fillStyle(color, 0.85);
+        this.gridGraphics.fillStyle(color, 0.88);
         this.gridGraphics.fillRect(this.GRID_X + col * this.CELL_W, this.GRID_Y + row * this.CELL_H, this.CELL_W, this.CELL_H);
-        this.gridGraphics.lineStyle(1, 0xffffff, 0.16);
+        this.gridGraphics.lineStyle(1, 0xffffff, 0.22);
         this.gridGraphics.strokeRect(this.GRID_X + col * this.CELL_W, this.GRID_Y + row * this.CELL_H, this.CELL_W, this.CELL_H);
       }
     }
@@ -157,15 +172,15 @@ class MainScene extends Phaser.Scene {
     house.fillStyle(0xe24b42, 1);
     house.fillTriangle(12, 268, 90, 216, 166, 268);
     house.fillStyle(0x68b8e8, 1);
-    house.fillRoundedRect(50, 299, 38, 46, 5);
-    house.lineStyle(4, 0xffffff, 1);
-    house.strokeRoundedRect(50, 299, 38, 46, 5);
+    house.fillRoundedRect(48, 296, 38, 46, 5);
+    house.lineStyle(3, 0xffffff, 1);
+    house.strokeRoundedRect(48, 296, 38, 46, 5);
     house.fillStyle(0x9b6035, 1);
     house.fillRoundedRect(99, 361, 35, 115, 6);
 
-    this.add.text(89, 380, "HEALTHY\nFAMILY\nHOME", {
+    this.add.text(89, 395, "HEALTHY\nFAMILY\nHOME", {
       fontFamily: "Trebuchet MS",
-      fontSize: "12px",
+      fontSize: "11px",
       fontStyle: "bold",
       color: "#28543e",
       align: "center"
@@ -175,9 +190,69 @@ class MainScene extends Phaser.Scene {
     house.fillRect(this.HOUSE_X, this.GRID_Y, 4, this.ROWS * this.CELL_H);
   }
 
+  createHeroMascot() {
+    if (this.textures.exists("hero_avatar")) {
+      const heroContainer = this.add.container(88, 185);
+      
+      const badgeBorder = this.add.graphics();
+      badgeBorder.fillStyle(0xff9f1c, 1);
+      badgeBorder.fillCircle(0, 0, 32);
+      badgeBorder.fillStyle(0xffffff, 1);
+      badgeBorder.fillCircle(0, 0, 29);
+      heroContainer.add(badgeBorder);
+
+      const avatar = this.add.image(0, 0, "hero_avatar").setDisplaySize(54, 54);
+      
+      const shape = this.make.graphics({ add: false });
+      shape.fillCircle(88, 185, 27);
+      const mask = shape.createGeometryMask();
+      avatar.setMask(mask);
+      
+      heroContainer.add(avatar);
+      heroContainer.setDepth(15);
+
+      this.tweens.add({
+        targets: heroContainer,
+        y: 180,
+        duration: 1400,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1
+      });
+
+      this.heroContainer = heroContainer;
+    }
+  }
+
+  cleanupSceneObjects() {
+    if (!this.gameState) return;
+    const collections = [
+      this.gameState.defenders,
+      this.gameState.enemies,
+      this.gameState.projectiles,
+      this.gameState.enemyProjectiles,
+      this.gameState.suns,
+      this.gameState.floaters
+    ];
+    for (const collection of collections) {
+      if (collection) {
+        for (const item of collection) {
+          if (item && item.textObj) item.textObj.destroy();
+        }
+      }
+    }
+    if (this.gameState.particles) {
+      for (const p of this.gameState.particles) {
+        if (p && p.gfx) p.gfx.destroy();
+      }
+    }
+  }
+
   startGame() {
+    this.cleanupSceneObjects();
     this.gameState = this.createFreshState();
     this.gameState.phase = "playing";
+    this.uiOverlayText.setText("🌱 Prepare sua defesa");
     if (window.onPhaserGameStarted) window.onPhaserGameStarted(this);
   }
 
@@ -190,30 +265,67 @@ class MainScene extends Phaser.Scene {
       this.gameState.waveTime += dt;
       if (this.gameState.time > this.gameState.comboExpiresAt) this.gameState.combo = 0;
 
+      const isBossWave = (this.gameState.wave % 5 === 0);
+      if (isBossWave) {
+        if (this.gameState.wave % 15 === 5) {
+          this.uiOverlayText.setText("🔥 CHEFE 1 (Onda 5): VELA MESTRA!");
+        } else if (this.gameState.wave % 15 === 10) {
+          this.uiOverlayText.setText("🟣 CHEFE 2 (Onda 10): CHICLETE GIGANTE GRUDENTO!");
+        } else {
+          this.uiOverlayText.setText("🍭 CHEFE 3 FINAL (Onda 15): PIRULITO GIRATÓRIO ESPINHOSO!");
+        }
+      } else {
+        this.uiOverlayText.setText(`⚔️ Onda ${this.gameState.wave} de ${CAMPAIGN_MAX_WAVES} em andamento`);
+      }
+
       for (const item of this.gameState.spawnQueue) {
         if (!item.spawned && this.gameState.waveTime >= item.at) {
-          this.spawnEnemy(item.type, item.row);
+          this.enemySystem.spawnEnemy(item.type, item.row);
           item.spawned = true;
         }
       }
 
       if (this.gameState.time >= this.gameState.nextSun) {
-        this.spawnSun();
+        this.effectsSystem.spawnSun();
         this.gameState.nextSun = this.gameState.time + this.random(6, 9);
       }
+    } else {
+      this.uiOverlayText.setText("🌱 Prepare sua defesa");
     }
 
-    this.updateDefenders(dt);
-    this.updateProjectiles(dt);
-    this.updateEnemies(dt);
-    this.updateSuns(dt);
-    this.updateParticles(dt);
-    this.updateFloaters(dt);
+    this.defenderSystem.updateDefenders(dt);
+    this.projectileSystem.updateProjectiles(dt);
+    this.projectileSystem.updateEnemyProjectiles(dt);
+    this.enemySystem.updateEnemies(dt);
+    this.effectsSystem.updateSuns(dt);
+    this.effectsSystem.updateParticles(dt);
+    this.effectsSystem.updateFloaters(dt);
+
+    if (this.gameState.phase === "playing" && this.gameState.houseHp <= 0) {
+      this.gameState.phase = "gameover";
+      this.gameState.paused = true;
+      if (this.gameState.score > this.bestScore) {
+        this.bestScore = this.gameState.score;
+        writeStorage(STORAGE_KEYS.bestScore, this.bestScore);
+      }
+      if (window.onPhaserGameOver) window.onPhaserGameOver(this.gameState);
+      return;
+    }
 
     const spawnedAll = this.gameState.spawnQueue.length > 0 && this.gameState.spawnQueue.every(item => item.spawned);
     if (this.gameState.phase === "playing" && this.gameState.waveActive && spawnedAll && this.gameState.enemies.length === 0) {
       this.completeWave();
-      this.nextWave();
+      if (this.gameState.mode !== "endless" && this.gameState.wave >= CAMPAIGN_MAX_WAVES) {
+        this.gameState.phase = "victory";
+        this.gameState.paused = true;
+        if (this.gameState.score > this.bestScore) {
+          this.bestScore = this.gameState.score;
+          writeStorage(STORAGE_KEYS.bestScore, this.bestScore);
+        }
+        if (window.onPhaserGameWin) window.onPhaserGameWin(this.gameState);
+      } else {
+        this.nextWave();
+      }
     }
 
     if (window.onPhaserSyncUi) window.onPhaserSyncUi(this.gameState);
@@ -221,9 +333,26 @@ class MainScene extends Phaser.Scene {
 
   completeWave() {
     this.gameState.stats.wavesCompleted += 1;
+    if (!this.gameState.houseDamagedThisWave) {
+      this.gameState.stats.flawlessWaves = (this.gameState.stats.flawlessWaves || 0) + 1;
+      this.effectsSystem.spawnFloater(500, 140, "⭐ ONDA PERFEITA! SEM DANO! ⭐", "#69c743", 1.3);
+    }
     const bonus = 40 + this.gameState.wave * 15;
     this.gameState.sun += bonus;
     this.gameState.score += bonus * 5;
+    this.effectsSystem.spawnFloater(500, 180, `🎉 ONDA COMPLETA! +${bonus}☀️`, "#ffe27a", 1.4);
+    this.soundManager.beep(660, 0.15, "triangle", 0.05);
+
+    if (this.heroContainer) {
+      this.tweens.add({
+        targets: this.heroContainer,
+        scaleX: 1.25,
+        scaleY: 1.25,
+        duration: 200,
+        yoyo: true,
+        repeat: 1
+      });
+    }
     return bonus;
   }
 
@@ -232,310 +361,39 @@ class MainScene extends Phaser.Scene {
     this.gameState.waveTime = 0;
     this.gameState.waveActive = false;
     this.gameState.waveResolved = 0;
+    this.gameState.houseDamagedThisWave = false;
     this.gameState.combo = 0;
-    this.gameState.spawnQueue = generateProceduralWave(this.gameState.wave, this.gameState.seed);
+    this.gameState.spawnQueue = generateProceduralWave(this.gameState.wave, this.gameState.seed, this.gameState.mode);
+
+    if (this.gameState.enemyProjectiles) {
+      for (const ep of this.gameState.enemyProjectiles) {
+        if (ep && ep.textObj) ep.textObj.destroy();
+      }
+      this.gameState.enemyProjectiles = [];
+    }
+
+    if (this.gameState.mode === "endless" && this.gameState.wave > this.bestEndlessWave) {
+      this.bestEndlessWave = this.gameState.wave;
+      writeStorage(STORAGE_KEYS.bestEndlessWave, this.bestEndlessWave);
+    }
+
     this.drawBackgroundGraphics();
     this.drawGridGraphics();
     const biome = getBiomeForWave(this.gameState.wave);
-    this.spawnFloater(500, 200, `${biome.icon} ONDA ${this.gameState.wave}!`, "#fff06a", 1.4);
-    this.beep(560, .11, "triangle");
+    this.effectsSystem.spawnFloater(500, 200, `${biome.icon} ONDA ${this.gameState.wave}!`, "#fff06a", 1.4);
+    this.soundManager.beep(560, 0.11, "triangle");
   }
 
-  spawnSun() {
-    const sunObj = {
-      x: this.random(this.GRID_X + 30, this.GRID_X + this.COLS * this.CELL_W - 30),
-      y: -25,
-      targetY: this.random(this.GRID_Y + 10, this.GRID_Y + this.ROWS * this.CELL_H - 20),
-      life: 10,
-      value: 25,
-      pulse: 0
-    };
-    sunObj.textObj = this.add.text(sunObj.x, sunObj.y, "☀️", { fontSize: "36px" }).setOrigin(0.5);
-    this.gameState.suns.push(sunObj);
+  upgradeDefenderPower(defender) {
+    return this.defenderSystem.upgradeDefenderPower(defender);
   }
 
-  updateSuns(dt) {
-    for (const s of this.gameState.suns) {
-      s.pulse += dt * 4;
-      s.life -= dt;
-      if (s.y < s.targetY) s.y = Math.min(s.targetY, s.y + 75 * dt);
-      if (s.textObj) {
-        s.textObj.setPosition(s.x, s.y);
-        const scale = 1 + Math.sin(s.pulse) * 0.08;
-        s.textObj.setScale(scale);
-        if (s.life <= 0) {
-          s.textObj.destroy();
-        }
-      }
-    }
-    this.gameState.suns = this.gameState.suns.filter(s => s.life > 0);
+  upgradeDefenderHealth(defender) {
+    return this.defenderSystem.upgradeDefenderHealth(defender);
   }
 
-  spawnEnemy(type, row) {
-    const base = ENEMIES[type];
-    const mode = MODES[this.gameState.mode];
-    const endlessGrowth = this.gameState.mode === "endless" ? Math.max(0, this.gameState.wave - 3) : 0;
-    const waveHpScale = 1 + (this.gameState.wave - 1) * (this.gameState.mode === "endless" ? .16 : .13);
-    const hpScale = (base.boss ? 1 + endlessGrowth * .12 : waveHpScale) * mode.enemyHp;
-    const speedScale = mode.enemySpeed * (1 + Math.min(.3, endlessGrowth * .015));
-    const damageScale = mode.enemyDamage * (1 + Math.min(.5, endlessGrowth * .025));
-
-    const x = this.W + 42;
-    const y = this.GRID_Y + row * this.CELL_H + this.CELL_H / 2;
-
-    const enemy = {
-      ...base, type, row, x, y,
-      hp: Math.round(base.hp * hpScale), maxHp: Math.round(base.hp * hpScale),
-      shield: Math.round((base.shield || 0) * hpScale), maxShield: Math.round((base.shield || 0) * hpScale),
-      speed: base.speed * speedScale, damage: Math.round(base.damage * damageScale),
-      attackTimer: 0, hitFlash: 0, burnUntil: 0, burnTick: 0, wobble: Math.random() * 6
-    };
-
-    enemy.textObj = this.add.text(x, y, base.icon, { fontSize: `${46 * base.scale}px` }).setOrigin(0.5);
-    this.gameState.enemies.push(enemy);
-
-    if (type === "candle") {
-      this.triggerShake(12, 450);
-      this.beep(130, .4, "sawtooth");
-    }
-  }
-
-  updateDefenders(dt) {
-    const boosted = this.gameState.time < this.gameState.attackBoostUntil;
-    for (const defender of this.gameState.defenders) {
-      const slowed = defender.slowUntil > this.gameState.time;
-      defender.cooldownLeft -= dt * (boosted ? 2 : 1) * (slowed ? .6 : 1);
-
-      if (defender.type === "watermelon" && defender.cooldownLeft <= 0) {
-        const prey = this.gameState.enemies
-          .filter(enemy => enemy.row === defender.row && enemy.hp > 0 && !enemy.removed && Math.abs(enemy.x - (defender.x + 15)) < 65 && enemy.x >= defender.x - 15)
-          .sort((a, b) => a.x - b.x)[0];
-        if (prey) {
-          defender.cooldownLeft = defender.cooldown;
-          this.beep(160, .22, "sawtooth", .08);
-          this.triggerShake(6, 200);
-          this.burst(defender.x + 25, defender.y, "#ff3b5c", 18);
-          if (prey.boss) {
-            const bossDamage = Math.round(450 * (1 + defender.powerLevel * .2));
-            this.damageEnemy(prey, bossDamage, "#ff3b5c", defender.type);
-            this.spawnFloater(prey.x, prey.y - 45, `NHAM! -${bossDamage}💥`, "#ff3b5c", 1.25);
-          } else {
-            const totalHp = prey.hp + (prey.shield || 0);
-            this.damageEnemy(prey, totalHp, "#ff3b5c", defender.type);
-            this.spawnFloater(defender.x + 20, defender.y - 35, "NHAM! 🍉", "#ff3b5c", 1.2);
-          }
-        }
-        continue;
-      }
-
-      const target = this.gameState.enemies
-        .filter(enemy => enemy.row === defender.row && enemy.x > defender.x - 5)
-        .sort((a, b) => a.x - b.x)[0];
-      if (target && defender.damage > 0 && defender.cooldownLeft <= 0) {
-        defender.cooldownLeft = defender.cooldown;
-        this.spawnProjectile(defender);
-        this.beep(defender.type === "pepper" ? 260 : 520, .025, "square", .025);
-      }
-    }
-  }
-
-  spawnProjectile(defender) {
-    const p = {
-      x: defender.x + 25,
-      y: defender.y - 3,
-      row: defender.row,
-      speed: defender.type === "carrot" ? 360 : 280,
-      damage: defender.damage,
-      color: defender.color,
-      icon: defender.projectile,
-      area: defender.area,
-      burn: defender.burn,
-      sourceType: defender.type,
-      removed: false
-    };
-    p.textObj = this.add.text(p.x, p.y, p.icon, { fontSize: "24px" }).setOrigin(0.5);
-    this.gameState.projectiles.push(p);
-  }
-
-  updateProjectiles(dt) {
-    for (const p of this.gameState.projectiles) {
-      p.x += p.speed * dt;
-      if (p.textObj) p.textObj.setPosition(p.x, p.y);
-
-      if (p.sourceType === "pepper" && Math.random() < 0.4) {
-        this.burst(p.x - 10, p.y, "#ff6b4a", 1);
-      }
-
-      const hit = this.gameState.enemies.filter(e => e.row === p.row && e.hp > 0 && Math.abs(e.x - p.x) < 32).sort((a, b) => a.x - b.x)[0];
-      if (!hit) continue;
-
-      if (p.area) {
-        for (const enemy of this.gameState.enemies) {
-          const distance = Math.hypot(enemy.x - hit.x, (enemy.row - hit.row) * this.CELL_H);
-          if (distance < 125) this.damageEnemy(enemy, p.damage, "#f94f37", p.sourceType);
-        }
-        this.burst(hit.x, hit.y, "#ff5638", 22);
-        this.triggerShake(8, 250);
-        this.beep(95, .12, "sawtooth", .06);
-      } else {
-        this.damageEnemy(hit, p.damage, p.color, p.sourceType);
-        if (p.burn) {
-          hit.burnUntil = this.gameState.time + 3;
-          hit.burnTick = 0;
-          hit.burnDamage = 7;
-          hit.burnSource = p.sourceType;
-        }
-        this.burst(hit.x, hit.y, p.color, 8);
-      }
-      p.removed = true;
-      if (p.textObj) p.textObj.destroy();
-    }
-    this.gameState.projectiles = this.gameState.projectiles.filter(p => !p.removed && p.x < this.W + 30);
-  }
-
-  damageEnemy(enemy, amount, color, sourceType = null) {
-    if (enemy.hp <= 0) return;
-    let remainingDamage = amount;
-    let absorbedDamage = 0;
-    if (enemy.shield > 0) {
-      absorbedDamage = Math.min(enemy.shield, remainingDamage);
-      enemy.shield -= absorbedDamage;
-      remainingDamage -= absorbedDamage;
-      if (enemy.shield <= 0) {
-        this.burst(enemy.x, enemy.y, "#72d9ff", 20);
-        this.spawnFloater(enemy.x, enemy.y - 45, "ESCUDO QUEBRADO! 🛡️", "#72d9ff", 1.15);
-      }
-    }
-
-    const actualDamage = absorbedDamage + Math.min(enemy.hp, remainingDamage);
-    enemy.hp -= remainingDamage;
-    this.gameState.stats.damageDealt += actualDamage;
-    if (sourceType) this.gameState.damageByType[sourceType] = (this.gameState.damageByType[sourceType] || 0) + actualDamage;
-
-    const isBigHit = actualDamage >= 70;
-    const floatText = isBigHit ? `-${Math.round(actualDamage)}💥` : `-${Math.round(actualDamage)}`;
-    this.spawnFloater(enemy.x, enemy.y - 30, floatText, absorbedDamage > 0 ? "#72d9ff" : color, isBigHit ? 1.25 : 1);
-
-    if (enemy.hp <= 0) {
-      this.gameState.stats.enemiesDefeated += 1;
-      this.gameState.waveResolved += 1;
-      this.gameState.combo = this.gameState.time <= this.gameState.comboExpiresAt ? this.gameState.combo + 1 : 1;
-      this.gameState.comboExpiresAt = this.gameState.time + 4;
-      this.gameState.stats.maxCombo = Math.max(this.gameState.stats.maxCombo, this.gameState.combo);
-
-      const mode = MODES[this.gameState.mode];
-      const endlessMultiplier = this.gameState.mode === "endless" ? 1 + (this.gameState.wave - 1) * .03 : 1;
-      const comboMultiplier = 1 + (this.gameState.combo - 1) * .25;
-
-      this.gameState.score += Math.round(enemy.reward * 10 * mode.scoreMultiplier * endlessMultiplier * comboMultiplier);
-      this.gameState.sun += enemy.reward;
-      enemy.removed = true;
-
-      if (enemy.textObj) enemy.textObj.destroy();
-      this.burst(enemy.x, enemy.y, "#ffc44d", enemy.boss ? 50 : 18);
-      this.beep(enemy.boss ? 100 : 180, enemy.boss ? .5 : .08, "triangle", .06);
-      if (enemy.boss) this.triggerShake(15, 450);
-    }
-  }
-
-  updateEnemies(dt) {
-    for (const enemy of this.gameState.enemies) {
-      if (enemy.hp <= 0 || enemy.removed) continue;
-
-      const blocker = this.gameState.defenders.find(d => d.row === enemy.row && Math.abs(enemy.x - d.x) < 44 && d.hp > 0);
-
-      if (blocker) {
-        enemy.attackTimer = (enemy.attackTimer || 0) - dt;
-        if (enemy.attackTimer <= 0) {
-          enemy.attackTimer = enemy.attackRate || 1;
-          const damage = enemy.damage || 18;
-          blocker.hp -= damage;
-
-          this.burst(blocker.x + 10, blocker.y, "#fff0a8", 6);
-          this.spawnFloater(blocker.x, blocker.y - 28, `-${damage}💔`, "#ff4d4d", 1.1);
-          this.beep(220, .05, "sawtooth", .03);
-
-          if (blocker.hp <= 0) {
-            this.spawnFloater(blocker.x, blocker.y - 35, "Derrotado! 💔", "#ef476f", 1.2);
-            if (blocker.textObj) blocker.textObj.destroy();
-            this.burst(blocker.x, blocker.y, "#ef476f", 18);
-          }
-        }
-      } else {
-        enemy.x -= enemy.speed * dt;
-        if (enemy.textObj) enemy.textObj.setPosition(enemy.x, enemy.y);
-      }
-
-      if (enemy.x < this.HOUSE_X) {
-        this.gameState.houseHp -= enemy.boss ? 450 : Math.max(80, enemy.maxHp * .5);
-        this.gameState.houseDamagedThisWave = true;
-        this.gameState.waveResolved += 1;
-        enemy.removed = true;
-        if (enemy.textObj) enemy.textObj.destroy();
-        this.burst(this.HOUSE_X, enemy.y, "#ef476f", 25);
-        this.triggerShake(9, 280);
-        this.beep(85, .25, "sawtooth", .08);
-      }
-    }
-    this.gameState.defenders = this.gameState.defenders.filter(d => d.hp > 0);
-    this.gameState.enemies = this.gameState.enemies.filter(e => e.hp > 0 && !e.removed);
-  }
-
-  updateParticles(dt) {
-    for (const p of this.gameState.particles) {
-      p.x += p.vx * dt;
-      p.y += p.vy * dt;
-      p.life -= dt;
-      if (p.gfx) {
-        p.gfx.setPosition(p.x, p.y);
-        p.gfx.setAlpha(Math.max(0, p.life * 1.5));
-        if (p.life <= 0) p.gfx.destroy();
-      }
-    }
-    this.gameState.particles = this.gameState.particles.filter(p => p.life > 0);
-  }
-
-  updateFloaters(dt) {
-    for (const f of this.gameState.floaters) {
-      f.y -= 30 * dt;
-      f.life -= dt;
-      if (f.textObj) {
-        f.textObj.setPosition(f.x, f.y);
-        f.textObj.setAlpha(Math.min(1, f.life * 2));
-        if (f.life <= 0) f.textObj.destroy();
-      }
-    }
-    this.gameState.floaters = this.gameState.floaters.filter(f => f.life > 0);
-  }
-
-  burst(x, y, colorHex, count) {
-    const color = Phaser.Display.Color.HexStringToColor(colorHex).color;
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = this.random(25, 130);
-      const gfx = this.add.graphics();
-      gfx.fillStyle(color, 1);
-      gfx.fillCircle(0, 0, this.random(2, 6));
-      this.gameState.particles.push({
-        x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, life: this.random(.3, .8), gfx
-      });
-    }
-  }
-
-  spawnFloater(x, y, text, color, scale = 1) {
-    const textObj = this.add.text(x, y, text, {
-      fontFamily: "Trebuchet MS",
-      fontSize: "18px",
-      fontStyle: "bold",
-      color: color,
-      stroke: "#10251c",
-      strokeThickness: 4
-    }).setOrigin(0.5).setScale(scale);
-    this.gameState.floaters.push({ x, y, text, color, life: 0.8, textObj });
-  }
-
-  triggerShake(intensity = 8, duration = 250) {
-    this.cameras.main.shake(duration, intensity / 1000);
+  useAbility(defender) {
+    return this.defenderSystem.useAbility(defender);
   }
 
   handlePointerDown(x, y) {
@@ -547,8 +405,8 @@ class MainScene extends Phaser.Scene {
       this.gameState.stats.sunCollected += sun.value;
       sun.life = 0;
       if (sun.textObj) sun.textObj.destroy();
-      this.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️`, "#fff06a", 1.2);
-      this.beep(760, .08, "sine", .04);
+      this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️`, "#fff06a", 1.2);
+      this.soundManager.beep(760, 0.08, "sine", 0.04);
       return;
     }
 
@@ -557,17 +415,20 @@ class MainScene extends Phaser.Scene {
     if (col < 0 || col >= this.COLS || row < 0 || row >= this.ROWS) return;
 
     const existing = this.gameState.defenders.find(d => d.row === row && d.col === col);
+    
     if (this.gameState.shovel) {
       if (existing) {
-        const refund = Math.floor(existing.invested * .5);
+        const refund = Math.floor(existing.invested * 0.5);
         this.gameState.sun += refund;
         this.gameState.stats.refunded += refund;
-        this.burst(existing.x, existing.y, "#b9e4a3", 12);
-        this.spawnFloater(existing.x, existing.y - 20, `+${refund} ☀️`, "#b9e4a3", 1.2);
+        this.effectsSystem.burst(existing.x, existing.y, "#b9e4a3", 16);
+        this.effectsSystem.spawnFloater(existing.x, existing.y - 20, `+${refund} ☀️`, "#b9e4a3", 1.25);
+        this.soundManager.beep(420, 0.1, "triangle", 0.05);
         if (existing.textObj) existing.textObj.destroy();
         this.gameState.defenders = this.gameState.defenders.filter(d => d !== existing);
       }
       this.gameState.shovel = false;
+      if (window.onPhaserResetShovel) window.onPhaserResetShovel();
       return;
     }
 
@@ -577,47 +438,11 @@ class MainScene extends Phaser.Scene {
     }
 
     if (this.gameState.selected) {
-      this.placeDefender(col, row, this.gameState.selected);
+      this.defenderSystem.placeDefender(col, row, this.gameState.selected);
     }
   }
 
-  placeDefender(col, row, type) {
-    const config = DEFENDERS[type];
-    if (this.gameState.sun < config.cost) return;
-
-    this.gameState.sun -= config.cost;
-    const x = this.GRID_X + col * this.CELL_W + this.CELL_W / 2;
-    const y = this.GRID_Y + row * this.CELL_H + this.CELL_H / 2;
-
-    const defender = {
-      ...config, type, row, col, x, y,
-      maxHp: config.hp, cooldownLeft: .2, hitFlash: 0, slowUntil: 0, guardUntil: 0, abilityReadyAt: 0, sway: Math.random() * 5,
-      powerLevel: 0, healthLevel: 0, armor: 0, invested: config.cost
-    };
-
-    defender.textObj = this.add.text(x, y, config.icon, { fontSize: "48px" }).setOrigin(0.5);
-    this.gameState.defenders.push(defender);
-    this.gameState.stats.defendersPlaced += 1;
-
-    this.burst(x, y, "#d8ff91", 14);
-    this.beep(330, .07, "sine", .04);
+  random(min, max) {
+    return min + Math.random() * (max - min);
   }
-
-  beep(frequency, duration, type = "sine", volume = .035) {
-    try {
-      this.audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = this.audioCtx.createOscillator();
-      const gain = this.audioCtx.createGain();
-      oscillator.type = type;
-      oscillator.frequency.value = frequency;
-      gain.gain.setValueAtTime(volume, this.audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(.001, this.audioCtx.currentTime + duration);
-      oscillator.connect(gain);
-      gain.connect(this.audioCtx.destination);
-      oscillator.start();
-      oscillator.stop(this.audioCtx.currentTime + duration);
-    } catch (_) { /* som é opcional */ }
-  }
-
-  random(min, max) { return min + Math.random() * (max - min); }
 }

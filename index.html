@@ -11,9 +11,12 @@
 <body>
   <main class="game-shell">
     <header class="hero">
-      <div>
-        <p class="eyebrow">Healthy Family Home apresenta</p>
-        <h1>Plants &amp; Vegetables <span>vs Candle</span></h1>
+      <div class="hero-brand">
+        <img src="assets/levi_avatar.jpg" alt="Levi Esperto" class="hero-avatar">
+        <div>
+          <p class="eyebrow">Healthy Family Home apresenta</p>
+          <h1>Plants &amp; Vegetables <span>vs Candle</span></h1>
+        </div>
       </div>
       <button id="soundButton" class="icon-button" type="button" aria-label="Desativar som" aria-pressed="false">🔊</button>
     </header>
@@ -36,26 +39,26 @@
     </section>
 
     <section class="defender-tray" aria-label="Escolha um defensor">
-      <button class="defender-card" data-defender="corn" type="button">
-        <span class="card-icon">🌽</span><span class="card-copy"><strong>Milho</strong><small>50 ☀️ · tiro certeiro</small></span>
+      <button class="defender-card" data-defender="corn" type="button" title="Atalho: Tecla 1">
+        <span class="card-icon">🌽</span><span class="card-copy"><strong>[1] Milho</strong><small>50 ☀️ · tiro</small></span>
       </button>
-      <button class="defender-card" data-defender="carrot" type="button">
-        <span class="card-icon">🥕</span><span class="card-copy"><strong>Cenoura</strong><small>75 ☀️ · tiro rápido</small></span>
+      <button class="defender-card" data-defender="carrot" type="button" title="Atalho: Tecla 2">
+        <span class="card-icon">🥕</span><span class="card-copy"><strong>[2] Cenoura</strong><small>75 ☀️ · rápido</small></span>
       </button>
-      <button class="defender-card" data-defender="broccoli" type="button">
-        <span class="card-icon">🥦</span><span class="card-copy"><strong>Brócolis</strong><small>100 ☀️ · escudo</small></span>
+      <button class="defender-card" data-defender="broccoli" type="button" title="Atalho: Tecla 3">
+        <span class="card-icon">🥦</span><span class="card-copy"><strong>[3] Brócolis</strong><small>100 ☀️ · escudo</small></span>
       </button>
-      <button class="defender-card locked" data-defender="pepper" type="button" aria-label="Pimenta bloqueada; complete o hábito de comer vegetais">
-        <span class="card-icon">🌶️</span><span class="card-copy"><strong>Pimenta 🔒</strong><small>125 ☀️ · fogo</small></span>
+      <button class="defender-card locked" data-defender="pepper" type="button" title="Atalho: Tecla 4" aria-label="Pimenta bloqueada; complete o hábito de comer vegetais">
+        <span class="card-icon">🌶️</span><span class="card-copy"><strong>[4] Pimenta 🔒</strong><small>125 ☀️ · fogo</small></span>
       </button>
-      <button class="defender-card" data-defender="tomato" type="button">
-        <span class="card-icon">🍅</span><span class="card-copy"><strong>Tomate</strong><small>150 ☀️ · área</small></span>
+      <button class="defender-card" data-defender="tomato" type="button" title="Atalho: Tecla 5">
+        <span class="card-icon">🍅</span><span class="card-copy"><strong>[5] Tomate</strong><small>150 ☀️ · área</small></span>
       </button>
-      <button class="defender-card" data-defender="watermelon" type="button">
-        <span class="card-icon">🍉</span><span class="card-copy"><strong>Melancia</strong><small>175 ☀️ · engole doces</small></span>
+      <button class="defender-card" data-defender="watermelon" type="button" title="Atalho: Tecla 6">
+        <span class="card-icon">🍉</span><span class="card-copy"><strong>[6] Melancia</strong><small>175 ☀️ · engole</small></span>
       </button>
-      <button id="shovelButton" class="defender-card shovel" type="button">
-        <span class="card-icon">🪏</span><span class="card-copy"><strong>Pá</strong><small>remover defensor</small></span>
+      <button id="shovelButton" class="defender-card shovel" type="button" title="Atalho: Tecla P ou X">
+        <span class="card-icon">🪏</span><span class="card-copy"><strong>[P] Pá</strong><small>remover</small></span>
       </button>
     </section>
 
@@ -69,21 +72,20 @@
           <small id="waveProgressText">0 de 0 resolvidos</small>
         </div>
       </div>
-      <button id="startWaveButton" class="start-wave-button" type="button">Iniciar onda</button>
+      <button id="startWaveButton" class="start-wave-button" type="button">Iniciar onda (Espaço)</button>
     </section>
 
-    <section class="board-wrap">
-      <canvas id="gameCanvas" width="1000" height="620" aria-label="Campo do jogo"></canvas>
+    <section class="board-wrap" id="gameContainer">
       <div id="gameOverlay" class="overlay visible">
         <div class="overlay-card">
-          <span class="overlay-mascot">🥕🌽🥦</span>
+          <img src="assets/levi_avatar.jpg" alt="Levi Esperto" class="overlay-mascot-img">
           <h2 id="overlayTitle">Defenda a Healthy Family Home!</h2>
           <p id="overlayText">Posicione vegetais, colete sóis e impeça o exército de doces da Vela Mestra.</p>
           <fieldset id="modeSelector" class="mode-selector">
             <legend>Escolha o modo</legend>
             <div>
               <button data-mode="easy" type="button"><strong>🌱 Tranquilo</strong><small>Mais energia e resistência</small></button>
-              <button data-mode="normal" type="button"><strong>🥕 Normal</strong><small>A experiência equilibrada</small></button>
+              <button data-mode="normal" type="button" aria-pressed="true"><strong>🥕 Normal</strong><small>A experiência equilibrada</small></button>
               <button data-mode="hard" type="button"><strong>🔥 Desafio</strong><small>Doces mais fortes e rápidos</small></button>
               <button data-mode="endless" type="button"><strong>♾️ Infinito</strong><small>Ondas sem limite</small></button>
             </div>
@@ -92,7 +94,10 @@
             <div id="resultStars" class="result-stars" aria-label="Estrelas conquistadas"></div>
             <div id="resultStats" class="result-stats"></div>
           </div>
-          <button id="overlayButton" class="primary-button" type="button">Começar aventura</button>
+          <div class="overlay-actions">
+            <button id="overlayButton" class="primary-button" type="button">Começar aventura</button>
+            <button id="restartGameButton" class="secondary-button" type="button" hidden>🔄 Recomeçar</button>
+          </div>
         </div>
       </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -121,9 +126,12 @@
 
     <section class="habit-panel">
       <div class="habit-heading">
-        <div>
-          <p class="eyebrow">Missões do mundo real</p>
-          <h2>Bônus do Levi Esperto</h2>
+        <div class="habit-brand">
+          <img src="assets/levi_avatar.jpg" alt="Levi Esperto" class="habit-avatar">
+          <div>
+            <p class="eyebrow">Missões do mundo real</p>
+            <h2>Bônus do Levi Esperto</h2>
+          </div>
         </div>
         <p>Toque ao concluir um hábito. Cada bônus pode ser usado uma vez por partida.</p>
       </div>
@@ -144,12 +152,19 @@
     </details>
 
     <footer>
-      <p><strong>Como jogar:</strong> escolha um vegetal (teclas 1-6) e toque na grade. Toque em um defensor colocado para melhorá-lo e usar sua habilidade. Colete sóis, ajuste a velocidade e use a pá para reorganizar a defesa.</p>
+      <p><strong>Como jogar:</strong> escolha um vegetal (teclas 1-6) e toque na grade. Toque em um defensor colocado para melhorá-lo e usar sua habilidade. Use a Pá (tecla P ou X) para remover e recuperar 50% dos recursos. Pressione Espaço para iniciar a onda ou pausar.</p>
     </footer>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/scenes/MainScene.js"></script>
-  <script src="js/main.js"></script>
+  <script src="js/config.js?v=4"></script>
+  <script src="js/utils/waveGenerator.js?v=4"></script>
+  <script src="js/utils/soundManager.js?v=4"></script>
+  <script src="js/entities/EffectsSystem.js?v=4"></script>
+  <script src="js/entities/ProjectileSystem.js?v=4"></script>
+  <script src="js/entities/DefenderSystem.js?v=4"></script>
+  <script src="js/entities/EnemySystem.js?v=4"></script>
+  <script src="js/ui/uiManager.js?v=4"></script>
+  <script src="js/scenes/MainScene.js?v=4"></script>
+  <script src="js/main.js?v=4"></script>
 </body>
 </html>

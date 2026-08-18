@@ -1,5 +1,7 @@
 "use strict";
 
+const CAMPAIGN_MAX_WAVES = 15;
+
 const STORAGE_KEYS = {
   bestScore: "healthy-family-home.best-score",
   tutorialSeen: "healthy-family-home.tutorial-seen",
@@ -24,7 +26,9 @@ const ENEMIES = {
   chocolate: { name: "Chocolate Blindado", icon: "🍫", hp: 300, speed: 14, damage: 28, attackRate: 1.1, reward: 50, scale: 1.1, shield: 150, preview: "escudo", description: "Possui um escudo que precisa ser quebrado primeiro." },
   soda: { name: "Refrigerante Energético", icon: "🥤", hp: 180, speed: 22, damage: 18, attackRate: 1, reward: 40, scale: 1.05, aura: true, preview: "acelera aliados", description: "Acelera doces próximos na mesma linha." },
   gum: { name: "Chiclete Pegajoso", icon: "🟣", hp: 190, speed: 20, damage: 20, attackRate: .9, reward: 45, scale: 1, sticky: true, preview: "causa lentidão", description: "Desacelera o ataque do defensor atingido." },
-  candle: { name: "Vela Mestra", icon: "🕯️", hp: 2000, speed: 8, damage: 55, attackRate: 1.05, reward: 500, scale: 1.55, boss: true, description: "Chefe com enorme vida e dano." }
+  candle: { name: "Vela Mestra (Chefe 1)", icon: "🕯️", hp: 2200, speed: 8, damage: 55, attackRate: 1.05, reward: 500, scale: 1.55, boss: true, description: "Chefe 1 da Onda 5: Enorme vida e dano violento." },
+  gum_boss: { name: "Chiclete Gigante Grudento (Chefe 2)", icon: "🟣", hp: 3800, speed: 7, damage: 65, attackRate: .95, reward: 750, scale: 1.65, sticky: true, boss: true, description: "Chefe 2 da Onda 10: Lança bombas de chiclete grudento desacelerando os vegetais." },
+  lollipop_boss: { name: "Pirulito Giratório Supremo (Chefe 3)", icon: "🍭", hp: 5800, speed: 9, damage: 80, attackRate: .85, reward: 1200, scale: 1.7, boss: true, description: "Chefe 3 da Onda 15: Gira furiosamente e spamma tempestades de espinhos." }
 };
 
 const MODES = {
@@ -40,50 +44,6 @@ const BIOMES = [
   { name: "Floresta Noturna", icon: "🌌", skyTop: 0x2b2d42, skyBottom: 0x1d3557, gridColor1: 0x3d5a80, gridColor2: 0x293241, bushColor: 0x000814 },
   { name: "Vulcão de Caramelo", icon: "🌋", skyTop: 0x6b705c, skyBottom: 0xbb3e03, gridColor1: 0xae2012, gridColor2: 0x9b2226, bushColor: 0x000000 }
 ];
-
-function mulberry32(a) {
-  return function() {
-    let t = a += 0x6D2B79F5;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function getBiomeForWave(waveNumber) {
-  const index = Math.floor((waveNumber - 1) / 4) % BIOMES.length;
-  return BIOMES[index];
-}
-
-function generateProceduralWave(waveNumber, seed = 582914) {
-  const rand = mulberry32(seed + waveNumber * 10007);
-  const list = [];
-  const add = (at, type, row) => list.push({ at, type, row, spawned: false });
-
-  const isBossWave = waveNumber % 5 === 0;
-  const enemyPool = ["gummy", "marshmallow", "lollipop"];
-  if (waveNumber >= 2) enemyPool.push("soda");
-  if (waveNumber >= 3) enemyPool.push("cupcake", "gum");
-  if (waveNumber >= 4) enemyPool.push("chocolate");
-
-  const count = Math.min(6 + Math.floor(waveNumber * 2.5), 32);
-  const spacing = Math.max(0.6, 2.2 - waveNumber * 0.06);
-
-  for (let i = 0; i < count; i++) {
-    const at = 1.5 + i * spacing + rand() * 0.4;
-    const typeIndex = Math.floor(rand() * enemyPool.length);
-    const type = enemyPool[typeIndex];
-    const row = Math.floor(rand() * 5);
-    add(at, type, row);
-  }
-
-  if (isBossWave) {
-    const bossRow = Math.floor(rand() * 5);
-    add(2.0 + count * spacing, "candle", bossRow);
-  }
-
-  return list.sort((a, b) => a.at - b.at);
-}
 
 function readNumber(key) {
   try { return Math.max(0, Number.parseInt(localStorage.getItem(key), 10) || 0); }
