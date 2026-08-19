@@ -25,7 +25,9 @@ class EnemySystem {
       attackTimer: 0, hitFlash: 0, burnUntil: 0, burnTick: 0, wobble: Math.random() * 6
     };
 
-    enemy.textObj = this.scene.add.text(x, y, base.icon, { fontSize: `${46 * base.scale}px` }).setOrigin(0.5);
+    enemy.shadowSprite = this.scene.add.sprite(x, y + 22, "tex_shadow").setOrigin(0.5).setScale(base.scale || 1);
+    enemy.sprite = this.scene.add.sprite(x, y - 4, "tex_" + type).setOrigin(0.5).setScale(base.scale || 1);
+    enemy.textObj = enemy.sprite;
     this.scene.gameState.enemies.push(enemy);
 
     if (type === "candle") {
@@ -73,6 +75,11 @@ class EnemySystem {
       this.scene.gameState.comboExpiresAt = this.scene.gameState.time + 4;
       this.scene.gameState.stats.maxCombo = Math.max(this.scene.gameState.stats.maxCombo, this.scene.gameState.combo);
 
+      if (this.scene.gameState.combo >= 5 && this.scene.gameState.time > (this.scene.gameState.frenzyUntil || 0)) {
+        this.scene.gameState.frenzyUntil = this.scene.gameState.time + 6;
+        this.scene.effectsSystem.spawnFloater(500, 160, "🌱🔥 FRENESI VERDE ATIVO!", "#ff9f1c", 1.4);
+      }
+
       const mode = MODES[this.scene.gameState.mode];
       const endlessMultiplier = this.scene.gameState.mode === "endless" ? 1 + (this.scene.gameState.wave - 1) * 0.03 : 1;
       const comboMultiplier = 1 + (this.scene.gameState.combo - 1) * 0.25;
@@ -81,7 +88,8 @@ class EnemySystem {
       this.scene.gameState.sun += enemy.reward;
       enemy.removed = true;
 
-      if (enemy.textObj) enemy.textObj.destroy();
+      if (enemy.sprite) enemy.sprite.destroy();
+      if (enemy.shadowSprite) enemy.shadowSprite.destroy();
       this.scene.effectsSystem.burst(enemy.x, enemy.y, "#ffc44d", enemy.boss ? 50 : 18);
       this.scene.soundManager.beep(enemy.boss ? 100 : 180, enemy.boss ? 0.5 : 0.08, "triangle", 0.06);
       if (enemy.boss) this.scene.effectsSystem.triggerShake(15, 450);
@@ -154,6 +162,35 @@ class EnemySystem {
       const blocker = this.scene.gameState.defenders.find(d => d.row === enemy.row && Math.abs(enemy.x - d.x) < 44 && d.hp > 0);
 
       if (blocker) {
+        if (blocker.type === "potato" && blocker.armed) {
+          blocker.hp = 0;
+          if (blocker.textObj) blocker.textObj.destroy();
+          this.scene.effectsSystem.burst(blocker.x, blocker.y, "#ff5638", 30);
+          this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, "BOOM! 💥 180", "#ff5638", 1.4);
+          this.scene.effectsSystem.triggerShake(12, 300);
+          this.scene.soundManager.beep(110, 0.35, "sawtooth", 0.08);
+
+          for (const e of this.scene.gameState.enemies) {
+            if (e.hp > 0 && !e.removed && Math.hypot(e.x - blocker.x, (e.row - blocker.row) * this.scene.CELL_H) < 120) {
+              this.damageEnemy(e, 180, "#ff5638", "potato");
+            }
+          }
+          continue;
+        }
+
+        if (blocker.type === "garlic") {
+          const newRow = enemy.row === 0 ? 1 : (enemy.row === 4 ? 3 : (Math.random() < 0.5 ? enemy.row - 1 : enemy.row + 1));
+          enemy.row = newRow;
+          enemy.y = this.scene.GRID_Y + newRow * this.scene.CELL_H + this.scene.CELL_H / 2;
+          if (enemy.textObj) enemy.textObj.setY(enemy.y);
+          this.scene.effectsSystem.burst(enemy.x, enemy.y, "#f5f5dc", 14);
+          this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 30, "🤢 REPELIDO!", "#f5f5dc", 1.15);
+          this.scene.soundManager.beep(300, 0.1, "sine", 0.04);
+          blocker.hp -= 15;
+          if (blocker.hp <= 0 && blocker.textObj) blocker.textObj.destroy();
+          continue;
+        }
+
         enemy.attackTimer = (enemy.attackTimer || 0) - dt;
         if (enemy.attackTimer <= 0) {
           enemy.attackTimer = enemy.attackRate || 1;
@@ -178,7 +215,21 @@ class EnemySystem {
       } else {
         const moveSpeed = enemy.speed * (sodaRows.has(enemy.row) && enemy.type !== "soda" ? 1.4 : 1);
         enemy.x -= moveSpeed * dt;
-        if (enemy.textObj) enemy.textObj.setPosition(enemy.x, enemy.y);
+        if (enemy.sprite) enemy.sprite.setPosition(enemy.x, enemy.y);
+        if (enemy.shadowSprite) enemy.shadowSprite.setPosition(enemy.x, enemy.y + 22);
+
+        if ((enemy.type === "lollipop" || enemy.type === "lollipop_boss") && enemy.sprite) {
+          enemy.sprite.angle += (enemy.type === "lollipop_boss" ? 360 : 200) * dt;
+        }
+
+        if ((enemy.type === "gummy" || enemy.type === "marshmallow") && enemy.sprite) {
+          const baseScale = enemy.scale || 1;
+          enemy.sprite.setScale(baseScale, baseScale + Math.sin(this.scene.gameState.time * 8 + enemy.wobble) * 0.08);
+        }
+
+        if (enemy.type === "candle" && Math.random() < 0.35) {
+          this.scene.effectsSystem.burst(enemy.x, enemy.y - 28, "#ff3d00", 1);
+        }
       }
 
       if (enemy.x < this.scene.HOUSE_X) {
@@ -186,7 +237,8 @@ class EnemySystem {
         this.scene.gameState.houseDamagedThisWave = true;
         this.scene.gameState.waveResolved += 1;
         enemy.removed = true;
-        if (enemy.textObj) enemy.textObj.destroy();
+        if (enemy.sprite) enemy.sprite.destroy();
+        if (enemy.shadowSprite) enemy.shadowSprite.destroy();
         this.scene.effectsSystem.burst(this.scene.HOUSE_X, enemy.y, "#ef476f", 25);
         this.scene.effectsSystem.triggerShake(9, 280);
         this.scene.soundManager.beep(85, 0.25, "sawtooth", 0.08);

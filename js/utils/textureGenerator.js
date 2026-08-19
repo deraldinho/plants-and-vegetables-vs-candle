@@ -1,0 +1,523 @@
+"use strict";
+
+class TextureGenerator {
+  static generateAll(scene) {
+    if (scene.textures.exists("tex_shadow")) return;
+
+    this.createShadowTexture(scene);
+
+    // Defenders
+    this.createPotatoTexture(scene, false);
+    this.createPotatoTexture(scene, true);
+    this.createGarlicTexture(scene);
+    this.createCornTexture(scene);
+    this.createCarrotTexture(scene);
+    this.createBroccoliTexture(scene);
+    this.createPepperTexture(scene);
+    this.createTomatoTexture(scene);
+    this.createWatermelonTexture(scene);
+
+    // Enemies
+    this.createGummyTexture(scene);
+    this.createLollipopTexture(scene);
+    this.createCupcakeTexture(scene);
+    this.createMarshmallowTexture(scene);
+    this.createChocolateTexture(scene);
+    this.createSodaTexture(scene);
+    this.createGumTexture(scene);
+    this.createCandleTexture(scene);
+
+    // Bosses
+    this.createGumBossTexture(scene);
+    this.createLollipopBossTexture(scene);
+  }
+
+  static createShadowTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x000000, 0.28);
+    g.fillEllipse(32, 16, 28, 12);
+    g.generateTexture("tex_shadow", 64, 32);
+    g.destroy();
+  }
+
+  // --- DEFENDERS ---
+
+  static createPotatoTexture(scene, armed = false) {
+    const key = armed ? "tex_potato_armed" : "tex_potato";
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Potato Body
+    g.fillStyle(0xd2b48c, 1);
+    g.fillRoundedRect(8, 12, 48, 44, 18);
+    g.fillStyle(0xbc986a, 1);
+    g.fillCircle(20, 24, 3);
+    g.fillCircle(44, 38, 4);
+    g.fillCircle(30, 48, 3);
+
+    // Eyes
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(24, 30, 4);
+    g.fillCircle(40, 30, 4);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(23, 29, 1.5);
+    g.fillCircle(39, 29, 1.5);
+
+    if (armed) {
+      // Fuse & Bomb Light
+      g.lineStyle(3, 0x5c4033, 1);
+      g.lineBetween(32, 12, 38, 6);
+      g.lineBetween(38, 6, 44, 2);
+
+      g.fillStyle(0xff4500, 1);
+      g.fillCircle(45, 2, 5);
+      g.fillStyle(0xffd700, 1);
+      g.fillCircle(45, 2, 2.5);
+    }
+
+    g.generateTexture(key, 64, 64);
+    g.destroy();
+  }
+
+  static createGarlicTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Bulb Base
+    g.fillStyle(0xf8f8f0, 1);
+    g.fillCircle(32, 38, 22);
+    g.fillStyle(0xe8e8d8, 1);
+    g.fillTriangle(32, 8, 14, 34, 50, 34);
+
+    // Ridges
+    g.lineStyle(1.5, 0xd0d0c0, 0.8);
+    g.strokeCircle(32, 38, 22);
+
+    // Eyes & Blush
+    g.fillStyle(0xffb6c1, 0.6);
+    g.fillCircle(20, 42, 5);
+    g.fillCircle(44, 42, 5);
+
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(24, 36, 3.5);
+    g.fillCircle(40, 36, 3.5);
+
+    g.generateTexture("tex_garlic", 64, 64);
+    g.destroy();
+  }
+
+  static createCornTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Husk Leaf Left/Right
+    g.fillStyle(0x48a94f, 1);
+    g.fillTriangle(6, 56, 18, 24, 32, 58);
+    g.fillTriangle(58, 56, 46, 24, 32, 58);
+
+    // Cob Body
+    g.fillStyle(0xffd43b, 1);
+    g.fillRoundedRect(20, 10, 24, 44, 12);
+
+    // Kernel Details
+    g.fillStyle(0xf0b800, 1);
+    for (let y = 16; y <= 46; y += 8) {
+      for (let x = 24; x <= 40; x += 8) {
+        g.fillCircle(x, y, 2.5);
+      }
+    }
+
+    // Eyes
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(27, 24, 3.5);
+    g.fillCircle(37, 24, 3.5);
+
+    g.generateTexture("tex_corn", 64, 64);
+    g.destroy();
+  }
+
+  static createCarrotTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Leaf Tops
+    g.fillStyle(0x48a94f, 1);
+    g.fillTriangle(32, 4, 24, 20, 32, 22);
+    g.fillTriangle(32, 4, 40, 20, 32, 22);
+
+    // Carrot Body
+    g.fillStyle(0xff8b2c, 1);
+    g.fillTriangle(14, 20, 50, 20, 32, 60);
+
+    // Ridges & Face
+    g.lineStyle(2, 0xe06a00, 0.8);
+    g.lineBetween(22, 30, 30, 30);
+    g.lineBetween(34, 40, 42, 40);
+
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(27, 26, 3.5);
+    g.fillCircle(37, 26, 3.5);
+
+    g.generateTexture("tex_carrot", 64, 64);
+    g.destroy();
+  }
+
+  static createBroccoliTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Stem
+    g.fillStyle(0x8bc34a, 1);
+    g.fillRoundedRect(25, 34, 14, 26, 5);
+
+    // Floret Top
+    g.fillStyle(0x2e7d32, 1);
+    g.fillCircle(22, 26, 16);
+    g.fillCircle(42, 26, 16);
+    g.fillCircle(32, 18, 18);
+
+    g.fillStyle(0x43a047, 1);
+    g.fillCircle(32, 24, 14);
+
+    // Face
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(26, 26, 3.5);
+    g.fillCircle(38, 26, 3.5);
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(26, 26, 2);
+    g.fillCircle(38, 26, 2);
+
+    g.generateTexture("tex_broccoli", 64, 64);
+    g.destroy();
+  }
+
+  static createPepperTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Stem
+    g.fillStyle(0x2e7d32, 1);
+    g.fillRect(30, 4, 5, 12);
+
+    // Body
+    g.fillStyle(0xef476f, 1);
+    g.fillTriangle(14, 16, 50, 16, 30, 58);
+    g.fillStyle(0xb71c1c, 1);
+    g.fillTriangle(30, 16, 50, 16, 30, 58);
+
+    // Eyes (Fierce)
+    g.fillStyle(0xffd700, 1);
+    g.fillCircle(24, 26, 4.5);
+    g.fillCircle(38, 26, 4.5);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(24, 26, 2.5);
+    g.fillCircle(38, 26, 2.5);
+
+    g.generateTexture("tex_pepper", 64, 64);
+    g.destroy();
+  }
+
+  static createTomatoTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Tomato Body
+    g.fillStyle(0xe93835, 1);
+    g.fillCircle(32, 34, 24);
+
+    // Highlight
+    g.fillStyle(0xff8a80, 0.8);
+    g.fillCircle(24, 22, 6);
+
+    // Stem Cap
+    g.fillStyle(0x43a047, 1);
+    g.fillStar(32, 12, 5, 10, 4);
+
+    // Face
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(24, 34, 3.5);
+    g.fillCircle(40, 34, 3.5);
+
+    g.generateTexture("tex_tomato", 64, 64);
+    g.destroy();
+  }
+
+  static createWatermelonTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Green Rind
+    g.fillStyle(0x2e7d32, 1);
+    g.fillSlice(32, 32, 28, 0, Math.PI, false);
+
+    // White Inner Rind
+    g.fillStyle(0xe8f5e9, 1);
+    g.fillSlice(32, 32, 24, 0, Math.PI, false);
+
+    // Red Flesh
+    g.fillStyle(0xff3b5c, 1);
+    g.fillSlice(32, 32, 21, 0, Math.PI, false);
+
+    // Seeds
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(22, 40, 2);
+    g.fillCircle(32, 44, 2);
+    g.fillCircle(42, 40, 2);
+
+    // Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(25, 36, 4);
+    g.fillCircle(39, 36, 4);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(25, 36, 2);
+    g.fillCircle(39, 36, 2);
+
+    g.generateTexture("tex_watermelon", 64, 64);
+    g.destroy();
+  }
+
+  // --- ENEMIES ---
+
+  static createGummyTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Translucent Bear Body
+    g.fillStyle(0xff4081, 0.9);
+    g.fillCircle(20, 16, 8); // Left Ear
+    g.fillCircle(44, 16, 8); // Right Ear
+    g.fillRoundedRect(16, 20, 32, 36, 12); // Body
+
+    // Muzzle & Eyes
+    g.fillStyle(0xff80ab, 0.9);
+    g.fillCircle(32, 34, 7);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(26, 28, 2.5);
+    g.fillCircle(38, 28, 2.5);
+    g.fillCircle(32, 33, 2);
+
+    g.generateTexture("tex_gummy", 64, 64);
+    g.destroy();
+  }
+
+  static createLollipopTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Stick
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(30, 32, 4, 30);
+
+    // Candy Swirl Disc
+    g.fillStyle(0xff1744, 1);
+    g.fillCircle(32, 24, 20);
+
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(32, 24, 14);
+    g.fillStyle(0xff1744, 1);
+    g.fillCircle(32, 24, 8);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(32, 24, 3);
+
+    g.generateTexture("tex_lollipop", 64, 64);
+    g.destroy();
+  }
+
+  static createCupcakeTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Wrapper Cup
+    g.fillStyle(0xab47bc, 1);
+    g.fillTriangle(16, 32, 48, 32, 42, 58);
+    g.fillTriangle(16, 32, 22, 58, 42, 58);
+
+    // Frosting Cloud
+    g.fillStyle(0xf8bbd0, 1);
+    g.fillCircle(22, 30, 10);
+    g.fillCircle(42, 30, 10);
+    g.fillCircle(32, 22, 14);
+
+    // Cherry Top
+    g.fillStyle(0xd50000, 1);
+    g.fillCircle(32, 10, 6);
+
+    // Eyes
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(26, 26, 2.5);
+    g.fillCircle(38, 26, 2.5);
+
+    g.generateTexture("tex_cupcake", 64, 64);
+    g.destroy();
+  }
+
+  static createMarshmallowTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Fluffy Body
+    g.fillStyle(0xffffff, 1);
+    g.fillRoundedRect(16, 16, 32, 38, 14);
+    g.lineStyle(2, 0xe0e0e0, 1);
+    g.strokeRoundedRect(16, 16, 32, 38, 14);
+
+    // Cute Blush & Eyes
+    g.fillStyle(0xff80ab, 0.6);
+    g.fillCircle(22, 38, 4);
+    g.fillCircle(42, 38, 4);
+
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(25, 32, 3);
+    g.fillCircle(39, 32, 3);
+
+    g.generateTexture("tex_marshmallow", 64, 64);
+    g.destroy();
+  }
+
+  static createChocolateTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Chocolate Bar
+    g.fillStyle(0x4e342e, 1);
+    g.fillRoundedRect(14, 14, 36, 42, 6);
+
+    // Segments
+    g.fillStyle(0x3e2723, 1);
+    g.fillRect(18, 18, 13, 15);
+    g.fillRect(33, 18, 13, 15);
+    g.fillRect(18, 36, 13, 15);
+    g.fillRect(33, 36, 13, 15);
+
+    // Shield Emblem Overlay
+    g.fillStyle(0xb0bec5, 0.85);
+    g.fillCircle(32, 35, 10);
+    g.lineStyle(2, 0xffffff, 1);
+    g.strokeCircle(32, 35, 10);
+
+    g.generateTexture("tex_chocolate", 64, 64);
+    g.destroy();
+  }
+
+  static createSodaTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Cup Body
+    g.fillStyle(0x00e676, 1);
+    g.fillTriangle(18, 18, 46, 18, 40, 58);
+    g.fillTriangle(18, 18, 24, 58, 40, 58);
+
+    // Lid & Straw
+    g.fillStyle(0xffffff, 1);
+    g.fillRoundedRect(16, 14, 32, 6, 3);
+
+    g.fillStyle(0xff3d00, 1);
+    g.fillRect(34, 2, 4, 16);
+
+    // Eyes
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(27, 32, 3);
+    g.fillCircle(37, 32, 3);
+
+    g.generateTexture("tex_soda", 64, 64);
+    g.destroy();
+  }
+
+  static createGumTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Bubble Sphere
+    g.fillStyle(0xab47bc, 0.95);
+    g.fillCircle(32, 32, 22);
+
+    // Highlight
+    g.fillStyle(0xea80fc, 0.8);
+    g.fillCircle(24, 22, 7);
+
+    // Sticky Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(26, 32, 4);
+    g.fillCircle(38, 32, 4);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(26, 32, 2);
+    g.fillCircle(38, 32, 2);
+
+    g.generateTexture("tex_gum", 64, 64);
+    g.destroy();
+  }
+
+  static createCandleTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Wax Body
+    g.fillStyle(0xfff8e1, 1);
+    g.fillRoundedRect(18, 22, 28, 40, 6);
+
+    // Wax Drips
+    g.fillStyle(0xffecb3, 1);
+    g.fillCircle(22, 30, 4);
+    g.fillCircle(40, 36, 5);
+
+    // Wick
+    g.fillStyle(0x424242, 1);
+    g.fillRect(31, 14, 2, 8);
+
+    // Flame Outer
+    g.fillStyle(0xff3d00, 1);
+    g.fillTriangle(32, 0, 24, 16, 40, 16);
+
+    // Flame Inner
+    g.fillStyle(0xffea00, 1);
+    g.fillTriangle(32, 4, 27, 14, 37, 14);
+
+    // Boss Crown / Face
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(26, 36, 3.5);
+    g.fillCircle(38, 36, 3.5);
+
+    g.generateTexture("tex_candle", 64, 64);
+    g.destroy();
+  }
+
+  // --- BOSSES ---
+
+  static createGumBossTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Giant Bubble Body
+    g.fillStyle(0x8e24aa, 0.95);
+    g.fillCircle(40, 40, 34);
+
+    g.fillStyle(0xe040fb, 0.85);
+    g.fillCircle(28, 26, 10);
+
+    // Crown
+    g.fillStyle(0xffd700, 1);
+    g.fillTriangle(25, 8, 30, 0, 35, 12);
+    g.fillTriangle(35, 12, 40, 0, 45, 12);
+    g.fillTriangle(45, 12, 50, 0, 55, 8);
+
+    // Face
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(30, 38, 6);
+    g.fillCircle(50, 38, 6);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(30, 38, 3);
+    g.fillCircle(50, 38, 3);
+
+    g.generateTexture("tex_gum_boss", 80, 80);
+    g.destroy();
+  }
+
+  static createLollipopBossTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Heavy Stick
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(37, 40, 6, 38);
+
+    // Giant Swirl
+    g.fillStyle(0xd50000, 1);
+    g.fillCircle(40, 30, 28);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(40, 30, 20);
+    g.fillStyle(0xd50000, 1);
+    g.fillCircle(40, 30, 12);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(40, 30, 5);
+
+    // Crown
+    g.fillStyle(0xffd700, 1);
+    g.fillTriangle(25, 4, 40, -4, 55, 4);
+
+    g.generateTexture("tex_lollipop_boss", 80, 80);
+    g.destroy();
+  }
+}

@@ -63,15 +63,35 @@ class EffectsSystem {
   }
 
   spawnSun() {
+    const roll = Math.random();
+    let type = "normal";
+    let icon = "☀️";
+    let value = 25;
+    let color = "#fff06a";
+
+    if (roll < 0.12) {
+      type = "golden";
+      icon = "🌟";
+      value = 60;
+      color = "#ffd43b";
+    } else if (roll < 0.20) {
+      type = "nutrient";
+      icon = "💚";
+      value = 30;
+      color = "#69c743";
+    }
+
     const sunObj = {
       x: this.random(this.scene.GRID_X + 30, this.scene.GRID_X + this.scene.COLS * this.scene.CELL_W - 30),
       y: -25,
       targetY: this.random(this.scene.GRID_Y + 10, this.scene.GRID_Y + this.scene.ROWS * this.scene.CELL_H - 20),
       life: 10,
-      value: 25,
+      value: value,
+      type: type,
+      color: color,
       pulse: 0
     };
-    sunObj.textObj = this.scene.add.text(sunObj.x, sunObj.y, "☀️", { fontSize: "36px" }).setOrigin(0.5);
+    sunObj.textObj = this.scene.add.text(sunObj.x, sunObj.y, icon, { fontSize: type === "golden" ? "42px" : "36px" }).setOrigin(0.5);
     this.scene.gameState.suns.push(sunObj);
   }
 
@@ -82,7 +102,7 @@ class EffectsSystem {
       if (s.y < s.targetY) s.y = Math.min(s.targetY, s.y + 75 * dt);
       if (s.textObj) {
         s.textObj.setPosition(s.x, s.y);
-        const scale = 1 + Math.sin(s.pulse) * 0.08;
+        const scale = (s.type === "golden" ? 1.15 : 1) + Math.sin(s.pulse) * 0.08;
         s.textObj.setScale(scale);
         if (s.life <= 0) {
           s.textObj.destroy();

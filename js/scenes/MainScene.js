@@ -19,6 +19,7 @@ class MainScene extends Phaser.Scene {
 
   preload() {
     this.load.image("hero_avatar", "assets/levi_avatar.jpg");
+    TextureGenerator.generateAll(this);
   }
 
   create() {
@@ -405,8 +406,19 @@ class MainScene extends Phaser.Scene {
       this.gameState.stats.sunCollected += sun.value;
       sun.life = 0;
       if (sun.textObj) sun.textObj.destroy();
-      this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️`, "#fff06a", 1.2);
-      this.soundManager.beep(760, 0.08, "sine", 0.04);
+
+      if (sun.type === "golden") {
+        this.gameState.attackBoostUntil = this.gameState.time + 4;
+        this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️ IMPULSO DE ATAQUE! 🌟`, "#ffd43b", 1.35);
+        this.soundManager.beep(880, 0.12, "sine", 0.05);
+      } else if (sun.type === "nutrient") {
+        this.gameState.houseHp = Math.min(this.gameState.maxHouseHp, this.gameState.houseHp + 80);
+        this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️ +80 HP CASA! 💚`, "#69c743", 1.35);
+        this.soundManager.beep(820, 0.12, "sine", 0.05);
+      } else {
+        this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️`, "#fff06a", 1.2);
+        this.soundManager.beep(760, 0.08, "sine", 0.04);
+      }
       return;
     }
 

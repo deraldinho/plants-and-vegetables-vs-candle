@@ -39,23 +39,29 @@
     </section>
 
     <section class="defender-tray" aria-label="Escolha um defensor">
-      <button class="defender-card" data-defender="corn" type="button" title="Atalho: Tecla 1">
-        <span class="card-icon">🌽</span><span class="card-copy"><strong>[1] Milho</strong><small>50 ☀️ · tiro</small></span>
+      <button class="defender-card" data-defender="potato" type="button" title="Atalho: Tecla 1">
+        <span class="card-icon">🥔</span><span class="card-copy"><strong>[1] Batata</strong><small>25 ☀️ · mina</small></span>
       </button>
-      <button class="defender-card" data-defender="carrot" type="button" title="Atalho: Tecla 2">
-        <span class="card-icon">🥕</span><span class="card-copy"><strong>[2] Cenoura</strong><small>75 ☀️ · rápido</small></span>
+      <button class="defender-card" data-defender="garlic" type="button" title="Atalho: Tecla 2">
+        <span class="card-icon">🧄</span><span class="card-copy"><strong>[2] Alho</strong><small>50 ☀️ · repela</small></span>
       </button>
-      <button class="defender-card" data-defender="broccoli" type="button" title="Atalho: Tecla 3">
-        <span class="card-icon">🥦</span><span class="card-copy"><strong>[3] Brócolis</strong><small>100 ☀️ · escudo</small></span>
+      <button class="defender-card" data-defender="corn" type="button" title="Atalho: Tecla 3">
+        <span class="card-icon">🌽</span><span class="card-copy"><strong>[3] Milho</strong><small>50 ☀️ · tiro</small></span>
       </button>
-      <button class="defender-card locked" data-defender="pepper" type="button" title="Atalho: Tecla 4" aria-label="Pimenta bloqueada; complete o hábito de comer vegetais">
-        <span class="card-icon">🌶️</span><span class="card-copy"><strong>[4] Pimenta 🔒</strong><small>125 ☀️ · fogo</small></span>
+      <button class="defender-card" data-defender="carrot" type="button" title="Atalho: Tecla 4">
+        <span class="card-icon">🥕</span><span class="card-copy"><strong>[4] Cenoura</strong><small>75 ☀️ · rápido</small></span>
       </button>
-      <button class="defender-card" data-defender="tomato" type="button" title="Atalho: Tecla 5">
-        <span class="card-icon">🍅</span><span class="card-copy"><strong>[5] Tomate</strong><small>150 ☀️ · área</small></span>
+      <button class="defender-card" data-defender="broccoli" type="button" title="Atalho: Tecla 5">
+        <span class="card-icon">🥦</span><span class="card-copy"><strong>[5] Brócolis</strong><small>100 ☀️ · escudo</small></span>
       </button>
-      <button class="defender-card" data-defender="watermelon" type="button" title="Atalho: Tecla 6">
-        <span class="card-icon">🍉</span><span class="card-copy"><strong>[6] Melancia</strong><small>175 ☀️ · engole</small></span>
+      <button class="defender-card locked" data-defender="pepper" type="button" title="Atalho: Tecla 6" aria-label="Pimenta bloqueada; complete o hábito de comer vegetais">
+        <span class="card-icon">🌶️</span><span class="card-copy"><strong>[6] Pimenta 🔒</strong><small>125 ☀️ · fogo</small></span>
+      </button>
+      <button class="defender-card" data-defender="tomato" type="button" title="Atalho: Tecla 7">
+        <span class="card-icon">🍅</span><span class="card-copy"><strong>[7] Tomate</strong><small>150 ☀️ · área</small></span>
+      </button>
+      <button class="defender-card" data-defender="watermelon" type="button" title="Atalho: Tecla 8">
+        <span class="card-icon">🍉</span><span class="card-copy"><strong>[8] Melancia</strong><small>175 ☀️ · engole</small></span>
       </button>
       <button id="shovelButton" class="defender-card shovel" type="button" title="Atalho: Tecla P ou X">
         <span class="card-icon">🪏</span><span class="card-copy"><strong>[P] Pá</strong><small>remover</small></span>
@@ -152,12 +158,13 @@
     </details>
 
     <footer>
-      <p><strong>Como jogar:</strong> escolha um vegetal (teclas 1-6) e toque na grade. Toque em um defensor colocado para melhorá-lo e usar sua habilidade. Use a Pá (tecla P ou X) para remover e recuperar 50% dos recursos. Pressione Espaço para iniciar a onda ou pausar.</p>
+      <p><strong>Como jogar:</strong> escolha um vegetal (teclas 1-8) e toque na grade. Toque em um defensor colocado para melhorá-lo e usar sua habilidade. Use a Pá (tecla P ou X) para remover e recuperar 50% dos recursos. Pressione Espaço para iniciar a onda ou pausar.</p>
     </footer>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
+  <script src="js/vendor/phaser.min.js"></script>
   <script src="js/config.js?v=4"></script>
   <script src="js/utils/waveGenerator.js?v=4"></script>
+  <script src="js/utils/textureGenerator.js?v=5"></script>
   <script src="js/utils/soundManager.js?v=4"></script>
   <script src="js/entities/EffectsSystem.js?v=4"></script>
   <script src="js/entities/ProjectileSystem.js?v=4"></script>

@@ -19,7 +19,10 @@ class DefenderSystem {
       powerLevel: 0, healthLevel: 0, armor: 0, invested: config.cost
     };
 
-    defender.textObj = this.scene.add.text(x, y, config.icon, { fontSize: "48px" }).setOrigin(0.5);
+    defender.shadowSprite = this.scene.add.sprite(x, y + 22, "tex_shadow").setOrigin(0.5);
+    const textureKey = (type === "potato" && defender.armed) ? "tex_potato_armed" : "tex_" + type;
+    defender.sprite = this.scene.add.sprite(x, y - 4, textureKey).setOrigin(0.5);
+    defender.textObj = defender.sprite; // Backwards compatibility for cleanup
     this.scene.gameState.defenders.push(defender);
     this.scene.gameState.stats.defendersPlaced += 1;
 
@@ -67,6 +70,26 @@ class DefenderSystem {
     this.scene.soundManager.beep(600, 0.2, "sine", 0.06);
 
     switch (defender.type) {
+      case "potato": {
+        defender.armed = true;
+        defender.armTimer = 0;
+        if (defender.sprite) defender.sprite.setTexture("tex_potato_armed");
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "MINA ARMADA! 💣", "#d2b48c", 1.25);
+        this.scene.effectsSystem.burst(defender.x, defender.y, "#d2b48c", 20);
+        break;
+      }
+      case "garlic": {
+        const nearbyEnemies = this.scene.gameState.enemies.filter(e => Math.abs(e.x - defender.x) < 140 && e.hp > 0 && !e.removed);
+        for (const e of nearbyEnemies) {
+          const newRow = e.row === 0 ? 1 : (e.row === 4 ? 3 : (Math.random() < 0.5 ? e.row - 1 : e.row + 1));
+          e.row = newRow;
+          e.y = this.scene.GRID_Y + newRow * this.scene.CELL_H + this.scene.CELL_H / 2;
+          if (e.textObj) e.textObj.setY(e.y);
+          this.scene.effectsSystem.burst(e.x, e.y, "#f5f5dc", 12);
+          this.scene.effectsSystem.spawnFloater(e.x, e.y - 30, "🤢 REPELIDO!", "#f5f5dc", 1.15);
+        }
+        break;
+      }
       case "corn": {
         const target = this.scene.gameState.enemies
           .filter(e => e.row === defender.row && e.hp > 0 && !e.removed)
@@ -130,9 +153,30 @@ class DefenderSystem {
 
   updateDefenders(dt) {
     const boosted = this.scene.gameState.time < this.scene.gameState.attackBoostUntil;
+    const frenzyActive = this.scene.gameState.time < (this.scene.gameState.frenzyUntil || 0);
+    const speedMult = (boosted ? 2 : 1) * (frenzyActive ? 1.35 : 1);
+
     for (const defender of this.scene.gameState.defenders) {
       const slowed = defender.slowUntil > this.scene.gameState.time;
-      defender.cooldownLeft -= dt * (boosted ? 2 : 1) * (slowed ? 0.6 : 1);
+      defender.cooldownLeft -= dt * speedMult * (slowed ? 0.6 : 1);
+
+      if (defender.type === "potato") {
+        if (!defender.armed) {
+          defender.armTimer = (defender.armTimer || 3.0) - dt;
+          if (defender.armTimer <= 0) {
+            defender.armed = true;
+            if (defender.sprite) defender.sprite.setTexture("tex_potato_armed");
+            this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 25, "MINA ARMADA! 💣", "#d2b48c", 1.15);
+            this.scene.effectsSystem.burst(defender.x, defender.y, "#d2b48c", 15);
+            this.scene.soundManager.beep(700, 0.1, "sine", 0.05);
+          }
+        }
+        continue;
+      }
+
+      if (defender.type === "garlic") {
+        continue;
+      }
 
       if (defender.type === "watermelon") {
         if (defender.digesting && defender.cooldownLeft <= 0) {

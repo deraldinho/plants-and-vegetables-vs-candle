@@ -2,7 +2,7 @@
 
 class UIManager {
   constructor() {
-    this.DEFENDER_KEYS = ["corn", "carrot", "broccoli", "pepper", "tomato", "watermelon"];
+    this.DEFENDER_KEYS = ["potato", "garlic", "corn", "carrot", "broccoli", "pepper", "tomato", "watermelon"];
     this.activeScene = null;
     this.selectedDefender = null;
 
@@ -253,7 +253,7 @@ class UIManager {
     if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
     const key = e.key;
 
-    if (["1", "2", "3", "4", "5", "6"].includes(key)) {
+    if (["1", "2", "3", "4", "5", "6", "7", "8"].includes(key)) {
       const index = parseInt(key, 10) - 1;
       if (index >= 0 && index < this.DEFENDER_KEYS.length) {
         this.selectDefenderType(this.DEFENDER_KEYS[index]);

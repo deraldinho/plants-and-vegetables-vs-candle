@@ -10,6 +10,8 @@ const STORAGE_KEYS = {
 };
 
 const DEFENDERS = {
+  potato: { name: "Batata Mina", icon: "🥔", cost: 25, hp: 80, damage: 180, cooldown: 99, color: "#d2b48c", projectile: "", area: true, ability: { name: "Armamento Rápido", cooldown: 12, description: "arma a mina instantaneamente" } },
+  garlic: { name: "Alho Repelente", icon: "🧄", cost: 50, hp: 220, damage: 0, cooldown: 99, color: "#f5f5dc", projectile: "", ability: { name: "Névoa Repelente", cooldown: 15, description: "repela os doces próximos para linhas vizinhas" } },
   corn: { name: "Milho Atirador", icon: "🌽", cost: 50, hp: 100, damage: 20, cooldown: 1.2, color: "#ffd43b", projectile: "●", ability: { name: "Rajada Dourada", cooldown: 18, description: "120 de dano no alvo da linha" } },
   carrot: { name: "Cenoura Arqueira", icon: "🥕", cost: 75, hp: 80, damage: 15, cooldown: .58, color: "#ff8b2c", projectile: "➤", ability: { name: "Flecha Perfurante", cooldown: 16, description: "55 de dano em toda a linha" } },
   broccoli: { name: "Brócolis Escudo", icon: "🥦", cost: 100, hp: 350, damage: 0, cooldown: 99, color: "#48a94f", projectile: "", ability: { name: "Fortaleza Verde", cooldown: 20, description: "cura e protege os vegetais próximos" } },
