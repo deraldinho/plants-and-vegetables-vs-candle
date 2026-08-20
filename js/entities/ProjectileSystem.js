@@ -16,6 +16,8 @@ class ProjectileSystem {
       icon: defender.projectile,
       area: defender.area,
       burn: defender.burn,
+      piercing: defender.piercing,
+      hitsLeft: defender.piercing ? 3 : 1,
       sourceType: defender.type,
       removed: false
     };
@@ -32,7 +34,7 @@ class ProjectileSystem {
         this.scene.effectsSystem.burst(p.x - 10, p.y, "#ff6b4a", 1);
       }
 
-      const hit = this.scene.gameState.enemies.filter(e => e.row === p.row && e.hp > 0 && Math.abs(e.x - p.x) < 32).sort((a, b) => a.x - b.x)[0];
+      const hit = this.scene.gameState.enemies.filter(e => e.row === p.row && e.hp > 0 && Math.abs(e.x - p.x) < 32 && (!p.hitEnemies || !p.hitEnemies.has(e))).sort((a, b) => a.x - b.x)[0];
       if (!hit) {
         if (p.x >= this.scene.W + 30) {
           p.removed = true;
@@ -40,6 +42,9 @@ class ProjectileSystem {
         }
         continue;
       }
+
+      if (!p.hitEnemies) p.hitEnemies = new Set();
+      p.hitEnemies.add(hit);
 
       if (p.area) {
         for (const enemy of this.scene.gameState.enemies) {
@@ -59,8 +64,12 @@ class ProjectileSystem {
         }
         this.scene.effectsSystem.burst(hit.x, hit.y, p.color, 8);
       }
-      p.removed = true;
-      if (p.textObj) p.textObj.destroy();
+
+      p.hitsLeft -= 1;
+      if (p.hitsLeft <= 0) {
+        p.removed = true;
+        if (p.textObj) p.textObj.destroy();
+      }
     }
     this.scene.gameState.projectiles = this.scene.gameState.projectiles.filter(p => !p.removed);
   }

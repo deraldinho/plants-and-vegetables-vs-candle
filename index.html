@@ -30,6 +30,7 @@
       </div>
       <div class="stat"><span>🌊 Onda</span><strong id="waveValue">1</strong></div>
       <div class="stat"><span>🌱 Seed</span><strong id="seedValue">------</strong></div>
+      <div class="stat"><span>🌻 Sementes</span><strong id="seedsValue">0</strong></div>
       <div class="stat"><span>⭐ Pontos</span><strong id="scoreValue">0</strong></div>
       <div class="stat"><span>🏆 Recorde</span><strong id="bestScoreValue">0</strong></div>
       <div class="game-controls">
@@ -66,6 +67,9 @@
       <button id="shovelButton" class="defender-card shovel" type="button" title="Atalho: Tecla P ou X">
         <span class="card-icon">🪏</span><span class="card-copy"><strong>[P] Pá</strong><small>remover</small></span>
       </button>
+      <button id="fertilizerButton" class="defender-card fertilizer" type="button" title="Atalho: Tecla A">
+        <span class="card-icon">🎒</span><span class="card-copy"><strong>[A] Adubo</strong><small>super nível 3</small></span>
+      </button>
     </section>
 
     <section id="wavePreview" class="wave-preview" aria-live="polite">
@@ -95,6 +99,12 @@
               <button data-mode="hard" type="button"><strong>🔥 Desafio</strong><small>Doces mais fortes e rápidos</small></button>
               <button data-mode="endless" type="button"><strong>♾️ Infinito</strong><small>Ondas sem limite</small></button>
             </div>
+          </fieldset>
+
+          <fieldset id="deckSelector" class="deck-selector">
+            <legend>🃏 Monte seu Baralho de Sementes</legend>
+            <div id="deckSlotsGrid" class="deck-slots-grid"></div>
+            <div id="availableCardsGrid" class="available-cards-grid"></div>
           </fieldset>
           <div id="resultSummary" class="result-summary" hidden>
             <div id="resultStars" class="result-stars" aria-label="Estrelas conquistadas"></div>

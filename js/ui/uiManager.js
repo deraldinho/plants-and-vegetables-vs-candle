@@ -51,15 +51,21 @@ class UIManager {
       closeUpgrade: document.getElementById("closeUpgradeButton"),
       enemyGuideGrid: document.getElementById("enemyGuideGrid"),
       seed: document.getElementById("seedValue"),
-      shovel: document.getElementById("shovelButton"),
+      fertilizer: document.getElementById("fertilizerButton"),
+      seeds: document.getElementById("seedsValue"),
+      deckSlotsGrid: document.getElementById("deckSlotsGrid"),
+      availableCardsGrid: document.getElementById("availableCardsGrid"),
       cards: [...document.querySelectorAll(".defender-card[data-defender]")],
       habits: [...document.querySelectorAll(".habit")]
     };
 
+    this.activeDeck = ["potato", "garlic", "corn", "carrot", "broccoli"];
+    this.fertilizerActive = false;
     this.initGlobalCallbacks();
     this.bindEvents();
     this.renderBestiary();
     this.initModeSelector();
+    this.renderDeckBuilder();
   }
 
   initGlobalCallbacks() {
@@ -161,6 +167,12 @@ class UIManager {
     if (this.ui.shovel) {
       this.ui.shovel.addEventListener("click", () => {
         this.toggleShovel();
+      });
+    }
+
+    if (this.ui.fertilizer) {
+      this.ui.fertilizer.addEventListener("click", () => {
+        this.toggleFertilizer();
       });
     }
 
@@ -266,6 +278,11 @@ class UIManager {
       return;
     }
 
+    if (key === "a" || key === "A") {
+      this.toggleFertilizer();
+      return;
+    }
+
     if (key === " ") {
       e.preventDefault();
       if (this.ui.overlay.classList.contains("visible")) {
@@ -313,6 +330,74 @@ class UIManager {
       `;
       this.ui.enemyGuideGrid.appendChild(card);
     }
+  }
+
+  toggleFertilizer() {
+    this.fertilizerActive = !this.fertilizerActive;
+    if (this.fertilizerActive) {
+      this.selectedDefender = null;
+      if (this.activeScene) this.activeScene.gameState.shovel = false;
+      this.showToast("Saco de Adubo selecionado! 🎒 Toque em uma planta para Nível Máximo (3)");
+    } else {
+      this.showToast("Adubo desativado");
+    }
+  }
+
+  renderDeckBuilder() {
+    if (!this.ui.deckSlotsGrid || !this.ui.availableCardsGrid) return;
+    this.ui.deckSlotsGrid.innerHTML = "";
+    this.ui.availableCardsGrid.innerHTML = "";
+
+    const maxSlots = 5;
+    const allCards = Object.keys(DEFENDERS);
+
+    allCards.forEach(key => {
+      const def = DEFENDERS[key];
+      const isSelected = this.activeDeck.includes(key);
+      const cardEl = document.createElement("div");
+      cardEl.className = `card-picker-item ${isSelected ? "selected" : ""}`;
+      cardEl.innerHTML = `
+        <span class="card-picker-icon">${def.icon}</span>
+        <span class="card-picker-cost">${def.cost}☀️</span>
+      `;
+      cardEl.addEventListener("click", () => {
+        if (isSelected) {
+          if (this.activeDeck.length > 1) {
+            this.activeDeck = this.activeDeck.filter(k => k !== key);
+          }
+        } else {
+          if (this.activeDeck.length < maxSlots) {
+            this.activeDeck.push(key);
+          }
+        }
+        this.DEFENDER_KEYS = [...this.activeDeck];
+        this.renderDeckBuilder();
+        this.updateDefenderTrayUI();
+      });
+      this.ui.availableCardsGrid.appendChild(cardEl);
+    });
+  }
+
+  updateDefenderTrayUI() {
+    const tray = document.querySelector(".defender-tray");
+    if (!tray) return;
+    tray.querySelectorAll(".defender-card[data-defender]").forEach(el => el.remove());
+
+    const shovelBtn = document.getElementById("shovelButton");
+    this.activeDeck.forEach((key, index) => {
+      const def = DEFENDERS[key];
+      if (!def) return;
+      const btn = document.createElement("button");
+      btn.className = "defender-card";
+      btn.dataset.defender = key;
+      btn.type = "button";
+      btn.title = `Atalho: Tecla ${index + 1}`;
+      btn.innerHTML = `<span class="card-icon">${def.icon}</span><span class="card-copy"><strong>[${index + 1}] ${def.name.split(" ")[0]}</strong><small>${def.cost} ☀️</small></span>`;
+      btn.addEventListener("click", () => this.selectDefenderType(key));
+      if (shovelBtn) tray.insertBefore(btn, shovelBtn);
+      else tray.appendChild(btn);
+    });
+    this.DEFENDER_KEYS = [...this.activeDeck];
   }
 
   renderResults(state, isWin) {

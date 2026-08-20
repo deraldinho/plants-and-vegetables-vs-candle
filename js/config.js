@@ -6,7 +6,10 @@ const STORAGE_KEYS = {
   bestScore: "healthy-family-home.best-score",
   tutorialSeen: "healthy-family-home.tutorial-seen",
   selectedMode: "healthy-family-home.selected-mode",
-  bestEndlessWave: "healthy-family-home.best-endless-wave"
+  bestEndlessWave: "healthy-family-home.best-endless-wave",
+  sunflowerSeeds: "healthy-family-home.sunflower-seeds",
+  unlockedCards: "healthy-family-home.unlocked-cards",
+  deckSlots: "healthy-family-home.deck-slots"
 };
 
 const DEFENDERS = {
@@ -17,7 +20,13 @@ const DEFENDERS = {
   broccoli: { name: "Brócolis Escudo", icon: "🥦", cost: 100, hp: 350, damage: 0, cooldown: 99, color: "#48a94f", projectile: "", ability: { name: "Fortaleza Verde", cooldown: 20, description: "cura e protege os vegetais próximos" } },
   pepper: { name: "Pimenta Flamejante", icon: "🌶️", cost: 125, hp: 120, damage: 35, cooldown: 1.35, color: "#f04b36", projectile: "🔥", burn: true, ability: { name: "Trilha de Fogo", cooldown: 22, description: "incendeia todos os doces da linha" } },
   tomato: { name: "Tomate Bomba", icon: "🍅", cost: 150, hp: 150, damage: 50, cooldown: 2.3, color: "#e93835", projectile: "💥", area: true, ability: { name: "Superexplosão", cooldown: 24, description: "120 de dano em uma grande área" } },
-  watermelon: { name: "Melancia Devoradora", icon: "🍉", cost: 175, hp: 220, damage: 0, cooldown: 15, color: "#ff3b5c", projectile: "", ability: { name: "Super Digestão", cooldown: 18, description: "conclui a digestão e cura 80 HP" } }
+  watermelon: { name: "Melancia Devoradora", icon: "🍉", cost: 175, hp: 220, damage: 0, cooldown: 15, color: "#ff3b5c", projectile: "", ability: { name: "Super Digestão", cooldown: 18, description: "conclui a digestão e cura 80 HP" } },
+  banana: { name: "Banana Boxeadora", icon: "🍌", cost: 75, hp: 160, damage: 28, cooldown: 0.45, color: "#ffe135", melee: true, projectile: "", ability: { name: "Combo de Socos", cooldown: 14, description: "socos super velozes por 5 segundos" } },
+  orange: { name: "Laranja Ácida", icon: "🍊", cost: 100, hp: 110, damage: 18, cooldown: 1.1, color: "#ffa500", acid: true, projectile: "💧", ability: { name: "Chuva Ácida", cooldown: 16, description: "derrete escudos e reduz a armadura dos doces da linha" } },
+  strawberry: { name: "Morango Atrator", icon: "🍓", cost: 60, hp: 200, damage: 150, cooldown: 99, color: "#ff2a4b", taunt: true, explodeOnDeath: true, projectile: "", ability: { name: "Aroma Irresistível", cooldown: 15, description: "atrai todos os doces para sua posição" } },
+  apple: { name: "Maçã Esmagadora", icon: "🍎", cost: 90, hp: 120, damage: 220, cooldown: 99, color: "#e3242b", smash: true, projectile: "", ability: { name: "Super Impacto", cooldown: 16, description: "esmaga com 300 de dano em área" } },
+  pineapple: { name: "Abacaxi Mina", icon: "🍍", cost: 40, hp: 90, damage: 140, cooldown: 99, color: "#e4b419", spikeMine: true, projectile: "", ability: { name: "Espinhos Perfurantes", cooldown: 12, description: "espalha espinhos pela grade" } },
+  cauliflower: { name: "Couve-Flor Mística", icon: "🥦", cost: 125, hp: 100, damage: 24, cooldown: 1.25, color: "#d8f8e1", piercing: true, projectile: "🌀", ability: { name: "Onda Mística", cooldown: 18, description: "projétil místico que atravessa a linha inteira" } }
 };
 
 const ENEMIES = {

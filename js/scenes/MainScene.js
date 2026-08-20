@@ -428,6 +428,15 @@ class MainScene extends Phaser.Scene {
 
     const existing = this.gameState.defenders.find(d => d.row === row && d.col === col);
     
+    if (window.uiManager && window.uiManager.fertilizerActive) {
+      if (existing) {
+        this.defenderSystem.applyFertilizer(existing);
+        window.uiManager.fertilizerActive = false;
+        if (window.uiManager.ui.fertilizer) window.uiManager.ui.fertilizer.classList.remove("selected");
+      }
+      return;
+    }
+
     if (this.gameState.shovel) {
       if (existing) {
         const refund = Math.floor(existing.invested * 0.5);

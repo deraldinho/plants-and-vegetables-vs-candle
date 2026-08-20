@@ -342,6 +342,24 @@ footer { padding: 12px 10px; font-size: .83rem; text-align: center; color: #5066
   .mode-selector > div { grid-template-columns: 1fr; }
   .mode-selector button { padding: 8px; min-height: 44px; }
   
+.defender-card.fertilizer { background: linear-gradient(180deg, #8d6e63 0%, #5d4037 100%); color: #ffe27a; border-color: #ffd54f; }
+.defender-card.fertilizer:hover { background: linear-gradient(180deg, #a1887f 0%, #6d4c41 100%); }
+
+/* Deck Builder UI */
+.deck-selector { margin: 14px 0; padding: 12px; border: 2px dashed rgba(255, 255, 255, 0.4); border-radius: 12px; background: rgba(0, 0, 0, 0.2); }
+.deck-selector legend { font-weight: 700; color: #ffe27a; padding: 0 8px; }
+.deck-slots-grid, .available-cards-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; justify-content: center; }
+.deck-slot-item, .card-picker-item {
+  width: 60px; height: 75px; padding: 4px; border-radius: 8px; border: 2px solid #5a8264;
+  background: rgba(23, 53, 42, 0.9); color: white; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s, border-color 0.2s;
+}
+.deck-slot-item:hover, .card-picker-item:hover { transform: translateY(-3px); border-color: #ffe27a; }
+.card-picker-item.selected { border-color: #ffd43b; background: rgba(76, 175, 80, 0.4); box-shadow: 0 0 10px #ffd43b; }
+.card-picker-item.locked-card { opacity: 0.5; filter: grayscale(0.8); cursor: not-allowed; }
+.card-picker-icon { font-size: 1.6rem; }
+.card-picker-cost { font-size: 0.7rem; font-weight: 700; color: #fff06a; }
+
   .board-wrap { overflow: visible; border-width: 3px; }
 }
 

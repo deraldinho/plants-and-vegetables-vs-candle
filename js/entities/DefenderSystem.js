@@ -151,6 +151,17 @@ class DefenderSystem {
     return true;
   }
 
+  applyFertilizer(defender) {
+    if (!defender) return false;
+    defender.powerLevel = 3;
+    defender.fertilizerBoostUntil = this.scene.gameState.time + 8;
+    defender.hp = defender.maxHp;
+    this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "ADUBO! NÍVEL MÁXIMO (3) 🎒✨", "#ffd54f", 1.35);
+    this.scene.effectsSystem.burst(defender.x, defender.y, "#ffd54f", 25);
+    this.scene.soundManager.beep(880, 0.25, "sine", 0.08);
+    return true;
+  }
+
   updateDefenders(dt) {
     const boosted = this.scene.gameState.time < this.scene.gameState.attackBoostUntil;
     const frenzyActive = this.scene.gameState.time < (this.scene.gameState.frenzyUntil || 0);
@@ -158,7 +169,50 @@ class DefenderSystem {
 
     for (const defender of this.scene.gameState.defenders) {
       const slowed = defender.slowUntil > this.scene.gameState.time;
+      const isFertilized = defender.fertilizerBoostUntil > this.scene.gameState.time;
+      const activePower = isFertilized ? 3 : defender.powerLevel;
       defender.cooldownLeft -= dt * speedMult * (slowed ? 0.6 : 1);
+
+      // Banana Boxeadora Melee
+      if (defender.melee) {
+        if (defender.cooldownLeft <= 0) {
+          const enemyInRange = this.scene.gameState.enemies.find(e => e.row === defender.row && e.hp > 0 && !e.removed && Math.abs(e.x - (defender.x + 35)) < 55);
+          if (enemyInRange) {
+            defender.cooldownLeft = defender.cooldown;
+            const dmg = Math.round(defender.damage * (1 + activePower * 0.2));
+            this.scene.enemySystem.damageEnemy(enemyInRange, dmg, "#ffe135", defender.type);
+            this.scene.effectsSystem.burst(enemyInRange.x, enemyInRange.y, "#ffe135", 10);
+            this.scene.soundManager.beep(420, 0.06, "square", 0.04);
+            if (defender.sprite) defender.sprite.setAngle(15);
+            setTimeout(() => { if (defender.sprite) defender.sprite.setAngle(0); }, 150);
+          }
+        }
+        continue;
+      }
+
+      // Maçã Esmagadora Smash
+      if (defender.smash) {
+        const enemyUnder = this.scene.gameState.enemies.find(e => e.row === defender.row && e.hp > 0 && !e.removed && Math.abs(e.x - defender.x) < 35);
+        if (enemyUnder) {
+          const dmg = Math.round(defender.damage * (1 + activePower * 0.2));
+          this.scene.enemySystem.damageEnemy(enemyUnder, dmg, "#e3242b", defender.type);
+          this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, `SMASH! -${dmg}🍎💥`, "#e3242b", 1.3);
+          this.scene.effectsSystem.burst(defender.x, defender.y, "#e3242b", 25);
+          this.scene.effectsSystem.triggerShake(10, 300);
+          this.scene.soundManager.beep(120, 0.25, "sawtooth", 0.08);
+          defender.hp = 0; // Consumed on impact
+        }
+        continue;
+      }
+
+      // Morango Atrator Taunt
+      if (defender.taunt) {
+        const nearbyEnemies = this.scene.gameState.enemies.filter(e => Math.abs(e.row - defender.row) <= 1 && Math.abs(e.x - defender.x) < 140 && e.hp > 0 && !e.removed);
+        for (const e of nearbyEnemies) {
+          if (e.x > defender.x + 20) e.x -= 20 * dt;
+        }
+        continue;
+      }
 
       if (defender.type === "potato") {
         if (!defender.armed) {
@@ -217,6 +271,20 @@ class DefenderSystem {
         defender.cooldownLeft = defender.cooldown;
         this.scene.projectileSystem.spawnProjectile(defender);
         this.scene.soundManager.beep(defender.type === "pepper" ? 260 : 520, 0.025, "square", 0.025);
+      }
+    }
+
+    for (const defender of this.scene.gameState.defenders) {
+      if (defender.hp <= 0 && defender.explodeOnDeath) {
+        for (const e of this.scene.gameState.enemies) {
+          if (Math.hypot(e.x - defender.x, (e.row - defender.row) * this.scene.CELL_H) < 130) {
+            this.scene.enemySystem.damageEnemy(e, 150, "#ff2a4b", "strawberry");
+          }
+        }
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "BOOM MORANGO! 🍓💥", "#ff2a4b", 1.35);
+        this.scene.effectsSystem.burst(defender.x, defender.y, "#ff2a4b", 25);
+        this.scene.effectsSystem.triggerShake(8, 250);
+        this.scene.soundManager.beep(140, 0.3, "sawtooth", 0.08);
       }
     }
   }

@@ -16,6 +16,13 @@ class TextureGenerator {
     this.createPepperTexture(scene);
     this.createTomatoTexture(scene);
     this.createWatermelonTexture(scene);
+    this.createBananaTexture(scene);
+    this.createOrangeTexture(scene);
+    this.createStrawberryTexture(scene);
+    this.createAppleTexture(scene);
+    this.createPineappleTexture(scene);
+    this.createCauliflowerTexture(scene);
+    this.createFertilizerTexture(scene);
 
     // Enemies
     this.createGummyTexture(scene);
@@ -224,7 +231,8 @@ class TextureGenerator {
 
     // Stem Cap
     g.fillStyle(0x43a047, 1);
-    g.fillStar(32, 12, 5, 10, 4);
+    g.fillTriangle(32, 6, 26, 14, 38, 14);
+    g.fillTriangle(32, 18, 26, 10, 38, 10);
 
     // Face
     g.fillStyle(0x17352a, 1);
@@ -240,15 +248,21 @@ class TextureGenerator {
 
     // Green Rind
     g.fillStyle(0x2e7d32, 1);
-    g.fillSlice(32, 32, 28, 0, Math.PI, false);
+    g.beginPath();
+    g.arc(32, 32, 28, 0, Math.PI, false);
+    g.fillPath();
 
     // White Inner Rind
     g.fillStyle(0xe8f5e9, 1);
-    g.fillSlice(32, 32, 24, 0, Math.PI, false);
+    g.beginPath();
+    g.arc(32, 32, 24, 0, Math.PI, false);
+    g.fillPath();
 
     // Red Flesh
     g.fillStyle(0xff3b5c, 1);
-    g.fillSlice(32, 32, 21, 0, Math.PI, false);
+    g.beginPath();
+    g.arc(32, 32, 21, 0, Math.PI, false);
+    g.fillPath();
 
     // Seeds
     g.fillStyle(0x17352a, 1);
@@ -518,6 +532,150 @@ class TextureGenerator {
     g.fillTriangle(25, 4, 40, -4, 55, 4);
 
     g.generateTexture("tex_lollipop_boss", 80, 80);
+    g.destroy();
+  }
+
+  static createBananaTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Banana Body
+    g.fillStyle(0xffe135, 1);
+    g.fillRoundedRect(14, 18, 36, 42, 14);
+    // Boxing Gloves
+    g.fillStyle(0xd50000, 1);
+    g.fillCircle(12, 34, 9);
+    g.fillCircle(52, 34, 9);
+    // Eyes & Smile
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(25, 28, 3.5);
+    g.fillCircle(39, 28, 3.5);
+    g.generateTexture("tex_banana", 64, 64);
+    g.destroy();
+  }
+
+  static createOrangeTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Orange Body
+    g.fillStyle(0xffa500, 1);
+    g.fillCircle(32, 34, 23);
+    g.fillStyle(0xffc04d, 0.8);
+    g.fillCircle(24, 24, 6);
+    // Leaf Stem
+    g.fillStyle(0x2e7d32, 1);
+    g.fillTriangle(32, 8, 26, 14, 38, 14);
+    // Eyes
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(25, 34, 3.5);
+    g.fillCircle(39, 34, 3.5);
+    g.generateTexture("tex_orange", 64, 64);
+    g.destroy();
+  }
+
+  static createStrawberryTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Strawberry Heart Body
+    g.fillStyle(0xff2a4b, 1);
+    g.fillTriangle(12, 20, 52, 20, 32, 58);
+    g.fillCircle(24, 20, 12);
+    g.fillCircle(40, 20, 12);
+    // Seeds
+    g.fillStyle(0xffd700, 0.9);
+    g.fillCircle(24, 32, 1.5);
+    g.fillCircle(40, 32, 1.5);
+    g.fillCircle(32, 42, 1.5);
+    // Leaf Cap
+    g.fillStyle(0x2e7d32, 1);
+    g.fillTriangle(32, 6, 20, 14, 44, 14);
+    // Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(26, 26, 3);
+    g.fillCircle(38, 26, 3);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(26, 26, 1.5);
+    g.fillCircle(38, 26, 1.5);
+    g.generateTexture("tex_strawberry", 64, 64);
+    g.destroy();
+  }
+
+  static createAppleTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Red Apple Body
+    g.fillStyle(0xe3242b, 1);
+    g.fillCircle(24, 34, 20);
+    g.fillCircle(40, 34, 20);
+    g.fillStyle(0xff6b6b, 0.7);
+    g.fillCircle(20, 26, 6);
+    // Stem & Leaf
+    g.fillStyle(0x5c4033, 1);
+    g.fillRect(31, 6, 3, 10);
+    g.fillStyle(0x2e7d32, 1);
+    g.fillTriangle(34, 10, 44, 4, 38, 14);
+    // Eyes
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(25, 34, 3.5);
+    g.fillCircle(39, 34, 3.5);
+    g.generateTexture("tex_apple", 64, 64);
+    g.destroy();
+  }
+
+  static createPineappleTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Leaf Crown
+    g.fillStyle(0x2e7d32, 1);
+    g.fillTriangle(32, 2, 24, 18, 40, 18);
+    g.fillTriangle(24, 6, 16, 20, 32, 20);
+    g.fillTriangle(40, 6, 32, 20, 48, 20);
+    // Oval Pineapple Body
+    g.fillStyle(0xe4b419, 1);
+    g.fillRoundedRect(16, 18, 32, 42, 12);
+    // Spikes Texture
+    g.lineStyle(1.5, 0x8b6508, 0.7);
+    g.lineBetween(18, 26, 46, 50);
+    g.lineBetween(46, 26, 18, 50);
+    // Eyes
+    g.fillStyle(0x17352a, 1);
+    g.fillCircle(26, 32, 3.5);
+    g.fillCircle(38, 32, 3.5);
+    g.generateTexture("tex_pineapple", 64, 64);
+    g.destroy();
+  }
+
+  static createCauliflowerTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Outer Leaves
+    g.fillStyle(0x388e3c, 1);
+    g.fillTriangle(6, 56, 18, 24, 32, 58);
+    g.fillTriangle(58, 56, 46, 24, 32, 58);
+    // White Dense Head
+    g.fillStyle(0xf5f5f5, 1);
+    g.fillCircle(22, 28, 15);
+    g.fillCircle(42, 28, 15);
+    g.fillCircle(32, 18, 17);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(32, 26, 14);
+    // Mystic Glow Eyes
+    g.fillStyle(0x8e24aa, 1);
+    g.fillCircle(26, 28, 4);
+    g.fillCircle(38, 28, 4);
+    g.fillStyle(0x00e676, 1);
+    g.fillCircle(26, 28, 2);
+    g.fillCircle(38, 28, 2);
+    g.generateTexture("tex_cauliflower", 64, 64);
+    g.destroy();
+  }
+
+  static createFertilizerTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Sack Body
+    g.fillStyle(0x8d6e63, 1);
+    g.fillRoundedRect(14, 16, 36, 42, 8);
+    // Tie Top
+    g.fillStyle(0x5d4037, 1);
+    g.fillRoundedRect(20, 10, 24, 8, 4);
+    // Super Star Emblem
+    g.fillStyle(0xffd54f, 1);
+    g.fillTriangle(32, 24, 24, 38, 40, 38);
+    g.fillTriangle(32, 42, 24, 28, 40, 28);
+    g.generateTexture("tex_fertilizer", 64, 64);
     g.destroy();
   }
 }
