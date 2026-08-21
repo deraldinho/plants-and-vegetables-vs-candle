@@ -7,12 +7,18 @@ class EnemySystem {
 
   spawnEnemy(type, row) {
     const base = ENEMIES[type];
-    const mode = MODES[this.scene.gameState.mode];
-    const endlessGrowth = this.scene.gameState.mode === "endless" ? Math.max(0, this.scene.gameState.wave - 3) : 0;
-    const waveHpScale = 1 + (this.scene.gameState.wave - 1) * (this.scene.gameState.mode === "endless" ? 0.16 : 0.13);
-    const hpScale = (base.boss ? 1 + endlessGrowth * 0.12 : waveHpScale) * mode.enemyHp;
-    const speedScale = mode.enemySpeed * (1 + Math.min(0.3, endlessGrowth * 0.015));
-    const damageScale = mode.enemyDamage * (1 + Math.min(0.5, endlessGrowth * 0.025));
+    const mode = MODES[this.scene.gameState.mode] || MODES.normal;
+    const wave = this.scene.gameState.wave || 1;
+    const hpScalingRate = mode.levelHpScaling || 0.14;
+    const speedScalingRate = mode.levelSpeedScaling || 0.018;
+    const rewardScalingRate = mode.levelRewardScaling || 0.12;
+
+    const waveHpScale = 1 + (wave - 1) * hpScalingRate;
+    const hpScale = (base.boss ? 1 + (wave - 1) * 0.15 : waveHpScale) * mode.enemyHp;
+    const speedScale = mode.enemySpeed * (1 + Math.min(0.30, (wave - 1) * speedScalingRate));
+    const damageScale = mode.enemyDamage * (1 + Math.min(0.45, (wave - 1) * 0.025));
+
+    const rewardScaled = Math.round(base.reward * (1 + (wave - 1) * rewardScalingRate));
 
     const x = this.scene.W + 42;
     const y = this.scene.GRID_Y + row * this.scene.CELL_H + this.scene.CELL_H / 2;
@@ -20,8 +26,9 @@ class EnemySystem {
     const enemy = {
       ...base, type, row, x, y,
       hp: Math.round(base.hp * hpScale), maxHp: Math.round(base.hp * hpScale),
-      shield: Math.round((base.shield || 0) * hpScale), maxShield: Math.round((base.shield || 0) * hpScale),
+      shield: Math.round((base.shield || 0) * (1 + (wave - 1) * 0.15)), maxShield: Math.round((base.shield || 0) * (1 + (wave - 1) * 0.15)),
       speed: base.speed * speedScale, damage: Math.round(base.damage * damageScale),
+      reward: rewardScaled,
       attackTimer: 0, hitFlash: 0, burnUntil: 0, burnTick: 0, wobble: Math.random() * 6
     };
 
@@ -42,6 +49,14 @@ class EnemySystem {
       this.scene.effectsSystem.triggerShake(20, 650);
       this.scene.soundManager.beep(90, 0.6, "sawtooth");
       this.scene.effectsSystem.spawnFloater(500, 150, "🍭 PIRULITO GIRATÓRIO SUPREMO CHEGOU! 🍭", "#ff3b9a", 1.6);
+    } else if (type === "confeiteiro") {
+      this.scene.effectsSystem.triggerShake(25, 750);
+      this.scene.soundManager.beep(80, 0.7, "sawtooth");
+      this.scene.effectsSystem.spawnFloater(500, 150, "👨‍🍳 O CONFEITEIRO SOMBRIO CHEGOU! ONDA FINAL! 👨‍🍳", "#ff1744", 1.7);
+    } else if (type === "cake_robot") {
+      this.scene.effectsSystem.triggerShake(22, 700);
+      this.scene.soundManager.beep(75, 0.65, "sawtooth");
+      this.scene.effectsSystem.spawnFloater(500, 150, "🤖🎂 ROBÔ BOLO MUTANTE GIGANTE ENTROU NA BATALHA! 🤖🎂", "#00e5ff", 1.65);
     }
   }
 
@@ -145,6 +160,72 @@ class EnemySystem {
             thorn.textObj = this.scene.add.text(thorn.x, thorn.y, thorn.icon, { fontSize: "24px" }).setOrigin(0.5);
             this.scene.gameState.enemyProjectiles.push(thorn);
           }
+        }
+      }
+
+      if (enemy.type === "confeiteiro") {
+        enemy.bossSkillTimer = (enemy.bossSkillTimer || 0) + dt;
+        if (enemy.bossSkillTimer >= 4.2) {
+          enemy.bossSkillTimer = 0;
+          this.scene.effectsSystem.triggerShake(14, 450);
+          this.scene.effectsSystem.burst(enemy.x, enemy.y, "#ff1744", 35);
+          this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 55, "CHUVA DE AÇÚCAR & ROLO DE MASSA! 👨‍🍳🥖", "#ff1744", 1.5);
+          this.scene.soundManager.beep(120, 0.35, "sawtooth", 0.08);
+
+          // Spawn 2 helper candies
+          const minionTypes = ["gummy", "marshmallow", "cupcake", "chocolate"];
+          for (let k = 0; k < 2; k++) {
+            const mType = minionTypes[Math.floor(Math.random() * minionTypes.length)];
+            const mRow = Math.floor(Math.random() * 5);
+            this.spawnEnemy(mType, mRow);
+          }
+
+          // Launch Rolling Pin Projectile
+          const rollingPin = {
+            x: enemy.x - 30,
+            y: this.scene.GRID_Y + enemy.row * this.scene.CELL_H + this.scene.CELL_H / 2,
+            row: enemy.row,
+            speed: 360,
+            damage: 80,
+            color: "#ff3d00",
+            icon: "🥖",
+            removed: false
+          };
+          rollingPin.textObj = this.scene.add.text(rollingPin.x, rollingPin.y, rollingPin.icon, { fontSize: "28px" }).setOrigin(0.5);
+          this.scene.gameState.enemyProjectiles.push(rollingPin);
+        }
+      }
+
+      if (enemy.type === "cake_robot") {
+        enemy.bossSkillTimer = (enemy.bossSkillTimer || 0) + dt;
+        if (enemy.bossSkillTimer >= 4.5) {
+          enemy.bossSkillTimer = 0;
+          this.scene.effectsSystem.triggerShake(16, 500);
+          this.scene.effectsSystem.burst(enemy.x, enemy.y, "#00e5ff", 35);
+          this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 55, "LASER DE COBERTURA & PARALISIA! 🤖⚡", "#00e5ff", 1.5);
+          this.scene.soundManager.beep(140, 0.35, "square", 0.08);
+
+          // Freeze / Slow nearby defenders
+          for (const defender of this.scene.gameState.defenders) {
+            if (Math.abs(defender.x - enemy.x) < 260) {
+              defender.slowUntil = this.scene.gameState.time + 4;
+              this.scene.effectsSystem.burst(defender.x, defender.y, "#00e5ff", 8);
+            }
+          }
+
+          // Fire Cyber Laser Projectile
+          const laser = {
+            x: enemy.x - 30,
+            y: this.scene.GRID_Y + enemy.row * this.scene.CELL_H + this.scene.CELL_H / 2,
+            row: enemy.row,
+            speed: 420,
+            damage: 75,
+            color: "#00e5ff",
+            icon: "⚡",
+            removed: false
+          };
+          laser.textObj = this.scene.add.text(laser.x, laser.y, laser.icon, { fontSize: "28px" }).setOrigin(0.5);
+          this.scene.gameState.enemyProjectiles.push(laser);
         }
       }
 

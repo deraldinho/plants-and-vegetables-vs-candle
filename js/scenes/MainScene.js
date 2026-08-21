@@ -56,6 +56,9 @@ class MainScene extends Phaser.Scene {
 
     this.input.on("pointermove", (pointer) => {
       this.gameState.mouse = { x: pointer.x, y: pointer.y };
+      if (pointer.isDown) {
+        this.checkSunPickup(pointer.x, pointer.y);
+      }
     });
 
     this.startGame();
@@ -238,7 +241,11 @@ class MainScene extends Phaser.Scene {
     for (const collection of collections) {
       if (collection) {
         for (const item of collection) {
-          if (item && item.textObj) item.textObj.destroy();
+          if (item) {
+            if (item.textObj) item.textObj.destroy();
+            if (item.sprite) item.sprite.destroy();
+            if (item.shadowSprite) item.shadowSprite.destroy();
+          }
         }
       }
     }
@@ -266,14 +273,22 @@ class MainScene extends Phaser.Scene {
       this.gameState.waveTime += dt;
       if (this.gameState.time > this.gameState.comboExpiresAt) this.gameState.combo = 0;
 
-      const isBossWave = (this.gameState.wave % 5 === 0);
-      if (isBossWave) {
-        if (this.gameState.wave % 15 === 5) {
-          this.uiOverlayText.setText("🔥 CHEFE 1 (Onda 5): VELA MESTRA!");
-        } else if (this.gameState.wave % 15 === 10) {
+      const isFinale = (this.gameState.wave === 26 || (this.gameState.mode === "endless" && this.gameState.wave % 26 === 0));
+      const isBossWave = (this.gameState.wave % 5 === 0) || isFinale;
+      if (isFinale) {
+        this.uiOverlayText.setText("👑🔥 ONDA 26 GRANDE FINALE: CONFRONTO DOS 5 CHEFES SIMULTÂNEOS!");
+      } else if (isBossWave) {
+        const cycle = this.gameState.wave % 25;
+        if (cycle === 5) {
+          this.uiOverlayText.setText("🕯️ CHEFE 1 (Onda 5): VELA MESTRA!");
+        } else if (cycle === 10) {
           this.uiOverlayText.setText("🟣 CHEFE 2 (Onda 10): CHICLETE GIGANTE GRUDENTO!");
+        } else if (cycle === 15) {
+          this.uiOverlayText.setText("🍭 CHEFE 3 (Onda 15): PIRULITO GIRATÓRIO SUPREMO!");
+        } else if (cycle === 20) {
+          this.uiOverlayText.setText("🤖🎂 CHEFE 4 (Onda 20): ROBÔ BOLO MUTANTE GIGANTE!");
         } else {
-          this.uiOverlayText.setText("🍭 CHEFE 3 FINAL (Onda 15): PIRULITO GIRATÓRIO ESPINHOSO!");
+          this.uiOverlayText.setText("👨‍🍳 CHEFE 5 (Onda 25): O CONFEITEIRO SOMBRIO!");
         }
       } else {
         this.uiOverlayText.setText(`⚔️ Onda ${this.gameState.wave} de ${CAMPAIGN_MAX_WAVES} em andamento`);
@@ -341,8 +356,30 @@ class MainScene extends Phaser.Scene {
     const bonus = 40 + this.gameState.wave * 15;
     this.gameState.sun += bonus;
     this.gameState.score += bonus * 5;
-    this.effectsSystem.spawnFloater(500, 180, `🎉 ONDA COMPLETA! +${bonus}☀️`, "#ffe27a", 1.4);
+    
+    // Sunflower seeds progression reward
+    const isBossWave = (this.gameState.wave % 5 === 0);
+    const isFinale = (this.gameState.wave === 26);
+    const seedGain = isFinale ? 100 : (isBossWave ? 25 : 10);
+    const currentSeeds = readNumber(STORAGE_KEYS.sunflowerSeeds) || 0;
+    writeStorage(STORAGE_KEYS.sunflowerSeeds, currentSeeds + seedGain);
+
+    this.effectsSystem.spawnFloater(500, 180, `🎉 ONDA COMPLETA! +${bonus}☀️ +${seedGain}🌻`, "#ffe27a", 1.4);
     this.soundManager.beep(660, 0.15, "triangle", 0.05);
+
+    // Deck slot progression unlocks at wave 10 and wave 20
+    const currentSlots = readDeckSlots();
+    if (this.gameState.wave >= 20 && currentSlots < 7) {
+      saveDeckSlots(7);
+      this.effectsSystem.spawnFloater(500, 230, "🎉 7º SLOT DE BARALHO DESBLOQUEADO! 🃏", "#69c743", 1.5);
+      this.soundManager.beep(880, 0.3, "sine", 0.08);
+      if (window.uiManager) window.uiManager.renderDeckBuilder();
+    } else if (this.gameState.wave >= 10 && currentSlots < 6) {
+      saveDeckSlots(6);
+      this.effectsSystem.spawnFloater(500, 230, "🎉 6º SLOT DE BARALHO DESBLOQUEADO! 🃏", "#69c743", 1.5);
+      this.soundManager.beep(880, 0.3, "sine", 0.08);
+      if (window.uiManager) window.uiManager.renderDeckBuilder();
+    }
 
     if (this.heroContainer) {
       this.tweens.add({
@@ -381,7 +418,9 @@ class MainScene extends Phaser.Scene {
     this.drawBackgroundGraphics();
     this.drawGridGraphics();
     const biome = getBiomeForWave(this.gameState.wave);
-    this.effectsSystem.spawnFloater(500, 200, `${biome.icon} ONDA ${this.gameState.wave}!`, "#fff06a", 1.4);
+    const isBoss = (this.gameState.wave % 5 === 0) || this.gameState.wave === 16;
+    const threat = getThreatLevelInfo(this.gameState.wave, isBoss);
+    this.effectsSystem.spawnFloater(500, 200, `${threat.icon} ONDA ${this.gameState.wave} - ${threat.name}!`, threat.color, 1.5);
     this.soundManager.beep(560, 0.11, "triangle");
   }
 
@@ -397,10 +436,9 @@ class MainScene extends Phaser.Scene {
     return this.defenderSystem.useAbility(defender);
   }
 
-  handlePointerDown(x, y) {
-    if (this.gameState.phase !== "playing" || this.gameState.paused) return;
-
-    const sun = [...this.gameState.suns].reverse().find(s => Math.hypot(s.x - x, s.y - y) < 40);
+  checkSunPickup(x, y) {
+    if (this.gameState.phase !== "playing" || this.gameState.paused) return false;
+    const sun = [...this.gameState.suns].reverse().find(s => Math.hypot(s.x - x, s.y - y) < 58);
     if (sun) {
       this.gameState.sun += sun.value;
       this.gameState.stats.sunCollected += sun.value;
@@ -419,8 +457,15 @@ class MainScene extends Phaser.Scene {
         this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️`, "#fff06a", 1.2);
         this.soundManager.beep(760, 0.08, "sine", 0.04);
       }
-      return;
+      return true;
     }
+    return false;
+  }
+
+  handlePointerDown(x, y) {
+    if (this.gameState.phase !== "playing" || this.gameState.paused) return;
+
+    if (this.checkSunPickup(x, y)) return;
 
     const col = Math.floor((x - this.GRID_X) / this.CELL_W);
     const row = Math.floor((y - this.GRID_Y) / this.CELL_H);

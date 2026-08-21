@@ -111,7 +111,7 @@ class UIManager {
 
     window.onPhaserGameWin = (state) => {
       this.ui.overlayTitle.textContent = "🎉 Vitória da Família Saudável!";
-      this.ui.overlayText.textContent = "Você derrotou todos os 3 Super Chefes e concluiu com sucesso as 15 Ondas da campanha!";
+      this.ui.overlayText.textContent = "Você derrotou O Confeiteiro Sombrio 👨‍🍳 e o Robô Bolo Mutante Gigante 🤖🎂, salvando a Healthy Family Home!";
       this.ui.modeSelector.hidden = false;
       if (this.ui.restartButton) this.ui.restartButton.hidden = true;
       this.renderResults(state, true);
@@ -228,7 +228,13 @@ class UIManager {
         button.classList.add("used");
         if (name === "water") this.activeScene.gameState.sun += 50;
         if (name === "fruit") this.activeScene.gameState.sun += 100;
-        if (name === "vegetables") this.activeScene.gameState.pepperUnlocked = true;
+        if (name === "vegetables") {
+          this.activeScene.gameState.pepperUnlocked = true;
+          if (!this.activeDeck.includes("pepper")) {
+            this.activeDeck.push("pepper");
+            this.updateDefenderTrayUI();
+          }
+        }
         if (name === "exercise") this.activeScene.gameState.attackBoostUntil = this.activeScene.gameState.time + 20;
         if (name === "teeth") this.activeScene.gameState.houseHp = Math.min(this.activeScene.gameState.maxHouseHp, this.activeScene.gameState.houseHp + 300);
         if (name === "sleep") {
@@ -273,7 +279,7 @@ class UIManager {
       return;
     }
 
-    if (key === "p" || key === "P" || key === "x" || key === "X") {
+    if (key === "x" || key === "X" || key === "Delete") {
       this.toggleShovel();
       return;
     }
@@ -348,32 +354,67 @@ class UIManager {
     this.ui.deckSlotsGrid.innerHTML = "";
     this.ui.availableCardsGrid.innerHTML = "";
 
-    const maxSlots = 5;
+    const maxSlots = readDeckSlots();
+    const unlockedCards = readUnlockedCards();
+    const seeds = readNumber(STORAGE_KEYS.sunflowerSeeds);
     const allCards = Object.keys(DEFENDERS);
+
+    const slotsLegend = document.querySelector(".deck-selector legend");
+    if (slotsLegend) {
+      slotsLegend.textContent = `🃏 Escolha seu Baralho (${this.activeDeck.length}/${maxSlots} Slots Liberados)`;
+    }
 
     allCards.forEach(key => {
       const def = DEFENDERS[key];
+      const isUnlocked = unlockedCards.includes(key) || (def.seedPrice === 0);
       const isSelected = this.activeDeck.includes(key);
+
       const cardEl = document.createElement("div");
-      cardEl.className = `card-picker-item ${isSelected ? "selected" : ""}`;
-      cardEl.innerHTML = `
-        <span class="card-picker-icon">${def.icon}</span>
-        <span class="card-picker-cost">${def.cost}☀️</span>
-      `;
-      cardEl.addEventListener("click", () => {
-        if (isSelected) {
-          if (this.activeDeck.length > 1) {
-            this.activeDeck = this.activeDeck.filter(k => k !== key);
+      if (isUnlocked) {
+        cardEl.className = `card-picker-item ${isSelected ? "selected" : ""}`;
+        cardEl.title = isSelected ? "Clique para remover do baralho" : "Clique para adicionar ao baralho";
+        cardEl.innerHTML = `
+          <span class="card-picker-icon">${def.icon}</span>
+          <span class="card-picker-cost">${def.cost}☀️</span>
+        `;
+        cardEl.addEventListener("click", () => {
+          if (isSelected) {
+            if (this.activeDeck.length > 1) {
+              this.activeDeck = this.activeDeck.filter(k => k !== key);
+            }
+          } else {
+            if (this.activeDeck.length < maxSlots) {
+              this.activeDeck.push(key);
+            } else {
+              this.showToast(`Limite de ${maxSlots} slots atingido! Avance ondas para liberar mais! 🌻`);
+            }
           }
-        } else {
-          if (this.activeDeck.length < maxSlots) {
-            this.activeDeck.push(key);
+          this.DEFENDER_KEYS = [...this.activeDeck];
+          this.renderDeckBuilder();
+          this.updateDefenderTrayUI();
+        });
+      } else {
+        cardEl.className = "card-picker-item locked-card";
+        cardEl.title = `Clique para desbloquear por ${def.seedPrice} Sementes 🌻`;
+        cardEl.innerHTML = `
+          <span class="card-picker-icon">${def.icon}</span>
+          <span class="card-picker-cost">${def.seedPrice}🌻 🔒</span>
+        `;
+        cardEl.addEventListener("click", () => {
+          const currentSeeds = readNumber(STORAGE_KEYS.sunflowerSeeds);
+          if (currentSeeds >= def.seedPrice) {
+            writeStorage(STORAGE_KEYS.sunflowerSeeds, currentSeeds - def.seedPrice);
+            unlockedCards.push(key);
+            saveUnlockedCards(unlockedCards);
+            this.showToast(`🎉 ${def.name} desbloqueada para o seu baralho!`);
+            this.renderDeckBuilder();
+            if (this.activeScene) this.syncUi(this.activeScene.gameState);
+          } else {
+            this.showToast(`Faltam sementes! Custo: ${def.seedPrice} 🌻 (Você tem ${currentSeeds} 🌻)`);
           }
-        }
-        this.DEFENDER_KEYS = [...this.activeDeck];
-        this.renderDeckBuilder();
-        this.updateDefenderTrayUI();
-      });
+        });
+      }
+
       this.ui.availableCardsGrid.appendChild(cardEl);
     });
   }
@@ -394,10 +435,15 @@ class UIManager {
       btn.title = `Atalho: Tecla ${index + 1}`;
       btn.innerHTML = `<span class="card-icon">${def.icon}</span><span class="card-copy"><strong>[${index + 1}] ${def.name.split(" ")[0]}</strong><small>${def.cost} ☀️</small></span>`;
       btn.addEventListener("click", () => this.selectDefenderType(key));
+      btn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        this.selectDefenderType(key);
+      }, { passive: false });
       if (shovelBtn) tray.insertBefore(btn, shovelBtn);
       else tray.appendChild(btn);
     });
     this.DEFENDER_KEYS = [...this.activeDeck];
+    this.ui.cards = [...document.querySelectorAll(".defender-card[data-defender]")];
   }
 
   renderResults(state, isWin) {
@@ -526,8 +572,11 @@ class UIManager {
     this.ui.healthBar.style.width = `${Math.max(0, state.houseHp / state.maxHouseHp * 100)}%`;
     this.ui.healthBar.style.background = state.houseHp < 300 ? "#ef476f" : "linear-gradient(90deg, #69c743, #b8e34d)";
     const biome = getBiomeForWave(state.wave);
-    this.ui.wave.textContent = `Onda ${state.wave} (${biome.icon} ${biome.name})`;
+    const isBossWave = (state.wave % 5 === 0) || state.wave === 16;
+    const threat = getThreatLevelInfo(state.wave, isBossWave);
+    this.ui.wave.textContent = `Onda ${state.wave} ${threat.icon} ${threat.name} (${biome.icon} ${biome.name})`;
     if (this.ui.seed) this.ui.seed.textContent = state.seed || "------";
+    if (this.ui.seeds) this.ui.seeds.textContent = readNumber(STORAGE_KEYS.sunflowerSeeds) || 0;
     this.ui.score.textContent = state.score;
     this.ui.bestScore.textContent = this.activeScene ? (state.mode === "endless" && this.activeScene.bestEndlessWave > 0 ? `${this.activeScene.bestScore} (Onda ${this.activeScene.bestEndlessWave})` : this.activeScene.bestScore) : 0;
     this.updateCards(state);

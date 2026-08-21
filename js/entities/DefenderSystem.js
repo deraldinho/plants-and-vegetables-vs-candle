@@ -147,12 +147,77 @@ class DefenderSystem {
         this.scene.effectsSystem.burst(defender.x, defender.y, "#ff3b5c", 15);
         break;
       }
+      case "banana": {
+        defender.frenzyUntil = this.scene.gameState.time + 6;
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 25, "SOCOS FRENÉTICOS! 🍌🥊", "#ffe135", 1.25);
+        this.scene.effectsSystem.burst(defender.x, defender.y, "#ffe135", 18);
+        break;
+      }
+      case "orange": {
+        const rowEnemies = this.scene.gameState.enemies.filter(e => e.row === defender.row && e.hp > 0 && !e.removed);
+        for (const e of rowEnemies) {
+          if (e.shield > 0) {
+            e.shield = 0;
+            this.scene.effectsSystem.spawnFloater(e.x, e.y - 35, "ESCUDO DERRETIDO! 🍊💧", "#ffa500", 1.2);
+          }
+          this.scene.enemySystem.damageEnemy(e, 45, "#ffa500", "orange");
+          this.scene.effectsSystem.burst(e.x, e.y, "#ffa500", 12);
+        }
+        break;
+      }
+      case "strawberry": {
+        defender.hp = Math.min(defender.maxHp, defender.hp + 100);
+        const nearbyEnemies = this.scene.gameState.enemies.filter(e => Math.abs(e.row - defender.row) <= 1 && Math.abs(e.x - defender.x) < 160 && e.hp > 0 && !e.removed);
+        for (const e of nearbyEnemies) {
+          e.x = Math.max(this.scene.GRID_X + defender.col * this.scene.CELL_W, e.x - 40);
+          this.scene.effectsSystem.burst(e.x, e.y, "#ff2a4b", 10);
+        }
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "AROMA ATRATOR! +100 HP 🍓", "#ff2a4b", 1.2);
+        break;
+      }
+      case "apple": {
+        const lineEnemies = this.scene.gameState.enemies.filter(e => e.row === defender.row && e.hp > 0 && !e.removed);
+        for (const e of lineEnemies) {
+          this.scene.enemySystem.damageEnemy(e, 250, "#e3242b", "apple");
+          this.scene.effectsSystem.burst(e.x, e.y, "#e3242b", 15);
+        }
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "SUPER IMPACTO! 🍎💥", "#e3242b", 1.35);
+        this.scene.effectsSystem.triggerShake(12, 300);
+        break;
+      }
+      case "pineapple": {
+        for (const e of this.scene.gameState.enemies) {
+          if (Math.hypot(e.x - defender.x, (e.row - defender.row) * this.scene.CELL_H) < 140) {
+            this.scene.enemySystem.damageEnemy(e, 140, "#e4b419", "pineapple");
+            this.scene.effectsSystem.burst(e.x, e.y, "#e4b419", 10);
+          }
+        }
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "CHUVA DE ESPINHOS! 🍍⚡", "#e4b419", 1.25);
+        break;
+      }
+      case "cauliflower": {
+        const p = {
+          x: defender.x + 25, y: defender.y - 3, row: defender.row,
+          speed: 400, damage: 120, color: "#d8f8e1", icon: "🌀",
+          area: false, piercing: true, hitsLeft: 99, sourceType: "cauliflower", removed: false
+        };
+        p.textObj = this.scene.add.text(p.x, p.y, p.icon, { fontSize: "28px" }).setOrigin(0.5);
+        this.scene.gameState.projectiles.push(p);
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "ONDA MÍSTICA! 🥦🌀", "#d8f8e1", 1.25);
+        break;
+      }
     }
     return true;
   }
 
   applyFertilizer(defender) {
     if (!defender) return false;
+    const FERTILIZER_COST = 75;
+    if (this.scene.gameState.sun < FERTILIZER_COST) {
+      this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "Energia insuficiente! (75 ☀️)", "#ef476f", 1.15);
+      return false;
+    }
+    this.scene.gameState.sun -= FERTILIZER_COST;
     defender.powerLevel = 3;
     defender.fertilizerBoostUntil = this.scene.gameState.time + 8;
     defender.hp = defender.maxHp;
@@ -201,6 +266,8 @@ class DefenderSystem {
           this.scene.effectsSystem.triggerShake(10, 300);
           this.scene.soundManager.beep(120, 0.25, "sawtooth", 0.08);
           defender.hp = 0; // Consumed on impact
+          if (defender.sprite) defender.sprite.destroy();
+          if (defender.shadowSprite) defender.shadowSprite.destroy();
         }
         continue;
       }

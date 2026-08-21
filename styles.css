@@ -12,7 +12,12 @@
   --shadow: 0 14px 35px rgba(23, 76, 53, .16);
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
 
 body {
   margin: 0;
@@ -23,9 +28,11 @@ body {
   background:
     radial-gradient(circle at 10% 10%, rgba(255, 205, 76, .35), transparent 25rem),
     linear-gradient(145deg, #eff9d5, #d7f1e3 48%, #fef3cb);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-button { font: inherit; min-height: 44px; }
+button { font: inherit; min-height: 48px; min-width: 48px; touch-action: manipulation; }
 button:focus-visible { outline: 4px solid #4b9fff; outline-offset: 2px; }
 
 .game-shell { width: min(1180px, 100%); margin: 0 auto; padding: 18px; }

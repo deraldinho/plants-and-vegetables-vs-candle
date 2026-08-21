@@ -37,6 +37,8 @@ class TextureGenerator {
     // Bosses
     this.createGumBossTexture(scene);
     this.createLollipopBossTexture(scene);
+    this.createConfeiteiroTexture(scene);
+    this.createCakeRobotTexture(scene);
   }
 
   static createShadowTexture(scene) {
@@ -676,6 +678,90 @@ class TextureGenerator {
     g.fillTriangle(32, 24, 24, 38, 40, 38);
     g.fillTriangle(32, 42, 24, 28, 40, 28);
     g.generateTexture("tex_fertilizer", 64, 64);
+    g.destroy();
+  }
+
+  static createConfeiteiroTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Apron / Dark Coat
+    g.fillStyle(0x2b2b2b, 1);
+    g.fillRoundedRect(20, 36, 40, 42, 10);
+    g.fillStyle(0xd50000, 1);
+    g.fillRect(36, 36, 8, 42); // Red Scarf / Ribbon
+
+    // Face / Head
+    g.fillStyle(0xffdbac, 1);
+    g.fillCircle(40, 34, 18);
+
+    // Dark Chef Mustache
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillTriangle(26, 42, 40, 36, 34, 44);
+    g.fillTriangle(54, 42, 40, 36, 46, 44);
+
+    // Evil Glowing Eyes
+    g.fillStyle(0xff1744, 1);
+    g.fillCircle(33, 30, 4);
+    g.fillCircle(47, 30, 4);
+    g.fillStyle(0xffff00, 1);
+    g.fillCircle(33, 30, 2);
+    g.fillCircle(47, 30, 2);
+
+    // Chef Hat Base & Puffs
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(26, 16, 28, 8);
+    g.fillCircle(28, 10, 10);
+    g.fillCircle(40, 6, 12);
+    g.fillCircle(52, 10, 10);
+
+    // Golden Crown Accent on Hat
+    g.fillStyle(0xffd700, 1);
+    g.fillTriangle(35, 16, 40, 8, 45, 16);
+
+    g.generateTexture("tex_confeiteiro", 80, 80);
+    g.destroy();
+  }
+
+  static createCakeRobotTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Metallic Base / Lower Cake Tier
+    g.fillStyle(0x78909c, 1);
+    g.fillRoundedRect(12, 42, 56, 32, 6);
+    g.fillStyle(0xb0bec5, 1);
+    g.fillRect(16, 46, 48, 6); // Metallic Trim
+
+    // Middle Cake Tier (Frosted Cyber Layer)
+    g.fillStyle(0x00bcd4, 1);
+    g.fillRoundedRect(18, 24, 44, 22, 6);
+    g.fillStyle(0xe0f7fa, 0.8);
+    g.fillCircle(24, 28, 4);
+    g.fillCircle(36, 28, 4);
+    g.fillCircle(48, 28, 4);
+
+    // Robot Head / Top Tier
+    g.fillStyle(0x455a64, 1);
+    g.fillRoundedRect(24, 8, 32, 20, 4);
+
+    // Cyan Robot Visor / Eyes
+    g.fillStyle(0x00e5ff, 1);
+    g.fillRoundedRect(28, 12, 24, 6, 2);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(32, 14, 4, 2);
+
+    // Candle Antenna with Spark Base
+    g.fillStyle(0xff3d00, 1);
+    g.fillRect(38, 0, 4, 9);
+    g.fillStyle(0xffea00, 1);
+    g.fillCircle(40, 0, 3);
+
+    // Mechanical Arms
+    g.fillStyle(0x37474f, 1);
+    g.fillRect(4, 30, 12, 8);
+    g.fillRect(64, 30, 12, 8);
+    g.fillStyle(0x00e5ff, 1);
+    g.fillCircle(4, 34, 4);
+    g.fillCircle(76, 34, 4);
+
+    g.generateTexture("tex_cake_robot", 80, 80);
     g.destroy();
   }
 }
