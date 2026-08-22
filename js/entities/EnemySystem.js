@@ -106,8 +106,14 @@ class EnemySystem {
       if (enemy.sprite) enemy.sprite.destroy();
       if (enemy.shadowSprite) enemy.shadowSprite.destroy();
       this.scene.effectsSystem.burst(enemy.x, enemy.y, "#ffc44d", enemy.boss ? 50 : 18);
+      this.scene.effectsSystem.spawnSugarDust(enemy.x, enemy.y, "#ff9f1c", enemy.boss ? 30 : 14);
+      this.scene.effectsSystem.sparkleBurst(enemy.x, enemy.y, "#ffd43b", enemy.boss ? 25 : 8);
+      if (enemy.boss) {
+        this.scene.effectsSystem.spawnShockwave(enemy.x, enemy.y, "#ff3838", 240, 0.55);
+        this.scene.effectsSystem.triggerShake(15, 450);
+        this.scene.effectsSystem.flashScreen("#ff1744", 200);
+      }
       this.scene.soundManager.beep(enemy.boss ? 100 : 180, enemy.boss ? 0.5 : 0.08, "triangle", 0.06);
-      if (enemy.boss) this.scene.effectsSystem.triggerShake(15, 450);
     }
   }
 
@@ -245,7 +251,8 @@ class EnemySystem {
       if (blocker) {
         if (blocker.type === "potato" && blocker.armed) {
           blocker.hp = 0;
-          if (blocker.textObj) blocker.textObj.destroy();
+          if (blocker.sprite) blocker.sprite.destroy();
+          if (blocker.shadowSprite) blocker.shadowSprite.destroy();
           this.scene.effectsSystem.burst(blocker.x, blocker.y, "#ff5638", 30);
           this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, "BOOM! 💥 180", "#ff5638", 1.4);
           this.scene.effectsSystem.triggerShake(12, 300);
@@ -284,7 +291,10 @@ class EnemySystem {
           this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 30, "🤢 REPELIDO!", "#f5f5dc", 1.15);
           this.scene.soundManager.beep(300, 0.1, "sine", 0.04);
           blocker.hp -= 15;
-          if (blocker.hp <= 0 && blocker.textObj) blocker.textObj.destroy();
+          if (blocker.hp <= 0) {
+            if (blocker.sprite) blocker.sprite.destroy();
+            if (blocker.shadowSprite) blocker.shadowSprite.destroy();
+          }
           continue;
         }
 
@@ -305,7 +315,8 @@ class EnemySystem {
 
           if (blocker.hp <= 0) {
             this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, "Derrotado! 💔", "#ef476f", 1.2);
-            if (blocker.textObj) blocker.textObj.destroy();
+            if (blocker.sprite) blocker.sprite.destroy();
+            if (blocker.shadowSprite) blocker.shadowSprite.destroy();
             this.scene.effectsSystem.burst(blocker.x, blocker.y, "#ef476f", 18);
           }
         }

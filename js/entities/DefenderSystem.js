@@ -26,7 +26,8 @@ class DefenderSystem {
     this.scene.gameState.defenders.push(defender);
     this.scene.gameState.stats.defendersPlaced += 1;
 
-    this.scene.effectsSystem.burst(x, y, "#d8ff91", 14);
+    this.scene.effectsSystem.burst(x, y, "#d8ff91", 16);
+    this.scene.effectsSystem.sparkleBurst(x, y, "#b7df54", 10);
     this.scene.soundManager.beep(330, 0.07, "sine", 0.04);
   }
 
@@ -39,8 +40,10 @@ class DefenderSystem {
     defender.powerLevel += 1;
     defender.damage = Math.round(DEFENDERS[defender.type].damage * (1 + defender.powerLevel * 0.35));
     this.scene.gameState.stats.upgradesBought += 1;
-    this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, `ATK Nív ${defender.powerLevel}! ⚔️`, "#ffd43b", 1.2);
-    this.scene.effectsSystem.burst(defender.x, defender.y, "#ffd43b", 15);
+    this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, `ATK Nív ${defender.powerLevel}! ⚔️`, "#ffd43b", 1.25);
+    this.scene.effectsSystem.burst(defender.x, defender.y, "#ffd43b", 18);
+    this.scene.effectsSystem.sparkleBurst(defender.x, defender.y, "#ffd43b", 12);
+    this.scene.effectsSystem.spawnShockwave(defender.x, defender.y, "#ffd43b", 60, 0.35);
     this.scene.soundManager.beep(520, 0.1, "sine", 0.05);
     return true;
   }
@@ -56,8 +59,10 @@ class DefenderSystem {
     defender.maxHp += bonusHp;
     defender.hp += bonusHp;
     this.scene.gameState.stats.upgradesBought += 1;
-    this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, `HP Nív ${defender.healthLevel}! 💚`, "#69c743", 1.2);
-    this.scene.effectsSystem.burst(defender.x, defender.y, "#69c743", 15);
+    this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, `HP Nív ${defender.healthLevel}! 💚`, "#69c743", 1.25);
+    this.scene.effectsSystem.burst(defender.x, defender.y, "#69c743", 18);
+    this.scene.effectsSystem.sparkleBurst(defender.x, defender.y, "#b8e34d", 12);
+    this.scene.effectsSystem.spawnShockwave(defender.x, defender.y, "#69c743", 60, 0.35);
     this.scene.soundManager.beep(440, 0.1, "sine", 0.05);
     return true;
   }
@@ -135,13 +140,15 @@ class DefenderSystem {
             this.scene.effectsSystem.burst(e.x, e.y, "#e93835", 15);
           }
         }
+        this.scene.effectsSystem.spawnShockwave(defender.x, defender.y, "#e93835", 210, 0.45);
+        this.scene.effectsSystem.sparkleBurst(defender.x, defender.y, "#ff8a65", 18);
         this.scene.effectsSystem.triggerShake(12, 350);
         break;
       }
       case "watermelon": {
         defender.cooldownLeft = 0;
         defender.digesting = false;
-        if (defender.textObj) defender.textObj.setText("🍉");
+        if (defender.sprite) defender.sprite.clearTint();
         defender.hp = Math.min(defender.maxHp, defender.hp + 80);
         this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 25, "DIGESTÃO RÁPIDA! +80 HP 🍉", "#ff3b5c", 1.15);
         this.scene.effectsSystem.burst(defender.x, defender.y, "#ff3b5c", 15);
@@ -223,6 +230,8 @@ class DefenderSystem {
     defender.hp = defender.maxHp;
     this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "ADUBO! NÍVEL MÁXIMO (3) 🎒✨", "#ffd54f", 1.35);
     this.scene.effectsSystem.burst(defender.x, defender.y, "#ffd54f", 25);
+    this.scene.effectsSystem.sparkleBurst(defender.x, defender.y, "#ffd54f", 22);
+    this.scene.effectsSystem.spawnShockwave(defender.x, defender.y, "#ffd54f", 95, 0.45);
     this.scene.soundManager.beep(880, 0.25, "sine", 0.08);
     return true;
   }
@@ -302,7 +311,7 @@ class DefenderSystem {
       if (defender.type === "watermelon") {
         if (defender.digesting && defender.cooldownLeft <= 0) {
           defender.digesting = false;
-          if (defender.textObj) defender.textObj.setText("🍉");
+          if (defender.sprite) defender.sprite.clearTint();
           this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "Digestão pronta! 🍉", "#ff3b5c", 1.1);
         }
 
@@ -313,7 +322,7 @@ class DefenderSystem {
           if (prey) {
             defender.cooldownLeft = defender.cooldown;
             defender.digesting = true;
-            if (defender.textObj) defender.textObj.setText("😋");
+            if (defender.sprite) defender.sprite.setTint(0xff88a0);
             this.scene.soundManager.beep(160, 0.22, "sawtooth", 0.08);
             this.scene.effectsSystem.triggerShake(6, 200);
             this.scene.effectsSystem.burst(defender.x + 25, defender.y, "#ff3b5c", 18);
@@ -343,6 +352,7 @@ class DefenderSystem {
 
     for (const defender of this.scene.gameState.defenders) {
       if (defender.hp <= 0 && defender.explodeOnDeath) {
+        defender.explodeOnDeath = false;
         for (const e of this.scene.gameState.enemies) {
           if (Math.hypot(e.x - defender.x, (e.row - defender.row) * this.scene.CELL_H) < 130) {
             this.scene.enemySystem.damageEnemy(e, 150, "#ff2a4b", "strawberry");
@@ -350,9 +360,13 @@ class DefenderSystem {
         }
         this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "BOOM MORANGO! 🍓💥", "#ff2a4b", 1.35);
         this.scene.effectsSystem.burst(defender.x, defender.y, "#ff2a4b", 25);
+        this.scene.effectsSystem.sparkleBurst(defender.x, defender.y, "#ff2a4b", 15);
+        this.scene.effectsSystem.spawnShockwave(defender.x, defender.y, "#ff2a4b", 130, 0.4);
         this.scene.effectsSystem.triggerShake(8, 250);
         this.scene.soundManager.beep(140, 0.3, "sawtooth", 0.08);
       }
     }
+
+    this.scene.gameState.defenders = this.scene.gameState.defenders.filter(d => d.hp > 0);
   }
 }

@@ -29,10 +29,10 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
   if (waveNumber >= 4) enemyPool.push("chocolate");
 
   const count = isFinaleWave ? 45 : Math.min(6 + Math.floor(waveNumber * 2.2), 44);
-  const spacing = isFinaleWave ? 0.5 : Math.max(0.45, 2.2 - waveNumber * 0.05);
+  const spacing = isFinaleWave ? 0.4 : Math.max(0.35, 1.4 - waveNumber * 0.03);
 
   for (let i = 0; i < count; i++) {
-    const at = 1.5 + i * spacing + rand() * 0.4;
+    const at = 1.5 + i * spacing + rand() * 0.3;
     const typeIndex = Math.floor(rand() * enemyPool.length);
     const type = enemyPool[typeIndex];
     const row = Math.floor(rand() * 5);
@@ -41,7 +41,7 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
 
   if (isFinaleWave) {
     // Onda 26 Grande Finale: Todos os 5 chefes entram simultaneamente nas 5 linhas!
-    const bossTime = 20.0;
+    const bossTime = 15.0;
     add(bossTime, "candle", 0);
     add(bossTime, "gum_boss", 1);
     add(bossTime, "confeiteiro", 2); // Líder Central
@@ -49,7 +49,7 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
     add(bossTime, "lollipop_boss", 4);
   } else if (isBossWave) {
     const bossRow = Math.floor(rand() * 5);
-    const at = 2.0 + count * spacing;
+    const at = Math.min(10.0, 2.0 + (count * spacing) * 0.25);
     const cycle = waveNumber % 25;
     if (cycle === 5) {
       add(at, "candle", bossRow);
