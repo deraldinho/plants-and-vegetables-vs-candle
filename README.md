@@ -2,17 +2,22 @@
 
 Tower defense em HTML5 + Phaser 3 no qual frutas e vegetais defendem a **Healthy Family Home** contra um exército de doces, Candies Level 2 e chefes.
 
-## Como executar
+---
 
 O jogo não precisa de build. Abra `index.html` em um navegador moderno ou, de preferência, use um servidor local:
 
-```powershell
-python -m http.server 8080
-```
+1. Abra um terminal na pasta do projeto e inicie o servidor local:
+   ```powershell
+   python -m http.server 8080
+   ```
+2. Acesse no seu navegador:
+   ```text
+   http://localhost:8080
+   ```
 
-Depois acesse `http://localhost:8080`.
+---
 
-## Controles
+## ⌨️ Controles & Atalhos
 
 - Escolha uma planta na bandeja e clique/toque em uma casa da grade.
 - Teclas `1` a `8`: selecionam as cartas do deck ativo.
