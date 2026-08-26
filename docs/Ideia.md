@@ -18,14 +18,16 @@ Este documento é o backlog autoritativo de ideias de gameplay, progressão, pla
 - ✅ Início com 5 slots.
 - ✅ Bandeja de batalha sincronizada com o deck selecionado.
 - ✅ Gameplay recusa posicionamento de planta fora do deck ativo.
-- 🟡 Persistência do deck escolhido entre sessões.
+- ✅ Persistência do deck escolhido entre sessões.
+- ✅ `DeckService` autoritativo para validação, persistência, slots e desbloqueios.
+- ✅ A UI apenas edita/espelha o deck; o core não consulta `window.uiManager` para admissão.
 
 ### Progressão por ondas
 
 - ✅ Slot 6 liberado ao atingir onda 10.
 - ✅ Slot 7 liberado ao atingir onda 20.
-- ⏳ Avaliar 8º slot para progressão pós-campanha / modo infinito.
-- 🟡 Desbloqueio de novas plantas por sementes já existe, mas ainda precisa ser alinhado com a progressão automática por ondas.
+- ✅ Slot 8 disponível na progressão pós-campanha do modo Infinito ao atingir onda 30.
+- 🟡 Desbloqueio permanente por Sementes já existe; falta evoluir a loja e o inventário.
 
 ---
 
@@ -41,8 +43,8 @@ Implementado:
 - combo de 4 golpes;
 - dano crescente durante o combo;
 - 4º golpe aplica knockback;
-- inimigos pesados recebem knockback reduzido;
-- chefes são imunes a knockback;
+- knockback usa resistência por tipo de inimigo;
+- chefes são imunes;
 - habilidade `Combo de Socos` acelera a própria Banana por 6 segundos.
 
 Próximos ajustes:
@@ -51,21 +53,24 @@ Próximos ajustes:
 - telemetria para DPS e knockback;
 - balanceamento por dificuldade.
 
-### 🍊 Laranja Ácida — 🟡
+### 🍊 Laranja Ácida — ✅/🟡
 
-**Função:** atacante à distância / anti-escudo.
+**Função:** atacante à distância / anti-escudo / DoT.
 
 Implementado:
 
 - projétil ácido;
 - dano normal;
-- derretimento adicional de escudo de Chocolate;
-- habilidade de linha que remove escudos.
+- derretimento adicional de 35 de shield por impacto;
+- dano de shield contabilizado nas estatísticas da Laranja;
+- Acid DoT real por 3 segundos;
+- habilidade de linha que remove shield, causa dano e aplica ácido;
+- efeito gerenciado pelo `StatusEffectSystem`.
 
 Planejado:
 
-- DoT ácido completo por 3 segundos;
-- debuff reutilizável de armadura.
+- debuff formal de armor break para inimigos futuros com armadura distinta de shield;
+- feedback visual persistente durante o ácido.
 
 ### 🥦 Couve-Flor Mística — ✅/🟡
 
@@ -78,14 +83,15 @@ Planejado:
 - atrai inimigos próximos;
 - possui lifecycle de morte autoritativo;
 - explode uma única vez ao morrer;
-- explosão causa dano em área, inclusive se a morte vier de projétil inimigo.
+- explosão causa dano em área, inclusive se a morte vier de projétil inimigo;
+- remoção por Pá não dispara indevidamente o efeito de morte.
 
-### 🥦 Brócolis Defensor — 🟡
+### 🥦 Brócolis Defensor — ✅/🟡
 
 - não é focado em dano;
 - habilidade protege as oito casas vizinhas;
 - cura aliados próximos;
-- concede redução temporária de dano por 8 segundos.
+- concede redução temporária de dano por 8 segundos via `StatusEffectSystem`.
 
 Planejado:
 
@@ -124,15 +130,27 @@ Implementado:
 
 - custo em energia durante a partida;
 - restaura a planta para 100% de HP;
-- eleva temporariamente o poder ao nível máximo;
-- duração de 8 segundos;
-- partículas e feedback visual.
+- aplica override temporário de poder equivalente ao nível máximo;
+- não altera `powerLevel` permanente;
+- dano efetivo realmente sobe durante o boost;
+- duração de 8 segundos e retorno correto ao nível permanente ao expirar;
+- pode liberar temporariamente a habilidade correspondente ao nível máximo;
+- partículas e feedback visual;
+- modo de interação exclusivo, sem conflito com a Pá.
 
 Planejado:
 
 - inventário persistente;
 - quantidade por partida;
 - aplicação por drag-and-drop em desktop e gesto equivalente no mobile.
+
+### 🪏 Pá — ✅
+
+- reembolsa 50% do investimento;
+- usa o lifecycle autoritativo do `DefenderSystem`;
+- destrói sprite e sombra;
+- não dispara `onDeath` do Morango;
+- é mutuamente exclusiva com Adubo/posicionamento.
 
 ---
 
@@ -143,7 +161,14 @@ Planejado:
 - moeda persistente em `localStorage`;
 - recebida ao completar ondas;
 - chefes concedem recompensa maior;
-- usada para desbloquear plantas.
+- finales recorrentes do Infinito recebem recompensa de finale pela mesma `WaveRules`;
+- usada para desbloquear plantas permanentemente;
+- Pimenta segue esse contrato de desbloqueio e não é mais injetada no deck por hábito.
+
+### 🥗 Hábito “Comer vegetais” — ✅
+
+- não altera o deck nem ignora limite de slots;
+- concede +25% de velocidade de ataque por 15 segundos na partida.
 
 ### 🛒 Loja de Sementes — ⏳
 
@@ -176,8 +201,9 @@ Implementado:
 - para quando uma planta da mesma linha entra no alcance;
 - dispara projétil de brigadeiro;
 - dano direto;
-- efeito grudento por 5 segundos;
+- efeito grudento por 5 segundos via `StatusEffectSystem`;
 - redução de 30% da velocidade de ataque;
+- colisão varrida evita tunnelling em 2× / frames longos;
 - volta a avançar quando não há alvo no alcance;
 - recompensa superior ao Gummy básico.
 
@@ -188,6 +214,14 @@ Balanceamento inicial:
 - dano: 25
 - recarga: 3,5 s
 - recompensa: 60 Energia Solar
+
+### 👨‍🍳 Invocações do Confeiteiro — ✅ bounded
+
+- máximo de 6 minions vivos simultaneamente;
+- orçamento total de 20 invocações por Confeiteiro;
+- minions invocados concedem 25% da recompensa-base;
+- slots de summon são liberados ao morrer ou alcançar a casa;
+- summons entram no contador dinâmico da onda.
 
 ### Futuras famílias Level 2 — ⏳
 
@@ -200,7 +234,9 @@ Balanceamento inicial:
 
 ---
 
-## 6. 🌊 Progressão de ameaça sugerida
+## 6. 🌊 Progressão de ameaça
+
+`WaveRules` é a fonte única de verdade para boss, finale, ameaça e recompensa.
 
 ```text
 Ondas 1–4
@@ -211,7 +247,7 @@ Onda 5
 
 Ondas 6–9
   Doces básicos + Level 2
-  Primeira aparição: Gummy Brigadeiro Cannon
+  Primeira aparição: Gummy Brigadeiro
 
 Onda 10
   Boss 2 + slot adicional
@@ -233,21 +269,41 @@ Ondas 21–25
 
 Onda 26
   Grande Finale: cinco chefes nas cinco linhas
+
+Modo Infinito
+  Finales recorrentes: 26, 52, 78...
 ```
+
+O progresso visual considera a fila procedural e summons dinâmicos e nunca mostra `resolved > total`.
 
 ---
 
-## 7. 🧱 Roadmap técnico antes de expandir conteúdo
+## 7. 🧱 Core Integrity S2
 
-1. ✅ Deck autoritativo na bandeja e no posicionamento.
-2. ✅ Lifecycle de morte de defensores centralizado.
-3. ✅ Morango `onDeath` idempotente.
-4. ✅ Banana combo/knockback.
-5. ✅ Primeiro Candy Level 2: Gummy Brigadeiro Cannon.
-6. ✅ Gate de sintaxe + smoke test do Game Core no GitHub Actions.
-7. ⏳ Persistência do deck escolhido.
-8. ⏳ Status Effect System formal (`Sticky`, `Acid`, `Burn`, `Shield`, `Stun`).
-9. ⏳ Playwright para boot, deck, posicionamento, combate, pausa e progressão de onda.
-10. ⏳ Loja de Sementes e inventário de consumíveis.
-11. ⏳ Novos Candies Level 2.
-12. ⏳ Balanceamento e certificação completa da campanha.
+- ✅ `WaveRules` autoritativo.
+- ✅ `DeckService` autoritativo e persistente.
+- ✅ `StatusEffectSystem` formal para `Burn`, `Acid`, `Slow/Sticky` e `Guard`.
+- ✅ Lifecycle de defensores centralizado (`damage`, `death`, `shovel/remove`).
+- ✅ Morango `onDeath` idempotente.
+- ✅ Adubo temporário sem corrupção do nível permanente.
+- ✅ Projéteis de plantas e inimigos com colisão varrida.
+- ✅ Shield melt contabilizado pelo `EnemySystem`, sem auditoria escondida em bootstrap.
+- ✅ Summons do Confeiteiro bounded.
+- ✅ Contador de onda inclui summons.
+- ✅ Pimenta e deck respeitam um único contrato de desbloqueio/slots.
+- ✅ Modos de interação `place / shovel / fertilizer` mutuamente exclusivos.
+- ✅ `main.js` reduzido a bootstrap, sem monkey patches.
+- ✅ CSS-base de Deck Builder e Adubo disponível também em desktop.
+- ✅ Runtime de gameplay reproduzível com `?seed=<numero>`; RNG visual separado do RNG de gameplay.
+- ✅ Browser smoke cobre os invariantes principais de Core Integrity.
+
+---
+
+## 8. Próximos blocos
+
+1. ⏳ Threat Budget para composição intencional de ondas.
+2. ⏳ Loja de Sementes e inventário de consumíveis.
+3. ⏳ Novos Candies Level 2.
+4. ⏳ Armor Break/Stun e novos efeitos quando houver mecânicas que realmente os usem.
+5. ⏳ Balanceamento completo por dificuldade e campanha.
+6. ⏳ Polish audiovisual, animações específicas e feedback de status.
