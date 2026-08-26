@@ -1,8 +1,10 @@
 "use strict";
 
 class UIManager {
-  constructor() {
-    this.DEFENDER_KEYS = ["potato", "garlic", "corn", "carrot", "broccoli", "pepper", "tomato", "watermelon"];
+  constructor(deckService = window.deckService) {
+    this.deckService = deckService;
+    this.activeDeck = this.deckService?.getActiveDeck() || ["potato", "garlic", "corn", "carrot", "broccoli"];
+    this.DEFENDER_KEYS = [...this.activeDeck];
     this.activeScene = null;
     this.selectedDefender = null;
 
@@ -52,6 +54,7 @@ class UIManager {
       enemyGuideGrid: document.getElementById("enemyGuideGrid"),
       seed: document.getElementById("seedValue"),
       fertilizer: document.getElementById("fertilizerButton"),
+      shovel: document.getElementById("shovelButton"),
       seeds: document.getElementById("seedsValue"),
       deckSlotsGrid: document.getElementById("deckSlotsGrid"),
       availableCardsGrid: document.getElementById("availableCardsGrid"),
@@ -59,8 +62,6 @@ class UIManager {
       habits: [...document.querySelectorAll(".habit")]
     };
 
-    this.activeDeck = ["potato", "garlic", "corn", "carrot", "broccoli"];
-    this.fertilizerActive = false;
     this.initGlobalCallbacks();
     this.bindEvents();
     this.renderBestiary();
@@ -71,6 +72,9 @@ class UIManager {
   initGlobalCallbacks() {
     window.onPhaserGameStarted = (scene) => {
       this.activeScene = scene;
+      this.deckService?.syncScene(scene);
+      this.refreshDeckFromService();
+      this.resetInteractionUi();
       this.ui.habits.forEach(b => b.classList.remove("used"));
       this.syncUi(scene.gameState);
       this.updateTutorial(scene.gameState);
@@ -95,9 +99,8 @@ class UIManager {
       this.ui.upgradePanel.hidden = false;
     };
 
-    window.onPhaserResetShovel = () => {
-      if (this.ui.shovel) this.ui.shovel.classList.remove("selected");
-    };
+    window.onPhaserResetInteraction = () => this.resetInteractionUi();
+    window.onPhaserResetShovel = () => this.resetInteractionUi();
 
     window.onPhaserGameOver = (state) => {
       this.ui.overlayTitle.textContent = "💔 Fim de Jogo!";
@@ -160,21 +163,9 @@ class UIManager {
       this.showToast("Tutorial ignorado");
     });
 
-    this.ui.cards.forEach(card => card.addEventListener("click", () => {
-      this.selectDefenderType(card.dataset.defender);
-    }));
-
-    if (this.ui.shovel) {
-      this.ui.shovel.addEventListener("click", () => {
-        this.toggleShovel();
-      });
-    }
-
-    if (this.ui.fertilizer) {
-      this.ui.fertilizer.addEventListener("click", () => {
-        this.toggleFertilizer();
-      });
-    }
+    this.ui.cards.forEach(card => card.addEventListener("click", () => this.selectDefenderType(card.dataset.defender)));
+    this.ui.shovel?.addEventListener("click", () => this.toggleShovel());
+    this.ui.fertilizer?.addEventListener("click", () => this.toggleFertilizer());
 
     this.ui.startWave.addEventListener("click", () => {
       if (!this.activeScene || this.activeScene.gameState.phase !== "playing") return;
@@ -191,19 +182,12 @@ class UIManager {
       this.ui.overlay.classList.remove("visible");
       this.ui.resultSummary.hidden = true;
       if (this.ui.restartButton) this.ui.restartButton.hidden = true;
-      
-      if (!window.phaserGame) {
-        window.phaserGame = new Phaser.Game(window.phaserConfig);
-      } else if (this.activeScene) {
-        this.activeScene.startGame();
-      }
+
+      if (!window.phaserGame) window.phaserGame = new Phaser.Game(window.phaserConfig);
+      else if (this.activeScene) this.activeScene.startGame();
     });
 
-    if (this.ui.restartButton) {
-      this.ui.restartButton.addEventListener("click", () => {
-        this.restartGame();
-      });
-    }
+    this.ui.restartButton?.addEventListener("click", () => this.restartGame());
 
     this.ui.modeButtons.forEach(button => {
       button.addEventListener("click", () => {
@@ -221,27 +205,24 @@ class UIManager {
     this.ui.habits.forEach(button => {
       button.addEventListener("click", () => {
         if (!this.activeScene || this.activeScene.gameState.phase !== "playing") return;
+        const state = this.activeScene.gameState;
         const name = button.dataset.habit;
-        if (this.activeScene.gameState.usedHabits.has(name)) return;
-        this.activeScene.gameState.usedHabits.add(name);
-        this.activeScene.gameState.stats.habitsUsed += 1;
+        if (state.usedHabits.has(name)) return;
+        state.usedHabits.add(name);
+        state.stats.habitsUsed += 1;
         button.classList.add("used");
-        if (name === "water") this.activeScene.gameState.sun += 50;
-        if (name === "fruit") this.activeScene.gameState.sun += 100;
-        if (name === "vegetables") {
-          this.activeScene.gameState.pepperUnlocked = true;
-          if (!this.activeDeck.includes("pepper")) {
-            this.activeDeck.push("pepper");
-            this.updateDefenderTrayUI();
-          }
-        }
-        if (name === "exercise") this.activeScene.gameState.attackBoostUntil = this.activeScene.gameState.time + 20;
-        if (name === "teeth") this.activeScene.gameState.houseHp = Math.min(this.activeScene.gameState.maxHouseHp, this.activeScene.gameState.houseHp + 300);
+
+        if (name === "water") state.sun += 50;
+        if (name === "fruit") state.sun += 100;
+        if (name === "vegetables") state.vegetableBoostUntil = state.time + 15;
+        if (name === "exercise") state.attackBoostUntil = state.time + 20;
+        if (name === "teeth") state.houseHp = Math.min(state.maxHouseHp, state.houseHp + 300);
         if (name === "sleep") {
-          for (const enemy of this.activeScene.gameState.enemies) this.activeScene.enemySystem.damageEnemy(enemy, enemy.boss ? 400 : 220, "#72d9ff");
+          for (const enemy of state.enemies) this.activeScene.enemySystem.damageEnemy(enemy, enemy.boss ? 400 : 220, "#72d9ff");
         }
+
         this.showToast(`Hábito ativado: ${button.querySelector("strong")?.textContent || name}! ✨`);
-        this.syncUi(this.activeScene.gameState);
+        this.syncUi(state);
       });
     });
 
@@ -252,9 +233,7 @@ class UIManager {
       this.showToast(`Velocidade ${this.activeScene.gameState.gameSpeed}×`);
     });
 
-    this.ui.pause.addEventListener("click", () => {
-      this.togglePauseGame();
-    });
+    this.ui.pause.addEventListener("click", () => this.togglePauseGame());
 
     this.ui.sound.addEventListener("click", () => {
       if (!this.activeScene) return;
@@ -273,9 +252,7 @@ class UIManager {
 
     if (["1", "2", "3", "4", "5", "6", "7", "8"].includes(key)) {
       const index = parseInt(key, 10) - 1;
-      if (index >= 0 && index < this.DEFENDER_KEYS.length) {
-        this.selectDefenderType(this.DEFENDER_KEYS[index]);
-      }
+      if (index >= 0 && index < this.DEFENDER_KEYS.length) this.selectDefenderType(this.DEFENDER_KEYS[index]);
       return;
     }
 
@@ -292,11 +269,8 @@ class UIManager {
     if (key === " ") {
       e.preventDefault();
       if (this.ui.overlay.classList.contains("visible")) {
-        if (this.activeScene && this.activeScene.gameState.paused) {
-          this.resumeGame();
-        } else {
-          this.ui.overlayButton.click();
-        }
+        if (this.activeScene && this.activeScene.gameState.paused) this.resumeGame();
+        else this.ui.overlayButton.click();
       } else if (this.activeScene && !this.activeScene.gameState.waveActive) {
         this.ui.startWave.click();
       } else {
@@ -309,21 +283,17 @@ class UIManager {
       if (!this.ui.upgradePanel.hidden) {
         this.ui.upgradePanel.hidden = true;
         this.selectedDefender = null;
-      } else if (this.activeScene && (this.activeScene.gameState.selected || this.activeScene.gameState.shovel)) {
-        this.activeScene.gameState.selected = null;
-        this.activeScene.gameState.shovel = false;
-        this.ui.cards.forEach(c => c.classList.remove("selected"));
-        if (this.ui.shovel) this.ui.shovel.classList.remove("selected");
+      } else if (this.activeScene && this.activeScene.gameState.interactionMode !== "none") {
+        this.activeScene.resetInteractionMode();
         this.showToast("Seleção cancelada");
       }
-      return;
     }
   }
 
   renderBestiary() {
     if (!this.ui.enemyGuideGrid) return;
     this.ui.enemyGuideGrid.innerHTML = "";
-    for (const [key, enemy] of Object.entries(ENEMIES)) {
+    for (const enemy of Object.values(ENEMIES)) {
       const card = document.createElement("div");
       card.className = "enemy-guide-card";
       card.innerHTML = `
@@ -338,80 +308,99 @@ class UIManager {
     }
   }
 
+  refreshDeckFromService() {
+    if (!this.deckService) return;
+    this.activeDeck = this.deckService.getActiveDeck();
+    this.DEFENDER_KEYS = [...this.activeDeck];
+    if (this.activeScene) this.deckService.syncScene(this.activeScene);
+  }
+
+  resetInteractionUi() {
+    this.ui.cards.forEach(c => c.classList.remove("selected"));
+    this.ui.shovel?.classList.remove("selected");
+    this.ui.fertilizer?.classList.remove("selected");
+  }
+
+  setInteractionMode(mode, selectedType = null) {
+    if (!this.activeScene || this.activeScene.gameState.phase !== "playing") return;
+    const state = this.activeScene.gameState;
+    state.interactionMode = mode;
+    state.selected = mode === "place" ? selectedType : null;
+    state.shovel = mode === "shovel";
+
+    this.ui.cards.forEach(c => c.classList.toggle("selected", mode === "place" && c.dataset.defender === selectedType));
+    this.ui.shovel?.classList.toggle("selected", mode === "shovel");
+    this.ui.fertilizer?.classList.toggle("selected", mode === "fertilizer");
+  }
+
   toggleFertilizer() {
-    this.fertilizerActive = !this.fertilizerActive;
-    if (this.fertilizerActive) {
-      this.selectedDefender = null;
-      if (this.activeScene) this.activeScene.gameState.shovel = false;
-      this.showToast("Saco de Adubo selecionado! 🎒 Toque em uma planta para Nível Máximo (3)");
-    } else {
-      this.showToast("Adubo desativado");
-    }
+    if (!this.activeScene || this.activeScene.gameState.phase !== "playing") return;
+    const active = this.activeScene.gameState.interactionMode === "fertilizer";
+    this.setInteractionMode(active ? "none" : "fertilizer");
+    this.showToast(active ? "Adubo desativado" : "Saco de Adubo selecionado! 🎒 Toque em uma planta para Nível Máximo por 8s");
   }
 
   renderDeckBuilder() {
     if (!this.ui.deckSlotsGrid || !this.ui.availableCardsGrid) return;
+    this.refreshDeckFromService();
     this.ui.deckSlotsGrid.innerHTML = "";
     this.ui.availableCardsGrid.innerHTML = "";
 
-    const maxSlots = readDeckSlots();
-    const unlockedCards = readUnlockedCards();
-    const seeds = readNumber(STORAGE_KEYS.sunflowerSeeds);
+    const maxSlots = this.deckService?.getMaxSlots() || readDeckSlots();
     const allCards = Object.keys(DEFENDERS);
 
     const slotsLegend = document.querySelector(".deck-selector legend");
-    if (slotsLegend) {
-      slotsLegend.textContent = `🃏 Escolha seu Baralho (${this.activeDeck.length}/${maxSlots} Slots Liberados)`;
+    if (slotsLegend) slotsLegend.textContent = `🃏 Escolha seu Baralho (${this.activeDeck.length}/${maxSlots} Slots Liberados)`;
+
+    for (let index = 0; index < maxSlots; index++) {
+      const slot = document.createElement("div");
+      slot.className = "deck-slot-item";
+      const type = this.activeDeck[index];
+      slot.innerHTML = type
+        ? `<span class="card-picker-icon">${DEFENDERS[type].icon}</span><span class="card-picker-cost">${index + 1}</span>`
+        : `<span class="card-picker-icon">＋</span><span class="card-picker-cost">Vazio</span>`;
+      this.ui.deckSlotsGrid.appendChild(slot);
     }
 
     allCards.forEach(key => {
       const def = DEFENDERS[key];
-      const isUnlocked = unlockedCards.includes(key) || (def.seedPrice === 0);
+      const isUnlocked = this.deckService?.isUnlocked(key) ?? (def.seedPrice === 0 || readUnlockedCards().includes(key));
       const isSelected = this.activeDeck.includes(key);
-
       const cardEl = document.createElement("div");
+
       if (isUnlocked) {
         cardEl.className = `card-picker-item ${isSelected ? "selected" : ""}`;
         cardEl.title = isSelected ? "Clique para remover do baralho" : "Clique para adicionar ao baralho";
-        cardEl.innerHTML = `
-          <span class="card-picker-icon">${def.icon}</span>
-          <span class="card-picker-cost">${def.cost}☀️</span>
-        `;
+        cardEl.innerHTML = `<span class="card-picker-icon">${def.icon}</span><span class="card-picker-cost">${def.cost}☀️</span>`;
         cardEl.addEventListener("click", () => {
-          if (isSelected) {
-            if (this.activeDeck.length > 1) {
-              this.activeDeck = this.activeDeck.filter(k => k !== key);
-            }
-          } else {
-            if (this.activeDeck.length < maxSlots) {
-              this.activeDeck.push(key);
-            } else {
-              this.showToast(`Limite de ${maxSlots} slots atingido! Avance ondas para liberar mais! 🌻`);
-            }
+          const result = isSelected ? this.deckService.remove(key) : this.deckService.add(key);
+          if (!result.ok) {
+            if (result.reason === "slots") this.showToast(`Limite de ${maxSlots} slots atingido! Avance ondas para liberar mais! 🌻`);
+            if (result.reason === "minimum") this.showToast("O baralho precisa ter pelo menos 1 vegetal.");
+            if (result.reason === "locked") this.showToast("Desbloqueie esta semente primeiro. 🌻");
+            return;
           }
-          this.DEFENDER_KEYS = [...this.activeDeck];
+          this.refreshDeckFromService();
           this.renderDeckBuilder();
           this.updateDefenderTrayUI();
         });
       } else {
         cardEl.className = "card-picker-item locked-card";
         cardEl.title = `Clique para desbloquear por ${def.seedPrice} Sementes 🌻`;
-        cardEl.innerHTML = `
-          <span class="card-picker-icon">${def.icon}</span>
-          <span class="card-picker-cost">${def.seedPrice}🌻 🔒</span>
-        `;
+        cardEl.innerHTML = `<span class="card-picker-icon">${def.icon}</span><span class="card-picker-cost">${def.seedPrice}🌻 🔒</span>`;
         cardEl.addEventListener("click", () => {
           const currentSeeds = readNumber(STORAGE_KEYS.sunflowerSeeds);
-          if (currentSeeds >= def.seedPrice) {
-            writeStorage(STORAGE_KEYS.sunflowerSeeds, currentSeeds - def.seedPrice);
-            unlockedCards.push(key);
-            saveUnlockedCards(unlockedCards);
-            this.showToast(`🎉 ${def.name} desbloqueada para o seu baralho!`);
-            this.renderDeckBuilder();
-            if (this.activeScene) this.syncUi(this.activeScene.gameState);
-          } else {
+          if (currentSeeds < def.seedPrice) {
             this.showToast(`Faltam sementes! Custo: ${def.seedPrice} 🌻 (Você tem ${currentSeeds} 🌻)`);
+            return;
           }
+
+          writeStorage(STORAGE_KEYS.sunflowerSeeds, currentSeeds - def.seedPrice);
+          saveUnlockedCards([...readUnlockedCards(), key]);
+          if (this.activeScene) this.activeScene.gameState.pepperUnlocked = this.deckService.isUnlocked("pepper");
+          this.showToast(`🎉 ${def.name} desbloqueada para o seu baralho!`);
+          this.renderDeckBuilder();
+          if (this.activeScene) this.syncUi(this.activeScene.gameState);
         });
       }
 
@@ -420,11 +409,12 @@ class UIManager {
   }
 
   updateDefenderTrayUI() {
+    this.refreshDeckFromService();
     const tray = document.querySelector(".defender-tray");
     if (!tray) return;
     tray.querySelectorAll(".defender-card[data-defender]").forEach(el => el.remove());
 
-    const shovelBtn = document.getElementById("shovelButton");
+    const shovelBtn = this.ui.shovel || document.getElementById("shovelButton");
     this.activeDeck.forEach((key, index) => {
       const def = DEFENDERS[key];
       if (!def) return;
@@ -442,6 +432,7 @@ class UIManager {
       if (shovelBtn) tray.insertBefore(btn, shovelBtn);
       else tray.appendChild(btn);
     });
+
     this.DEFENDER_KEYS = [...this.activeDeck];
     this.ui.cards = [...document.querySelectorAll(".defender-card[data-defender]")];
   }
@@ -449,20 +440,18 @@ class UIManager {
   renderResults(state, isWin) {
     if (!this.ui.resultSummary) return;
     this.ui.resultSummary.hidden = false;
-    
+
     let stars = 1;
     if (state.houseHp >= state.maxHouseHp * 0.75) stars = 3;
     else if (state.houseHp >= state.maxHouseHp * 0.35) stars = 2;
     if (!isWin) stars = 0;
 
     this.ui.resultStars.textContent = "⭐".repeat(stars) + "☆".repeat(3 - stars);
-
-    const bestDef = Object.entries(state.damageByType || {})
-      .sort((a, b) => b[1] - a[1])[0];
+    const bestDef = Object.entries(state.damageByType || {}).sort((a, b) => b[1] - a[1])[0];
     const bestDefName = bestDef ? (DEFENDERS[bestDef[0]]?.name || bestDef[0]) : "Nenhum";
-
-    const isEndless = (state.mode === "endless");
-    const endlessWaveStat = isEndless ? `<div class="result-stat"><span>Recorde Infinito</span><strong>Onda ${this.activeScene ? this.activeScene.bestEndlessWave : 0}</strong></div>` : "";
+    const endlessWaveStat = state.mode === "endless"
+      ? `<div class="result-stat"><span>Recorde Infinito</span><strong>Onda ${this.activeScene ? this.activeScene.bestEndlessWave : 0}</strong></div>`
+      : "";
 
     this.ui.resultStats.innerHTML = `
       <div class="result-stat"><span>Pontos</span><strong>${state.score}</strong></div>
@@ -478,8 +467,7 @@ class UIManager {
 
   updateWavePreviewAndProgress(state) {
     if (!state) return;
-    const isCampaign = (state.mode !== "endless");
-    const totalWaveCount = isCampaign ? CAMPAIGN_MAX_WAVES : "∞";
+    const totalWaveCount = state.mode === "endless" ? "∞" : CAMPAIGN_MAX_WAVES;
     this.ui.wavePreviewTitle.textContent = `Onda ${state.wave} de ${totalWaveCount}`;
     this.ui.wavePreviewMode.textContent = MODES[state.mode]?.label || "Modo Normal";
 
@@ -489,14 +477,13 @@ class UIManager {
       const uniqueTypes = [...new Set(state.spawnQueue.map(item => item.type))];
       this.ui.wavePreviewEnemies.innerHTML = uniqueTypes.map(t => {
         const enemy = ENEMIES[t];
-        const isBoss = enemy?.boss;
-        return `<span class="enemy-preview-chip" title="${enemy?.name || t}">${enemy?.icon || "🍬"} ${isBoss ? "👑 BOSS" : (enemy?.name || t)}</span>`;
+        return `<span class="enemy-preview-chip" title="${enemy?.name || t}">${enemy?.icon || "🍬"} ${enemy?.boss ? "👑 BOSS" : (enemy?.name || t)}</span>`;
       }).join(" ");
     } else {
       this.ui.startWave.hidden = true;
       this.ui.waveProgress.hidden = false;
-      const total = state.spawnQueue.length;
-      const resolved = state.waveResolved || 0;
+      const total = state.spawnQueue.length + (state.waveSummoned || 0);
+      const resolved = Math.min(state.waveResolved || 0, total);
       const pct = Math.min(100, Math.floor((resolved / Math.max(1, total)) * 100));
       this.ui.waveProgressFill.style.width = `${pct}%`;
       this.ui.waveProgressText.textContent = `${resolved} de ${total} doces neutralizados`;
@@ -505,13 +492,19 @@ class UIManager {
 
   updateUpgradePanelUI(def) {
     if (!def) return;
+    const now = this.activeScene?.gameState.time || 0;
+    const fertilized = (def.fertilizerBoostUntil || 0) > now;
+    const effectiveDamage = this.activeScene?.defenderSystem.getEffectiveDamage(def) ?? def.damage;
+    const totalLevel = (def.powerLevel || 0) + (def.healthLevel || 0) + 1;
+
     this.ui.upgradeIcon.textContent = def.icon;
     this.ui.upgradeName.textContent = def.name;
-    const totalLevel = (def.powerLevel || 0) + (def.healthLevel || 0) + 1;
-    this.ui.upgradeLevel.textContent = `Nível ${totalLevel} (Ataque ${def.powerLevel || 0}/3 · Vida ${def.healthLevel || 0}/3)`;
-    
+    this.ui.upgradeLevel.textContent = fertilized
+      ? `🎒 Nível Máximo temporário (${Math.ceil(def.fertilizerBoostUntil - now)}s) · permanente ATK ${def.powerLevel || 0}/3 · VIDA ${def.healthLevel || 0}/3`
+      : `Nível ${totalLevel} (Ataque ${def.powerLevel || 0}/3 · Vida ${def.healthLevel || 0}/3)`;
+
     this.ui.upgradeStats.innerHTML = `
-      ⚔️ Dano: <strong>${def.damage}</strong> | 💚 Vida: <strong>${Math.ceil(def.hp)}/${def.maxHp}</strong><br>
+      ⚔️ Dano: <strong>${effectiveDamage}</strong> | 💚 Vida: <strong>${Math.ceil(def.hp)}/${def.maxHp}</strong><br>
       <small>${def.ability ? `${def.ability.name}: ${def.ability.description}` : ""}</small>
     `;
 
@@ -536,11 +529,11 @@ class UIManager {
     }
 
     const abilityBtnSmall = this.ui.abilityBtn.querySelector("small");
-    if (totalLevel < 2) {
+    const abilityUnlocked = totalLevel >= 2 || fertilized;
+    if (!abilityUnlocked) {
       this.ui.abilityBtn.disabled = true;
       if (abilityBtnSmall) abilityBtnSmall.textContent = "Desbloqueia no Nível 2";
     } else {
-      const now = this.activeScene?.gameState.time || 0;
       const ready = (def.abilityReadyAt || 0) <= now;
       this.ui.abilityBtn.disabled = !ready;
       if (abilityBtnSmall) abilityBtnSmall.textContent = ready ? "PRONTO!" : `${Math.ceil((def.abilityReadyAt || 0) - now)}s`;
@@ -555,7 +548,7 @@ class UIManager {
     this.ui.tutorial.hidden = false;
     if (state.tutorialStep === 0) {
       this.ui.tutorialStep.textContent = "Tutorial 1/3";
-      this.ui.tutorialText.textContent = "Escolha um vegetal na bandeja (teclas 1-6) e clique na grade para posicioná-lo!";
+      this.ui.tutorialText.textContent = "Escolha um vegetal na bandeja (teclas 1-8) e clique na grade para posicioná-lo!";
     } else if (state.tutorialStep === 1) {
       this.ui.tutorialStep.textContent = "Tutorial 2/3";
       this.ui.tutorialText.textContent = "Clique nos sóis caindo para acumular Energia Solar!";
@@ -572,13 +565,14 @@ class UIManager {
     this.ui.healthBar.style.width = `${Math.max(0, state.houseHp / state.maxHouseHp * 100)}%`;
     this.ui.healthBar.style.background = state.houseHp < 300 ? "#ef476f" : "linear-gradient(90deg, #69c743, #b8e34d)";
     const biome = getBiomeForWave(state.wave);
-    const isBossWave = (state.wave % 5 === 0) || state.wave === 16;
-    const threat = getThreatLevelInfo(state.wave, isBossWave);
+    const threat = WaveRules.getThreatLevelInfo(state.wave, state.mode);
     this.ui.wave.textContent = `Onda ${state.wave} ${threat.icon} ${threat.name} (${biome.icon} ${biome.name})`;
     if (this.ui.seed) this.ui.seed.textContent = state.seed || "------";
     if (this.ui.seeds) this.ui.seeds.textContent = readNumber(STORAGE_KEYS.sunflowerSeeds) || 0;
     this.ui.score.textContent = state.score;
-    this.ui.bestScore.textContent = this.activeScene ? (state.mode === "endless" && this.activeScene.bestEndlessWave > 0 ? `${this.activeScene.bestScore} (Onda ${this.activeScene.bestEndlessWave})` : this.activeScene.bestScore) : 0;
+    this.ui.bestScore.textContent = this.activeScene
+      ? (state.mode === "endless" && this.activeScene.bestEndlessWave > 0 ? `${this.activeScene.bestScore} (Onda ${this.activeScene.bestEndlessWave})` : this.activeScene.bestScore)
+      : 0;
     this.updateCards(state);
     if (state.defenders.length > 0 && state.tutorialStep === 0) state.tutorialStep = 1;
     if (state.stats.sunCollected > 50 && state.tutorialStep === 1) state.tutorialStep = 2;
@@ -590,17 +584,13 @@ class UIManager {
     for (const card of this.ui.cards) {
       const type = card.dataset.defender;
       const def = DEFENDERS[type];
-      const canAfford = (state.sun >= def.cost);
-      const isLocked = (type === "pepper" && !state.pepperUnlocked);
-
+      if (!def) continue;
+      const canAfford = state.sun >= def.cost;
+      const unlocked = this.deckService?.isUnlocked(type) ?? true;
       card.classList.toggle("unaffordable", !canAfford);
-      card.classList.toggle("ready-to-buy", canAfford && !isLocked);
-
-      if (type === "pepper") {
-        card.classList.toggle("locked", !state.pepperUnlocked);
-        const titleSpan = card.querySelector("strong");
-        if (titleSpan) titleSpan.textContent = state.pepperUnlocked ? "[4] Pimenta" : "[4] Pimenta 🔒";
-      }
+      card.classList.toggle("locked", !unlocked);
+      card.classList.toggle("ready-to-buy", canAfford && unlocked);
+      card.setAttribute("aria-disabled", String(!canAfford || !unlocked));
     }
   }
 
@@ -612,31 +602,23 @@ class UIManager {
 
   selectDefenderType(type) {
     if (!this.activeScene || this.activeScene.gameState.phase !== "playing") return;
-    if (type === "pepper" && !this.activeScene.gameState.pepperUnlocked) {
-      this.showToast("Coma vegetais nas missões para liberar a Pimenta! 🥗");
+    this.refreshDeckFromService();
+    if (!this.activeDeck.includes(type) || !this.deckService?.isUnlocked(type)) {
+      this.showToast("Este vegetal não está disponível no seu baralho. 🃏");
       return;
     }
     if (this.activeScene.gameState.sun < DEFENDERS[type].cost) {
       this.showToast("Energia Solar insuficiente! ☀️");
       return;
     }
-    this.activeScene.gameState.shovel = false;
-    this.activeScene.gameState.selected = type;
-    this.ui.cards.forEach(c => c.classList.toggle("selected", c.dataset.defender === type));
-    if (this.ui.shovel) this.ui.shovel.classList.remove("selected");
+    this.setInteractionMode("place", type);
   }
 
   toggleShovel() {
     if (!this.activeScene || this.activeScene.gameState.phase !== "playing") return;
-    this.activeScene.gameState.shovel = !this.activeScene.gameState.shovel;
-    this.activeScene.gameState.selected = null;
-    this.ui.cards.forEach(c => c.classList.remove("selected"));
-    if (this.ui.shovel) this.ui.shovel.classList.toggle("selected", this.activeScene.gameState.shovel);
-    if (this.activeScene.gameState.shovel) {
-      this.showToast("🪏 Modo Pá ativo: toque em um vegetal para remover e recuperar 50%!");
-    } else {
-      this.showToast("Modo Pá desativado.");
-    }
+    const active = this.activeScene.gameState.interactionMode === "shovel";
+    this.setInteractionMode(active ? "none" : "shovel");
+    this.showToast(active ? "Modo Pá desativado." : "🪏 Modo Pá ativo: toque em um vegetal para remover e recuperar 50%!");
   }
 
   togglePauseGame() {

@@ -1,114 +1,119 @@
 # 🍇 Plants and Vegetables vs Candle 🕯️
 
-Um jogo educativo e divertido de **Tower Defense em HTML5 / Phaser 3 Canvas**, onde vegetais e frutas defendem a *Healthy Family Home* contra o exército invisor da Vela Mestra e seus doces mutantes.
+Tower defense em HTML5 + Phaser 3 no qual frutas e vegetais defendem a **Healthy Family Home** contra um exército de doces, Candies Level 2 e chefes.
 
 ---
 
-## 🎮 Como Executar
-
-Não são necessárias instalações complexas de compilação.
+O jogo não precisa de build. Abra `index.html` em um navegador moderno ou, de preferência, use um servidor local:
 
 1. Abra um terminal na pasta do projeto e inicie o servidor local:
    ```powershell
    python -m http.server 8080
    ```
-2. Acesse no seu navegador:
+2. Acesse no navegador:
    ```text
    http://localhost:8080
    ```
 
----
+Para reproduzir a mesma sequência de gameplay, fixe a seed pela URL:
+
+```text
+http://localhost:8080/?seed=582914
+```
 
 ## ⌨️ Controles & Atalhos
 
-- **Clique / Toque na Grade**: Posiciona o vegetal selecionado.
-- **Clique / Toque em Defensor**: Abre o painel de melhorias (Ataque, Vitalidade e Habilidade Especial).
-- **Teclas `1` a `8`**: Selecionam rapidamente as plantas do seu Baralho ativo.
-- **🎒 Saco de Adubo (Tecla `A`)**: Impulsiona qualquer vegetal para o **Nível Máximo (3)** por 8s + cura 100% HP.
-- **🪏 Pá (Tecla `X` ou `P`)**: Remove o vegetal e reembolsa 50% de todo o investimento em energia.
-- **Espaço**: Inicia a onda atual ou pausa a partida.
-- **⏩ Botão de Velocidade**: Alterna a velocidade do jogo entre $1\times$ e $2\times$.
+- Escolha uma planta na bandeja e clique/toque em uma casa da grade.
+- Teclas `1` a `8`: selecionam as cartas do deck ativo.
+- `Espaço`: inicia a onda; durante o combate, pausa/retoma.
+- `X` ou `Delete`: Pá para remover um defensor e recuperar 50% do investimento.
+- `A`: Saco de Adubo — nível máximo temporário por 8 segundos + cura total.
+- Clique/toque em um defensor colocado para abrir melhorias e habilidade especial.
+- Clique/toque nos sóis para ganhar Energia Solar.
 
----
+## Conteúdo atual
 
-## 🃏 Sistema de Baralho (Deck Building) & Progressão
-
-- **Fase Pre-Wave (Deck Picker)**: Escolha quais plantas levar para o combate antes da batalha começar.
-- **Expansão de Slots**:
-  - Começa com **5 slots de baralho**.
-  - **Onda 10**: Desbloqueia o **6º slot**.
-  - **Onda 20**: Desbloqueia o **7º slot**.
-  - **Onda 30**: Desbloqueia o **8º slot**.
-- **Loja de Sementes de Girassol 🌻**:
-  - Sementes acumuladas ao vencer ondas e chefes servem como moeda meta-game para desbloquear permanentemente novas plantas para o seu baralho.
-
----
-
-## 🌱 Catálogo das 14 Frutas & Vegetais
-
-| Vegetal | Ícone | Custo | Tipo / Papel | Mecânica Principal & Especial |
-| :--- | :---: | :---: | :--- | :--- |
-| **Batata Mina** | 🥔 | 25 ☀️ | Armadilha | Arma após 3s e explode ao toque (180 de dano). Habilidade: Armamento instantâneo. |
-| **Alho Repelente** | 🧄 | 50 ☀️ | Controle | Empurra doces que o atacam para linhas vizinhas. Habilidade: Névoa repelente em área. |
-| **Milho Atirador** | 🌽 | 50 ☀️ | Atacante | Disparo contínuo. Habilidade: Rajada Dourada de 120 de dano. |
-| **Cenoura Arqueira** | 🥕 | 75 ☀️ | Atacante Rápido | Ataques ultrarrápidos (0.58s). Habilidade: Flecha Perfurante em toda a linha. |
-| **Brócolis Escudo** | 🥦 | 100 ☀️ | Tanque / Suporte | 350 HP base. Habilidade: Gera aura de cura e escudo para vegetais vizinhos. |
-| **Pimenta Flamejante**| 🌶️ | 125 ☀️ | Dano de Fogo | Incineira doces causando dano contínuo (DoT). Habilidade: Trilha de Fogo na linha inteira. |
-| **Tomate Bomba** | 🍅 | 150 ☀️ | Dano em Área | Lança bombas explosivas em área. Habilidade: Superexplosão de 120 de dano. |
-| **Melancia Devoradora**| 🍉 | 175 ☀️ | Engolidora | Engole doces inteiros e digere. Habilidade: Super Digestão instantânea + cura. |
-| **Banana Boxeadora** | 🍌 | 75 ☀️ | Melee / Combo | Socos sequenciais ($100\% \to 110\% \to 120\% \to 130\%$ + **Knockback**). Habilidade: Combo de socos frenéticos. |
-| **Laranja Ácida** | 🍊 | 100 ☀️ | Anti-Armadura | Cospe ácido cítrico que derrete escudos de chocolate e reduz armaduras. |
-| **Morango Atrator** | 🍓 | 60 ☀️ | Tanque / Detonação | Atrai doces das linhas vizinhas e explode em área ($3\times3$) ao morrer. |
-| **Maçã Esmagadora** | 🍎 | 90 ☀️ | Armadilha de Peso | Despenca esmagando inimigos que passam por baixo (220 a 300 de dano). |
-| **Abacaxi Mina** | 🍍 | 40 ☀️ | Mina de Espinhos | Mina de solo com espinhos perfurantes (140 de dano). |
-| **Couve-Flor Mística** | 🥦 | 125 ☀️ | Atacante Místico | Dispara espirais de energia que perfuram a linha inteira. |
-
----
-
-## 🍬 Bestiário de 13 Inimigos & Chefes
-
-- 🧸 **Ursinho de Goma**: Inimigo básico equilibrado.
-- 🧸💣 **Gummy Bear Artilheiro (Lvl 2)**: Inimigo de longo alcance que dispara bombas de brigadeiro grudento (`slowAttack` $-30\%$ velocidade de ataque por 5s).
-- 🍭 **Pirulito Giratório**: Inimigo rápido e resistente.
-- 🧁 **Cupcake Tanque**: Alta vida e velocidade reduzida.
-- ⬜ **Marshmallow Veloz**: Velocidade extrema.
-- 🍫 **Chocolate Blindado**: Possui um escudo protetor de 150 HP.
-- 🥤 **Refrigerante Energético**: Acelera doces aliados na mesma linha.
-- 🟣 **Chiclete Pegajoso**: Aplica desaceleramento ao mastigar vegetais.
-- 👑 **5 Chefes Únicos**:
-  - Onda 5: 🕯️ **Vela Mestra** (2200 HP)
-  - Onda 10: 🟣 **Chiclete Gigante Grudento** (3800 HP)
-  - Onda 15: 🍭 **Pirulito Giratório Supremo** (5800 HP)
-  - Onda 20: 🤖🎂 **Robô Bolo Mutante Gigante** (6500 HP)
-  - Onda 25: 👨‍🍳 **O Confeiteiro Sombrio** (8500 HP)
-  - Onda 26: 👑 **Grande Finale**: Todos os 5 chefes entram simultaneamente!
-
----
-
-## 🥗 Missões de Hábitos Saudáveis do Levi Esperto
-
-Ative uma vez por partida ao praticar um hábito saudável no mundo real:
-1. 💧 **Beber Água**: $+50$ Energia Solar.
-2. 🍎 **Comer Fruta**: $+100$ Energia Solar.
-3. 🥗 **Comer Vegetais**: Desbloqueia a Pimenta Flamejante no combate.
-4. 🏃 **30 min de Exercício**: Ataque ultrarrápido por 20 segundos.
-5. 🪥 **Escovar os Dentes**: Restaura $+300$ HP da Casa.
-6. 😴 **Dormir no Horário**: Dispara um raio restaurador limpando a grade.
-
----
-
-## 🛠️ Tecnologias Utilizadas
-
-- **HTML5 & CSS3 Vanilla**: Layout responsivo com efeito Glassmorphism.
-- **Phaser 3 Engine**: Renderização gráfica via Canvas, manipulação de sprites, partículas e física.
-- **JavaScript ES6+**: Arquitetura modular orientada a sistemas de entidades (`DefenderSystem`, `EnemySystem`, `ProjectileSystem`, `EffectsSystem`).
-- **LocalStorage API**: Persistência de recorde, sementes acumuladas, baralho e preferências.
-- Cinco habilidades especiais desbloqueadas no nível 2, com efeitos e recargas próprias.
-- Pá com reembolso de 50% do investimento total do defensor.
-- Tela final com estrelas, estatísticas da partida e defensor mais eficiente.
+- **14 defensores**, incluindo Banana Boxeadora, Laranja Ácida, Morango Atrator, Maçã Esmagadora, Abacaxi Mina e Couve-Flor Mística.
+- **13 tipos de inimigos**, incluindo o **Ursinho de Goma Artilheiro (`gummy_brigadeiro`)** com Canhão de Brigadeiro.
+- **5 chefes** e campanha de **26 ondas** com Grande Finale nas cinco linhas.
 - Quatro modos: Tranquilo, Normal, Desafio e Infinito.
-- Ondas procedurais no modo Infinito, com crescimento progressivo e chefes recorrentes.
-- Preferência de modo e maior onda do Infinito salvas no navegador.
-- Chocolate Blindado com escudo, Refrigerante Energético com aura e Chiclete Pegajoso com lentidão.
-- Bestiário recolhível com habilidades e vida base de cada inimigo.
-- Controle de velocidade, progresso da onda, combos, bônus de onda perfeita e alertas de perigo.
+- Ondas procedurais e runtime de gameplay reproduzíveis por seed.
+- Deck Builder persistente com 5 slots iniciais; 6º slot na onda 10, 7º na 20 e 8º na progressão pós-campanha do modo Infinito.
+- Sementes de Girassol persistentes para desbloqueio permanente de plantas, incluindo a Pimenta.
+- Melhorias individuais, habilidades especiais, Pá, Saco de Adubo e bônus de hábitos saudáveis.
+- `StatusEffectSystem` para burn, acid, slow/sticky e guard.
+- Escudos, DoT, knockback, melee, piercing, minas e dano em área.
+- Pausa/retomada, velocidade 1×/2×, tutorial, bestiário e estatísticas finais.
+
+## Game Core / Core Integrity S2
+
+A especificação técnica autoritativa do marco está em [`docs/CORE_INTEGRITY_S2.md`](docs/CORE_INTEGRITY_S2.md).
+
+### Regras autoritativas
+
+- `WaveRules`: uma única regra para boss, finale, ameaça visual e recompensa de sementes.
+- `DeckService`: owner do deck selecionado, slots, persistência e validação de desbloqueios.
+- `StatusEffectSystem`: owner de efeitos temporários e DoTs.
+- `DefenderSystem`: owner do lifecycle de criação, dano, morte e remoção por Pá.
+- `EnemySystem`: owner do dano/escudo, recompensas e summons bounded.
+- `main.js`: somente bootstrap; não contém monkey patches de gameplay.
+
+### 🍌 Banana Boxeadora
+
+- combo de quatro golpes;
+- dano crescente durante o combo;
+- 4º golpe com knockback calculado por resistência do inimigo;
+- chefes são imunes;
+- `Combo de Socos` acelera a Banana por 6 segundos.
+
+### 🍊 Laranja Ácida
+
+- derrete 35 pontos adicionais de shield por projétil;
+- dano de shield entra nas estatísticas do atacante;
+- aplica Acid DoT real por 3 segundos;
+- habilidade de linha remove shield, causa dano e aplica ácido.
+
+### 🧸💣 Ursinho de Goma Artilheiro
+
+- estreia garantida na onda 6;
+- alcance de 300 px;
+- dispara projéteis de brigadeiro;
+- causa dano e reduz em 30% a velocidade de ataque por 5 segundos;
+- usa colisão varrida para evitar tunnelling em 2× ou frames longos.
+
+### 👨‍🍳 Confeiteiro Sombrio
+
+As invocações agora são bounded:
+
+- máximo de **6 minions vivos** simultaneamente;
+- orçamento total de **20 invocações por Confeiteiro**;
+- minions invocados entregam apenas **25% da recompensa normal**;
+- summons entram no contador dinâmico da onda.
+
+## Integridade de gameplay
+
+- Adubo não altera o nível permanente da planta; o override de nível 3 expira em 8 segundos.
+- Pá e Adubo são modos de interação mutuamente exclusivos.
+- A Pá passa pelo lifecycle do `DefenderSystem` e remove também a sombra/sprites associados.
+- O hábito **Comer vegetais** não injeta Pimenta no deck: concede +25% de velocidade de ataque por 15 segundos.
+- Pimenta é desbloqueada permanentemente pela economia de Sementes de Girassol.
+- Finales recorrentes do modo Infinito (26, 52, 78...) usam a mesma regra de ameaça e recompensa.
+- Progresso da onda considera inimigos invocados e nunca exibe contador acima do total.
+- CSS essencial do Deck Builder/Adubo é global, inclusive em desktop.
+
+## Testes locais
+
+```bash
+npm install --package-lock=false
+npm run test:core
+npx playwright install chromium
+python -m http.server 8080
+# em outro terminal
+npm run test:browser
+```
+
+Os smokes cobrem regras de onda, deck, posicionamento, Adubo temporário, Acid DoT, Canhão de Brigadeiro, lifecycle da Pá, summons bounded, seed determinística, pausa/retomada e contabilidade de dano.
+
+## Planejamento
+
+O backlog autoritativo está em [`docs/Ideia.md`](docs/Ideia.md). Com o **Core Integrity S2** implementado, os próximos blocos são economia/loja e inventário, Threat Budget de ondas, novos Candies Level 2, balanceamento e polish audiovisual.

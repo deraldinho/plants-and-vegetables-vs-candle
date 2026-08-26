@@ -1,0 +1,96 @@
+/* Core Integrity overrides: global rules that must not depend on mobile media queries. */
+#gameContainer.board-wrap {
+  aspect-ratio: 1000 / 620;
+}
+
+#gameOverlay.overlay {
+  pointer-events: none;
+}
+
+#gameOverlay.overlay.visible {
+  pointer-events: auto;
+}
+
+.defender-card.fertilizer {
+  background: linear-gradient(180deg, #8d6e63 0%, #5d4037 100%);
+  color: #ffe27a;
+  border-color: #ffd54f;
+}
+
+.defender-card.fertilizer:hover {
+  background: linear-gradient(180deg, #a1887f 0%, #6d4c41 100%);
+}
+
+.defender-card.fertilizer.selected {
+  border-color: #ffd54f;
+  background: linear-gradient(180deg, #a1887f 0%, #6d4c41 100%);
+  box-shadow: 0 2px 0 #8d6e63 !important;
+}
+
+.deck-selector {
+  margin: 14px 0;
+  padding: 12px;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.deck-selector legend {
+  padding: 0 8px;
+  color: #ffe27a;
+  font-weight: 700;
+}
+
+.deck-slots-grid,
+.available-cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.deck-slot-item,
+.card-picker-item {
+  width: 60px;
+  height: 75px;
+  padding: 4px;
+  border: 2px solid #5a8264;
+  border-radius: 8px;
+  background: rgba(23, 53, 42, 0.9);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.deck-slot-item:hover,
+.card-picker-item:hover {
+  transform: translateY(-3px);
+  border-color: #ffe27a;
+}
+
+.card-picker-item.selected {
+  border-color: #ffd43b;
+  background: rgba(76, 175, 80, 0.4);
+  box-shadow: 0 0 10px #ffd43b;
+}
+
+.card-picker-item.locked-card {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+  cursor: not-allowed;
+}
+
+.card-picker-icon {
+  font-size: 1.6rem;
+}
+
+.card-picker-cost {
+  color: #fff06a;
+  font-size: 0.7rem;
+  font-weight: 700;
+}

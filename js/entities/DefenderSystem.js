@@ -6,11 +6,17 @@ class DefenderSystem {
   }
 
   isTypeAllowed(type) {
-    const uiDeck = (typeof window !== "undefined" && window.uiManager && Array.isArray(window.uiManager.activeDeck))
-      ? window.uiManager.activeDeck
-      : null;
-    if (!uiDeck) return true;
-    return uiDeck.includes(type);
+    const deck = this.scene?.gameState?.activeDeck;
+    return Array.isArray(deck) && deck.includes(type);
+  }
+
+  getEffectiveDamage(defender) {
+    if (!defender) return 0;
+    if (defender.fertilizerBoostUntil > this.scene.gameState.time) {
+      const base = DEFENDERS[defender.type]?.damage || defender.damage || 0;
+      return Math.max(defender.damage || 0, Math.round(base * (1 + 3 * 0.35)));
+    }
+    return defender.damage || 0;
   }
 
   placeDefender(col, row, type) {
@@ -27,18 +33,16 @@ class DefenderSystem {
       maxHp: config.hp,
       cooldownLeft: 0.2,
       hitFlash: 0,
-      slowUntil: 0,
-      slowMultiplier: 0.6,
-      guardUntil: 0,
-      guardReduction: 0.5,
       abilityReadyAt: 0,
-      sway: Math.random() * 5,
+      sway: this.scene.random(0, 5),
       powerLevel: 0,
       healthLevel: 0,
       armor: 0,
       invested: config.cost,
       punchCombo: 0,
       punchComboExpiresAt: 0,
+      fertilizerBoostUntil: 0,
+      statusEffects: new Map(),
       removed: false,
       deathEffectResolved: false
     };
@@ -59,19 +63,22 @@ class DefenderSystem {
   damageDefender(defender, amount, options = {}) {
     if (!defender || defender.removed || defender.hp <= 0) return false;
 
+    const damageMultiplier = this.scene.statusEffectSystem.getDamageTakenMultiplier(defender);
     let finalDamage = Math.max(0, amount || 0);
-    if (defender.guardUntil > this.scene.gameState.time) {
-      finalDamage = Math.max(1, Math.round(finalDamage * (defender.guardReduction ?? 0.5)));
+    if (damageMultiplier < 1) {
+      finalDamage = Math.max(1, Math.round(finalDamage * damageMultiplier));
       this.scene.effectsSystem.burst(defender.x, defender.y, "#8de6a8", 5);
     }
 
     defender.hp -= finalDamage;
 
     if (options.slowDuration > 0) {
-      defender.slowUntil = Math.max(defender.slowUntil || 0, this.scene.gameState.time + options.slowDuration);
-      if (Number.isFinite(options.slowMultiplier)) {
-        defender.slowMultiplier = Math.min(1, Math.max(0.2, options.slowMultiplier));
-      }
+      this.scene.statusEffectSystem.applySlow(
+        defender,
+        options.slowDuration,
+        Number.isFinite(options.slowMultiplier) ? options.slowMultiplier : 0.6,
+        options.slowSource || options.reason || null
+      );
     }
 
     if (!options.silent) {
@@ -88,35 +95,50 @@ class DefenderSystem {
     return false;
   }
 
+  resolveDeathEffect(defender) {
+    if (!defender?.explodeOnDeath || defender.deathEffectResolved) return;
+    defender.deathEffectResolved = true;
+    for (const enemy of this.scene.gameState.enemies) {
+      if (enemy.hp <= 0 || enemy.removed) continue;
+      const distance = Math.hypot(enemy.x - defender.x, (enemy.row - defender.row) * this.scene.CELL_H);
+      if (distance < 150) {
+        this.scene.enemySystem.damageEnemy(enemy, 150, "#ff2a4b", "strawberry");
+      }
+    }
+    this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "BOOM MORANGO! 🍓💥", "#ff2a4b", 1.35);
+    this.scene.effectsSystem.burst(defender.x, defender.y, "#ff2a4b", 25);
+    this.scene.effectsSystem.sparkleBurst(defender.x, defender.y, "#ff2a4b", 15);
+    this.scene.effectsSystem.spawnShockwave(defender.x, defender.y, "#ff2a4b", 150, 0.4);
+    this.scene.effectsSystem.triggerShake(8, 250);
+    this.scene.soundManager.beep(140, 0.3, "sawtooth", 0.08);
+  }
+
+  removeDefender(defender, reason = "removed", options = {}) {
+    if (!defender || defender.removed) return false;
+    if (options.triggerDeathEffect) this.resolveDeathEffect(defender);
+    if (!options.silent && !options.triggerDeathEffect) {
+      this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "Removido", "#b9e4a3", 1.05);
+    }
+    defender.hp = 0;
+    defender.removed = true;
+    defender.deathReason = reason;
+    if (defender.sprite) defender.sprite.destroy();
+    if (defender.shadowSprite) defender.shadowSprite.destroy();
+    if (defender.textObj && defender.textObj !== defender.sprite) defender.textObj.destroy();
+    return true;
+  }
+
   defeatDefender(defender, reason = "defeated", options = {}) {
     if (!defender || defender.removed) return false;
-    defender.hp = 0;
 
-    if (defender.explodeOnDeath && !defender.deathEffectResolved) {
-      defender.deathEffectResolved = true;
-      for (const enemy of this.scene.gameState.enemies) {
-        if (enemy.hp <= 0 || enemy.removed) continue;
-        const distance = Math.hypot(enemy.x - defender.x, (enemy.row - defender.row) * this.scene.CELL_H);
-        if (distance < 150) {
-          this.scene.enemySystem.damageEnemy(enemy, 150, "#ff2a4b", "strawberry");
-        }
-      }
-      this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "BOOM MORANGO! 🍓💥", "#ff2a4b", 1.35);
-      this.scene.effectsSystem.burst(defender.x, defender.y, "#ff2a4b", 25);
-      this.scene.effectsSystem.sparkleBurst(defender.x, defender.y, "#ff2a4b", 15);
-      this.scene.effectsSystem.spawnShockwave(defender.x, defender.y, "#ff2a4b", 150, 0.4);
-      this.scene.effectsSystem.triggerShake(8, 250);
-      this.scene.soundManager.beep(140, 0.3, "sawtooth", 0.08);
+    if (defender.explodeOnDeath) {
+      this.resolveDeathEffect(defender);
     } else if (!options.silent) {
       this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "Derrotado! 💔", "#ef476f", 1.2);
       this.scene.effectsSystem.burst(defender.x, defender.y, "#ef476f", 18);
     }
 
-    if (defender.sprite) defender.sprite.destroy();
-    if (defender.shadowSprite) defender.shadowSprite.destroy();
-    defender.removed = true;
-    defender.deathReason = reason;
-    return true;
+    return this.removeDefender(defender, reason, { silent: true });
   }
 
   cleanupDefeated() {
@@ -178,7 +200,7 @@ class DefenderSystem {
       case "garlic": {
         const nearbyEnemies = this.scene.gameState.enemies.filter(e => Math.abs(e.x - defender.x) < 140 && e.hp > 0 && !e.removed);
         for (const e of nearbyEnemies) {
-          const newRow = e.row === 0 ? 1 : (e.row === 4 ? 3 : (Math.random() < 0.5 ? e.row - 1 : e.row + 1));
+          const newRow = e.row === 0 ? 1 : (e.row === 4 ? 3 : (this.scene.random(0, 1) < 0.5 ? e.row - 1 : e.row + 1));
           e.row = newRow;
           e.y = this.scene.GRID_Y + newRow * this.scene.CELL_H + this.scene.CELL_H / 2;
           if (e.textObj) e.textObj.setY(e.y);
@@ -209,8 +231,7 @@ class DefenderSystem {
         const nearby = this.scene.gameState.defenders.filter(d => !d.removed && Math.abs(d.row - defender.row) <= 1 && Math.abs(d.col - defender.col) <= 1);
         for (const d of nearby) {
           d.hp = Math.min(d.maxHp, d.hp + 80);
-          d.guardUntil = this.scene.gameState.time + 8;
-          d.guardReduction = 0.5;
+          this.scene.statusEffectSystem.applyGuard(d, 8, 0.5, "broccoli");
           this.scene.effectsSystem.burst(d.x, d.y, "#48a94f", 12);
           this.scene.effectsSystem.spawnFloater(d.x, d.y - 20, "+80 HP 🛡️ ESCUDO", "#48a94f", 1.1);
         }
@@ -219,9 +240,7 @@ class DefenderSystem {
       case "pepper": {
         const rowEnemies = this.scene.gameState.enemies.filter(e => e.row === defender.row && e.hp > 0 && !e.removed);
         for (const e of rowEnemies) {
-          e.burnUntil = this.scene.gameState.time + 5;
-          e.burnDamage = 12;
-          e.burnSource = "pepper";
+          this.scene.statusEffectSystem.applyDot(e, "burn", 5, 12, "pepper", "#ff5638", 0.5);
           this.scene.effectsSystem.burst(e.x, e.y, "#f04b36", 15);
         }
         break;
@@ -257,11 +276,9 @@ class DefenderSystem {
       case "orange": {
         const rowEnemies = this.scene.gameState.enemies.filter(e => e.row === defender.row && e.hp > 0 && !e.removed);
         for (const e of rowEnemies) {
-          if (e.shield > 0) {
-            e.shield = 0;
-            this.scene.effectsSystem.spawnFloater(e.x, e.y - 35, "ESCUDO DERRETIDO! 🍊💧", "#ffa500", 1.2);
-          }
+          if (e.shield > 0) this.scene.enemySystem.meltShield(e, e.shield, "orange", "#ffa500");
           this.scene.enemySystem.damageEnemy(e, 45, "#ffa500", "orange");
+          if (!e.removed && e.hp > 0) this.scene.statusEffectSystem.applyDot(e, "acid", 3, 5, "orange", "#ffa500", 0.5);
           this.scene.effectsSystem.burst(e.x, e.y, "#ffa500", 12);
         }
         break;
@@ -319,10 +336,9 @@ class DefenderSystem {
       return false;
     }
     this.scene.gameState.sun -= FERTILIZER_COST;
-    defender.powerLevel = 3;
-    defender.fertilizerBoostUntil = this.scene.gameState.time + 8;
+    defender.fertilizerBoostUntil = Math.max(defender.fertilizerBoostUntil || 0, this.scene.gameState.time + 8);
     defender.hp = defender.maxHp;
-    this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "ADUBO! NÍVEL MÁXIMO (3) 🎒✨", "#ffd54f", 1.35);
+    this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "ADUBO! NÍVEL MÁXIMO TEMPORÁRIO (8s) 🎒✨", "#ffd54f", 1.35);
     this.scene.effectsSystem.burst(defender.x, defender.y, "#ffd54f", 25);
     this.scene.effectsSystem.sparkleBurst(defender.x, defender.y, "#ffd54f", 22);
     this.scene.effectsSystem.spawnShockwave(defender.x, defender.y, "#ffd54f", 95, 0.45);
@@ -332,18 +348,20 @@ class DefenderSystem {
 
   updateDefenders(dt) {
     const boosted = this.scene.gameState.time < this.scene.gameState.attackBoostUntil;
+    const vegetableBoosted = this.scene.gameState.time < (this.scene.gameState.vegetableBoostUntil || 0);
     const globalFrenzy = this.scene.gameState.time < (this.scene.gameState.frenzyUntil || 0);
-    const globalSpeedMult = (boosted ? 2 : 1) * (globalFrenzy ? 1.35 : 1);
+    const globalSpeedMult = (boosted ? 2 : 1) * (vegetableBoosted ? 1.25 : 1) * (globalFrenzy ? 1.35 : 1);
 
     for (const defender of this.scene.gameState.defenders) {
       if (!defender || defender.removed || defender.hp <= 0) continue;
 
-      const slowed = defender.slowUntil > this.scene.gameState.time;
+      const attackSpeedStatus = this.scene.statusEffectSystem.getAttackSpeedMultiplier(defender);
       const isFertilized = defender.fertilizerBoostUntil > this.scene.gameState.time;
       const activePower = isFertilized ? 3 : defender.powerLevel;
+      const effectiveDamage = this.getEffectiveDamage(defender);
       const bananaFrenzy = defender.type === "banana" && defender.frenzyUntil > this.scene.gameState.time;
       const localSpeedMult = globalSpeedMult * (bananaFrenzy ? 2.2 : 1);
-      defender.cooldownLeft -= dt * localSpeedMult * (slowed ? (defender.slowMultiplier || 0.6) : 1);
+      defender.cooldownLeft -= dt * localSpeedMult * attackSpeedStatus;
 
       if (defender.melee) {
         if (defender.cooldownLeft <= 0) {
@@ -355,17 +373,16 @@ class DefenderSystem {
             defender.punchComboExpiresAt = this.scene.gameState.time + 1.6;
 
             const comboDamage = [0, 1, 1.1, 1.2, 1.35][defender.punchCombo] || 1;
-            const dmg = Math.round(defender.damage * (1 + activePower * 0.2) * comboDamage);
+            const dmg = Math.round(effectiveDamage * (1 + activePower * 0.2) * comboDamage);
             this.scene.enemySystem.damageEnemy(enemyInRange, dmg, "#ffe135", defender.type);
             this.scene.effectsSystem.burst(enemyInRange.x, enemyInRange.y, "#ffe135", 10);
 
             if (defender.punchCombo === 4 && enemyInRange.hp > 0 && !enemyInRange.removed) {
-              if (enemyInRange.boss) {
+              const resistance = KNOCKBACK_RESISTANCE[enemyInRange.type] ?? 1;
+              if (resistance <= 0 || enemyInRange.boss) {
                 this.scene.effectsSystem.spawnFloater(enemyInRange.x, enemyInRange.y - 42, "RESISTIU AO EMPURRÃO! 👑", "#ffe135", 1.05);
               } else {
-                const heavy = ["cupcake", "chocolate", "gummy_brigadeiro"].includes(enemyInRange.type);
-                const medium = ["lollipop", "soda", "gum"].includes(enemyInRange.type);
-                const knockback = heavy ? 16 : (medium ? 28 : 44);
+                const knockback = Math.max(8, Math.round(44 * resistance));
                 enemyInRange.x = Math.min(this.scene.W + 30, enemyInRange.x + knockback);
                 if (enemyInRange.sprite) enemyInRange.sprite.setPosition(enemyInRange.x, enemyInRange.y);
                 if (enemyInRange.shadowSprite) enemyInRange.shadowSprite.setPosition(enemyInRange.x, enemyInRange.y + 22);
@@ -385,7 +402,7 @@ class DefenderSystem {
       if (defender.smash) {
         const enemyUnder = this.scene.gameState.enemies.find(e => e.row === defender.row && e.hp > 0 && !e.removed && Math.abs(e.x - defender.x) < 35);
         if (enemyUnder) {
-          const dmg = Math.round(defender.damage * (1 + activePower * 0.2));
+          const dmg = Math.round(effectiveDamage * (1 + activePower * 0.2));
           this.scene.enemySystem.damageEnemy(enemyUnder, dmg, "#e3242b", defender.type);
           this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, `SMASH! -${dmg}🍎💥`, "#e3242b", 1.3);
           this.scene.effectsSystem.burst(defender.x, defender.y, "#e3242b", 25);
@@ -439,7 +456,7 @@ class DefenderSystem {
             this.scene.effectsSystem.triggerShake(6, 200);
             this.scene.effectsSystem.burst(defender.x + 25, defender.y, "#ff3b5c", 18);
             if (prey.boss) {
-              const bossDamage = Math.round(450 * (1 + defender.powerLevel * 0.2));
+              const bossDamage = Math.round(450 * (1 + activePower * 0.2));
               this.scene.enemySystem.damageEnemy(prey, bossDamage, "#ff3b5c", defender.type);
               this.scene.effectsSystem.spawnFloater(prey.x, prey.y - 45, `NHAM! -${bossDamage}💥`, "#ff3b5c", 1.25);
             } else {
