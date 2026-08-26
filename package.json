@@ -1,0 +1,11 @@
+{
+  "name": "plants-and-vegetables-vs-candle",
+  "private": true,
+  "scripts": {
+    "test:core": "node tests/core-smoke.mjs",
+    "test:browser": "node tests/browser-smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
