@@ -19,9 +19,8 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
   const list = [];
   const add = (at, type, row) => list.push({ at, type, row, spawned: false });
 
-  const isEndless = (mode === "endless");
-  const isFinaleWave = (waveNumber === CAMPAIGN_MAX_WAVES || (isEndless && waveNumber % CAMPAIGN_MAX_WAVES === 0));
-  const isBossWave = isBossWaveNumber(waveNumber, mode);
+  const isFinaleWave = WaveRules.isFinale(waveNumber, mode);
+  const isBossWave = WaveRules.isBoss(waveNumber, mode);
 
   const enemyPool = ["gummy", "marshmallow", "lollipop"];
   if (waveNumber >= 2) enemyPool.push("soda");
@@ -40,8 +39,6 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
     add(at, type, row);
   }
 
-  // Garante que a primeira apresentação do Level 2 aconteça na onda 6,
-  // independentemente da rolagem procedural do pool.
   if (waveNumber === 6) {
     add(6.25, "gummy_brigadeiro", Math.floor(rand() * 5));
   }
@@ -57,17 +54,11 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
     const bossRow = Math.floor(rand() * 5);
     const at = Math.min(10.0, 2.0 + (count * spacing) * 0.25);
     const cycle = waveNumber % 25;
-    if (cycle === 5) {
-      add(at, "candle", bossRow);
-    } else if (cycle === 10) {
-      add(at, "gum_boss", bossRow);
-    } else if (cycle === 15) {
-      add(at, "lollipop_boss", bossRow);
-    } else if (cycle === 20) {
-      add(at, "cake_robot", bossRow);
-    } else if (cycle === 0) {
-      add(at, "confeiteiro", bossRow);
-    }
+    if (cycle === 5) add(at, "candle", bossRow);
+    else if (cycle === 10) add(at, "gum_boss", bossRow);
+    else if (cycle === 15) add(at, "lollipop_boss", bossRow);
+    else if (cycle === 20) add(at, "cake_robot", bossRow);
+    else if (cycle === 0) add(at, "confeiteiro", bossRow);
   }
 
   return list.sort((a, b) => a.at - b.at);
