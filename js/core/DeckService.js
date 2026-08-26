@@ -41,13 +41,29 @@ class DeckService {
 
   load() {
     let persisted = [];
+
+    // 1. Tenta carregar da nova chave autoritativa
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.activeDeck);
       const parsed = raw ? JSON.parse(raw) : null;
-      if (Array.isArray(parsed)) persisted = parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) persisted = parsed;
     } catch (_) {}
 
-    const normalized = this.normalize(persisted.length > 0 ? persisted : this.defaultDeck);
+    // 2. Migração de dados: se a nova chave está vazia, constrói o deck
+    //    a partir das cartas que o jogador já havia desbloqueado (chave legacy)
+    if (persisted.length === 0) {
+      try {
+        const unlockedRaw = localStorage.getItem(STORAGE_KEYS.unlockedCards);
+        const unlocked = unlockedRaw ? JSON.parse(unlockedRaw) : null;
+        if (Array.isArray(unlocked) && unlocked.length > 0) {
+          // Usa as cartas desbloqueadas como base do deck migrado
+          persisted = unlocked;
+        }
+      } catch (_) {}
+    }
+
+    const seed = persisted.length > 0 ? persisted : this.defaultDeck;
+    const normalized = this.normalize(seed);
     this.persist(normalized);
     return normalized;
   }

@@ -69,6 +69,22 @@ class UIManager {
     this.renderDeckBuilder();
   }
 
+  // Helper: registra click + touchstart sem o delay de 300ms do mobile.
+  // Usa touchstart quando disponível; previne o click duplicado.
+  addTouchClick(el, handler) {
+    if (!el) return;
+    let touchFired = false;
+    el.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      touchFired = true;
+      handler(e);
+    }, { passive: false });
+    el.addEventListener("click", (e) => {
+      if (touchFired) { touchFired = false; return; }
+      handler(e);
+    });
+  }
+
   initGlobalCallbacks() {
     window.onPhaserGameStarted = (scene) => {
       this.activeScene = scene;
@@ -124,12 +140,12 @@ class UIManager {
   }
 
   bindEvents() {
-    this.ui.closeUpgrade.addEventListener("click", () => {
+    this.addTouchClick(this.ui.closeUpgrade, () => {
       this.ui.upgradePanel.hidden = true;
       this.selectedDefender = null;
     });
 
-    this.ui.powerUpgrade.addEventListener("click", () => {
+    this.addTouchClick(this.ui.powerUpgrade, () => {
       if (!this.activeScene || !this.selectedDefender) return;
       if (this.activeScene.upgradeDefenderPower(this.selectedDefender)) {
         this.showToast("Ataque melhorado! ⚔️");
@@ -138,7 +154,7 @@ class UIManager {
       }
     });
 
-    this.ui.healthUpgrade.addEventListener("click", () => {
+    this.addTouchClick(this.ui.healthUpgrade, () => {
       if (!this.activeScene || !this.selectedDefender) return;
       if (this.activeScene.upgradeDefenderHealth(this.selectedDefender)) {
         this.showToast("Vitalidade aumentada! 💚");
@@ -147,7 +163,7 @@ class UIManager {
       }
     });
 
-    this.ui.abilityBtn.addEventListener("click", () => {
+    this.addTouchClick(this.ui.abilityBtn, () => {
       if (!this.activeScene || !this.selectedDefender) return;
       if (this.activeScene.useAbility(this.selectedDefender)) {
         this.showToast(`Habilidade ${this.selectedDefender.ability.name} ativada! ✨`);
@@ -156,24 +172,25 @@ class UIManager {
       }
     });
 
-    this.ui.skipTutorial.addEventListener("click", () => {
+    this.addTouchClick(this.ui.skipTutorial, () => {
       if (this.activeScene) this.activeScene.gameState.tutorialStep = -1;
       writeStorage(STORAGE_KEYS.tutorialSeen, "true");
       this.ui.tutorial.hidden = true;
       this.showToast("Tutorial ignorado");
     });
 
-    this.ui.cards.forEach(card => card.addEventListener("click", () => this.selectDefenderType(card.dataset.defender)));
-    this.ui.shovel?.addEventListener("click", () => this.toggleShovel());
-    this.ui.fertilizer?.addEventListener("click", () => this.toggleFertilizer());
+    // Nota: as cartas da bandeja são criadas dinamicamente em updateDefenderTrayUI();
+    // os listeners são adicionados lá. Não vinculamos os cards estáticos aqui.
+    this.addTouchClick(this.ui.shovel, () => this.toggleShovel());
+    this.addTouchClick(this.ui.fertilizer, () => this.toggleFertilizer());
 
-    this.ui.startWave.addEventListener("click", () => {
+    this.addTouchClick(this.ui.startWave, () => {
       if (!this.activeScene || this.activeScene.gameState.phase !== "playing") return;
       this.activeScene.gameState.waveActive = true;
       this.showToast(`Onda ${this.activeScene.gameState.wave} iniciada! ⚔️`);
     });
 
-    this.ui.overlayButton.addEventListener("click", () => {
+    this.addTouchClick(this.ui.overlayButton, () => {
       if (this.activeScene && this.activeScene.gameState.paused && this.activeScene.gameState.phase === "playing") {
         this.resumeGame();
         return;
@@ -187,10 +204,10 @@ class UIManager {
       else if (this.activeScene) this.activeScene.startGame();
     });
 
-    this.ui.restartButton?.addEventListener("click", () => this.restartGame());
+    this.addTouchClick(this.ui.restartButton, () => this.restartGame());
 
     this.ui.modeButtons.forEach(button => {
-      button.addEventListener("click", () => {
+      this.addTouchClick(button, () => {
         const mode = button.dataset.mode;
         writeStorage(STORAGE_KEYS.selectedMode, mode);
         if (this.activeScene) {
@@ -203,7 +220,7 @@ class UIManager {
     });
 
     this.ui.habits.forEach(button => {
-      button.addEventListener("click", () => {
+      this.addTouchClick(button, () => {
         if (!this.activeScene || this.activeScene.gameState.phase !== "playing") return;
         const state = this.activeScene.gameState;
         const name = button.dataset.habit;
@@ -226,16 +243,16 @@ class UIManager {
       });
     });
 
-    this.ui.speed.addEventListener("click", () => {
+    this.addTouchClick(this.ui.speed, () => {
       if (!this.activeScene) return;
       this.activeScene.gameState.gameSpeed = this.activeScene.gameState.gameSpeed === 1 ? 2 : 1;
       this.ui.speed.textContent = `⏩ ${this.activeScene.gameState.gameSpeed}×`;
       this.showToast(`Velocidade ${this.activeScene.gameState.gameSpeed}×`);
     });
 
-    this.ui.pause.addEventListener("click", () => this.togglePauseGame());
+    this.addTouchClick(this.ui.pause, () => this.togglePauseGame());
 
-    this.ui.sound.addEventListener("click", () => {
+    this.addTouchClick(this.ui.sound, () => {
       if (!this.activeScene) return;
       this.activeScene.soundOn = !this.activeScene.soundOn;
       this.ui.sound.textContent = this.activeScene.soundOn ? "🔊" : "🔇";
@@ -424,11 +441,7 @@ class UIManager {
       btn.type = "button";
       btn.title = `Atalho: Tecla ${index + 1}`;
       btn.innerHTML = `<span class="card-icon">${def.icon}</span><span class="card-copy"><strong>[${index + 1}] ${def.name.split(" ")[0]}</strong><small>${def.cost} ☀️</small></span>`;
-      btn.addEventListener("click", () => this.selectDefenderType(key));
-      btn.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        this.selectDefenderType(key);
-      }, { passive: false });
+      this.addTouchClick(btn, () => this.selectDefenderType(key));
       if (shovelBtn) tray.insertBefore(btn, shovelBtn);
       else tray.appendChild(btn);
     });
