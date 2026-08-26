@@ -29,15 +29,15 @@ class MainScene extends Phaser.Scene {
     this.selectedMode = readMode();
     this.bestEndlessWave = readNumber(STORAGE_KEYS.bestEndlessWave);
 
-    // Initialize Entity Systems
     this.soundManager = new SoundManager(this);
     this.effectsSystem = new EffectsSystem(this);
+    this.statusEffectSystem = new StatusEffectSystem(this);
     this.projectileSystem = new ProjectileSystem(this);
     this.defenderSystem = new DefenderSystem(this);
     this.enemySystem = new EnemySystem(this);
 
     this.gameState = this.createFreshState();
-    
+
     this.drawBackgroundGraphics();
     this.drawGridGraphics();
     this.drawHouseGraphics();
@@ -56,24 +56,47 @@ class MainScene extends Phaser.Scene {
 
     this.input.on("pointermove", (pointer) => {
       this.gameState.mouse = { x: pointer.x, y: pointer.y };
-      if (pointer.isDown) {
-        this.checkSunPickup(pointer.x, pointer.y);
-      }
+      if (pointer.isDown) this.checkSunPickup(pointer.x, pointer.y);
     });
 
     this.startGame();
   }
 
+  resolveSeed() {
+    try {
+      const querySeed = Number.parseInt(new URLSearchParams(window.location.search).get("seed"), 10);
+      if (Number.isFinite(querySeed) && querySeed > 0) return querySeed >>> 0;
+    } catch (_) {}
+
+    try {
+      if (globalThis.crypto?.getRandomValues) {
+        const value = new Uint32Array(1);
+        globalThis.crypto.getRandomValues(value);
+        return (value[0] % 900000) + 100000;
+      }
+    } catch (_) {}
+
+    return (Date.now() % 900000) + 100000;
+  }
+
+  initializeRandom(seed) {
+    this.gameRng = mulberry32((seed ^ 0x9E3779B9) >>> 0);
+    this.fxRng = mulberry32((seed ^ 0x85EBCA6B) >>> 0);
+  }
+
   createFreshState() {
-    const mode = MODES[this.selectedMode];
-    const seed = Math.floor(Math.random() * 899999) + 100000;
+    const mode = MODES[this.selectedMode] || MODES.normal;
+    const seed = this.resolveSeed();
+    this.initializeRandom(seed);
+    const activeDeck = window.deckService?.getActiveDeck() || ["potato", "garlic", "corn", "carrot", "broccoli"];
+
     return {
       phase: "intro",
       paused: false,
       gameSpeed: 1,
       time: 0,
       mode: this.selectedMode,
-      seed: seed,
+      seed,
       sun: mode.startSun,
       houseHp: mode.houseHp,
       maxHouseHp: mode.houseHp,
@@ -82,13 +105,17 @@ class MainScene extends Phaser.Scene {
       waveTime: 0,
       waveActive: false,
       waveResolved: 0,
+      waveSummoned: 0,
       houseDamagedThisWave: false,
       combo: 0,
       comboExpiresAt: 0,
       selected: null,
       shovel: false,
-      pepperUnlocked: false,
+      interactionMode: "none",
+      activeDeck,
+      pepperUnlocked: window.deckService?.isUnlocked("pepper") || false,
       attackBoostUntil: 0,
+      vegetableBoostUntil: 0,
       defenders: [],
       enemies: [],
       projectiles: [],
@@ -195,37 +222,33 @@ class MainScene extends Phaser.Scene {
   }
 
   createHeroMascot() {
-    if (this.textures.exists("hero_avatar")) {
-      const heroContainer = this.add.container(88, 185);
-      
-      const badgeBorder = this.add.graphics();
-      badgeBorder.fillStyle(0xff9f1c, 1);
-      badgeBorder.fillCircle(0, 0, 32);
-      badgeBorder.fillStyle(0xffffff, 1);
-      badgeBorder.fillCircle(0, 0, 29);
-      heroContainer.add(badgeBorder);
+    if (!this.textures.exists("hero_avatar")) return;
 
-      const avatar = this.add.image(0, 0, "hero_avatar").setDisplaySize(54, 54);
-      
-      const shape = this.make.graphics({ add: false });
-      shape.fillCircle(88, 185, 27);
-      const mask = shape.createGeometryMask();
-      avatar.setMask(mask);
-      
-      heroContainer.add(avatar);
-      heroContainer.setDepth(15);
+    const heroContainer = this.add.container(88, 185);
+    const badgeBorder = this.add.graphics();
+    badgeBorder.fillStyle(0xff9f1c, 1);
+    badgeBorder.fillCircle(0, 0, 32);
+    badgeBorder.fillStyle(0xffffff, 1);
+    badgeBorder.fillCircle(0, 0, 29);
+    heroContainer.add(badgeBorder);
 
-      this.tweens.add({
-        targets: heroContainer,
-        y: 180,
-        duration: 1400,
-        ease: "Sine.easeInOut",
-        yoyo: true,
-        repeat: -1
-      });
+    const avatar = this.add.image(0, 0, "hero_avatar").setDisplaySize(54, 54);
+    const shape = this.make.graphics({ add: false });
+    shape.fillCircle(88, 185, 27);
+    avatar.setMask(shape.createGeometryMask());
+    heroContainer.add(avatar);
+    heroContainer.setDepth(15);
 
-      this.heroContainer = heroContainer;
-    }
+    this.tweens.add({
+      targets: heroContainer,
+      y: 180,
+      duration: 1400,
+      ease: "Sine.easeInOut",
+      yoyo: true,
+      repeat: -1
+    });
+
+    this.heroContainer = heroContainer;
   }
 
   cleanupSceneObjects() {
@@ -239,19 +262,17 @@ class MainScene extends Phaser.Scene {
       this.gameState.floaters
     ];
     for (const collection of collections) {
-      if (collection) {
-        for (const item of collection) {
-          if (item) {
-            if (item.textObj) item.textObj.destroy();
-            if (item.sprite) item.sprite.destroy();
-            if (item.shadowSprite) item.shadowSprite.destroy();
-          }
-        }
+      if (!collection) continue;
+      for (const item of collection) {
+        if (!item) continue;
+        if (item.textObj) item.textObj.destroy();
+        if (item.sprite) item.sprite.destroy();
+        if (item.shadowSprite) item.shadowSprite.destroy();
       }
     }
     if (this.gameState.particles) {
       for (const p of this.gameState.particles) {
-        if (p && p.gfx) p.gfx.destroy();
+        if (p?.gfx) p.gfx.destroy();
       }
     }
   }
@@ -261,10 +282,11 @@ class MainScene extends Phaser.Scene {
     this.gameState = this.createFreshState();
     this.gameState.phase = "playing";
     this.uiOverlayText.setText("🌱 Prepare sua defesa");
+    window.deckService?.syncScene(this);
     if (window.onPhaserGameStarted) window.onPhaserGameStarted(this);
   }
 
-  update(time, delta) {
+  update(_time, delta) {
     const dt = Math.min(delta / 1000, 0.05) * this.gameState.gameSpeed;
     if (this.gameState.phase !== "playing" || this.gameState.paused) return;
 
@@ -273,30 +295,11 @@ class MainScene extends Phaser.Scene {
       this.gameState.waveTime += dt;
       if (this.gameState.time > this.gameState.comboExpiresAt) this.gameState.combo = 0;
 
-      const isFinale = (this.gameState.wave === 26 || (this.gameState.mode === "endless" && this.gameState.wave % 26 === 0));
-      const isBossWave = (this.gameState.wave % 5 === 0) || isFinale;
-      if (isFinale) {
-        this.uiOverlayText.setText("👑🔥 ONDA 26 GRANDE FINALE: CONFRONTO DOS 5 CHEFES SIMULTÂNEOS!");
-      } else if (isBossWave) {
-        const cycle = this.gameState.wave % 25;
-        if (cycle === 5) {
-          this.uiOverlayText.setText("🕯️ CHEFE 1 (Onda 5): VELA MESTRA!");
-        } else if (cycle === 10) {
-          this.uiOverlayText.setText("🟣 CHEFE 2 (Onda 10): CHICLETE GIGANTE GRUDENTO!");
-        } else if (cycle === 15) {
-          this.uiOverlayText.setText("🍭 CHEFE 3 (Onda 15): PIRULITO GIRATÓRIO SUPREMO!");
-        } else if (cycle === 20) {
-          this.uiOverlayText.setText("🤖🎂 CHEFE 4 (Onda 20): ROBÔ BOLO MUTANTE GIGANTE!");
-        } else {
-          this.uiOverlayText.setText("👨‍🍳 CHEFE 5 (Onda 25): O CONFEITEIRO SOMBRIO!");
-        }
-      } else {
-        this.uiOverlayText.setText(`⚔️ Onda ${this.gameState.wave} de ${CAMPAIGN_MAX_WAVES} em andamento`);
-      }
+      this.uiOverlayText.setText(WaveRules.getBattleBanner(this.gameState.wave, this.gameState.mode));
 
       for (const item of this.gameState.spawnQueue) {
         if (!item.spawned && this.gameState.waveTime >= item.at) {
-          this.enemySystem.spawnEnemy(item.type, item.row);
+          this.enemySystem.spawnEnemy(item.type, item.row, { scheduled: true });
           item.spawned = true;
         }
       }
@@ -353,21 +356,18 @@ class MainScene extends Phaser.Scene {
       this.gameState.stats.flawlessWaves = (this.gameState.stats.flawlessWaves || 0) + 1;
       this.effectsSystem.spawnFloater(500, 140, "⭐ ONDA PERFEITA! SEM DANO! ⭐", "#69c743", 1.3);
     }
+
     const bonus = 40 + this.gameState.wave * 15;
     this.gameState.sun += bonus;
     this.gameState.score += bonus * 5;
-    
-    // Sunflower seeds progression reward
-    const isBossWave = (this.gameState.wave % 5 === 0);
-    const isFinale = (this.gameState.wave === 26);
-    const seedGain = isFinale ? 100 : (isBossWave ? 25 : 10);
+
+    const seedGain = WaveRules.seedReward(this.gameState.wave, this.gameState.mode);
     const currentSeeds = readNumber(STORAGE_KEYS.sunflowerSeeds) || 0;
     writeStorage(STORAGE_KEYS.sunflowerSeeds, currentSeeds + seedGain);
 
     this.effectsSystem.spawnFloater(500, 180, `🎉 ONDA COMPLETA! +${bonus}☀️ +${seedGain}🌻`, "#ffe27a", 1.4);
     this.soundManager.beep(660, 0.15, "triangle", 0.05);
 
-    // Deck slot progression unlocks at wave 10, 20, 30
     const currentSlots = readDeckSlots();
     if (this.gameState.wave >= 30 && currentSlots < 8) {
       saveDeckSlots(8);
@@ -404,13 +404,14 @@ class MainScene extends Phaser.Scene {
     this.gameState.waveTime = 0;
     this.gameState.waveActive = false;
     this.gameState.waveResolved = 0;
+    this.gameState.waveSummoned = 0;
     this.gameState.houseDamagedThisWave = false;
     this.gameState.combo = 0;
     this.gameState.spawnQueue = generateProceduralWave(this.gameState.wave, this.gameState.seed, this.gameState.mode);
 
     if (this.gameState.enemyProjectiles) {
       for (const ep of this.gameState.enemyProjectiles) {
-        if (ep && ep.textObj) ep.textObj.destroy();
+        if (ep?.textObj) ep.textObj.destroy();
       }
       this.gameState.enemyProjectiles = [];
     }
@@ -422,9 +423,7 @@ class MainScene extends Phaser.Scene {
 
     this.drawBackgroundGraphics();
     this.drawGridGraphics();
-    const biome = getBiomeForWave(this.gameState.wave);
-    const isBoss = (this.gameState.wave % 5 === 0) || this.gameState.wave === 16;
-    const threat = getThreatLevelInfo(this.gameState.wave, isBoss);
+    const threat = WaveRules.getThreatLevelInfo(this.gameState.wave, this.gameState.mode);
     this.effectsSystem.spawnFloater(500, 200, `${threat.icon} ONDA ${this.gameState.wave} - ${threat.name}!`, threat.color, 1.5);
     this.soundManager.beep(560, 0.11, "triangle");
   }
@@ -444,50 +443,51 @@ class MainScene extends Phaser.Scene {
   checkSunPickup(x, y) {
     if (this.gameState.phase !== "playing" || this.gameState.paused) return false;
     const sun = [...this.gameState.suns].reverse().find(s => Math.hypot(s.x - x, s.y - y) < 58);
-    if (sun) {
-      this.gameState.sun += sun.value;
-      this.gameState.stats.sunCollected += sun.value;
-      sun.life = 0;
-      if (sun.textObj) sun.textObj.destroy();
+    if (!sun) return false;
 
-      if (sun.type === "golden") {
-        this.gameState.attackBoostUntil = this.gameState.time + 4;
-        this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️ IMPULSO DE ATAQUE! 🌟`, "#ffd43b", 1.35);
-        this.soundManager.beep(880, 0.12, "sine", 0.05);
-      } else if (sun.type === "nutrient") {
-        this.gameState.houseHp = Math.min(this.gameState.maxHouseHp, this.gameState.houseHp + 80);
-        this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️ +80 HP CASA! 💚`, "#69c743", 1.35);
-        this.soundManager.beep(820, 0.12, "sine", 0.05);
-      } else {
-        this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️`, "#fff06a", 1.2);
-        this.soundManager.beep(760, 0.08, "sine", 0.04);
-      }
-      return true;
+    this.gameState.sun += sun.value;
+    this.gameState.stats.sunCollected += sun.value;
+    sun.life = 0;
+    if (sun.textObj) sun.textObj.destroy();
+
+    if (sun.type === "golden") {
+      this.gameState.attackBoostUntil = this.gameState.time + 4;
+      this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️ IMPULSO DE ATAQUE! 🌟`, "#ffd43b", 1.35);
+      this.soundManager.beep(880, 0.12, "sine", 0.05);
+    } else if (sun.type === "nutrient") {
+      this.gameState.houseHp = Math.min(this.gameState.maxHouseHp, this.gameState.houseHp + 80);
+      this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️ +80 HP CASA! 💚`, "#69c743", 1.35);
+      this.soundManager.beep(820, 0.12, "sine", 0.05);
+    } else {
+      this.effectsSystem.spawnFloater(sun.x, sun.y, `+${sun.value} ☀️`, "#fff06a", 1.2);
+      this.soundManager.beep(760, 0.08, "sine", 0.04);
     }
-    return false;
+    return true;
+  }
+
+  resetInteractionMode() {
+    this.gameState.interactionMode = "none";
+    this.gameState.shovel = false;
+    this.gameState.selected = null;
+    if (window.onPhaserResetInteraction) window.onPhaserResetInteraction();
   }
 
   handlePointerDown(x, y) {
     if (this.gameState.phase !== "playing" || this.gameState.paused) return;
-
     if (this.checkSunPickup(x, y)) return;
 
     const col = Math.floor((x - this.GRID_X) / this.CELL_W);
     const row = Math.floor((y - this.GRID_Y) / this.CELL_H);
     if (col < 0 || col >= this.COLS || row < 0 || row >= this.ROWS) return;
 
-    const existing = this.gameState.defenders.find(d => d.row === row && d.col === col);
-    
-    if (window.uiManager && window.uiManager.fertilizerActive) {
-      if (existing) {
-        this.defenderSystem.applyFertilizer(existing);
-        window.uiManager.fertilizerActive = false;
-        if (window.uiManager.ui.fertilizer) window.uiManager.ui.fertilizer.classList.remove("selected");
-      }
+    const existing = this.gameState.defenders.find(d => !d.removed && d.row === row && d.col === col);
+
+    if (this.gameState.interactionMode === "fertilizer") {
+      if (existing && this.defenderSystem.applyFertilizer(existing)) this.resetInteractionMode();
       return;
     }
 
-    if (this.gameState.shovel) {
+    if (this.gameState.interactionMode === "shovel") {
       if (existing) {
         const refund = Math.floor(existing.invested * 0.5);
         this.gameState.sun += refund;
@@ -495,11 +495,10 @@ class MainScene extends Phaser.Scene {
         this.effectsSystem.burst(existing.x, existing.y, "#b9e4a3", 16);
         this.effectsSystem.spawnFloater(existing.x, existing.y - 20, `+${refund} ☀️`, "#b9e4a3", 1.25);
         this.soundManager.beep(420, 0.1, "triangle", 0.05);
-        if (existing.textObj) existing.textObj.destroy();
-        this.gameState.defenders = this.gameState.defenders.filter(d => d !== existing);
+        this.defenderSystem.removeDefender(existing, "shovel", { silent: true, triggerDeathEffect: false });
+        this.defenderSystem.cleanupDefeated();
       }
-      this.gameState.shovel = false;
-      if (window.onPhaserResetShovel) window.onPhaserResetShovel();
+      this.resetInteractionMode();
       return;
     }
 
@@ -508,12 +507,18 @@ class MainScene extends Phaser.Scene {
       return;
     }
 
-    if (this.gameState.selected) {
+    if (this.gameState.selected && this.gameState.interactionMode === "place") {
       this.defenderSystem.placeDefender(col, row, this.gameState.selected);
     }
   }
 
   random(min, max) {
-    return min + Math.random() * (max - min);
+    if (!this.gameRng) this.gameRng = mulberry32(1);
+    return min + this.gameRng() * (max - min);
+  }
+
+  randomFx(min, max) {
+    if (!this.fxRng) this.fxRng = mulberry32(2);
+    return min + this.fxRng() * (max - min);
   }
 }
