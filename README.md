@@ -47,6 +47,8 @@ http://localhost:8080/?seed=582914
 
 ## Game Core / Core Integrity S2
 
+A especificação técnica autoritativa do marco está em [`docs/CORE_INTEGRITY_S2.md`](docs/CORE_INTEGRITY_S2.md).
+
 ### Regras autoritativas
 
 - `WaveRules`: uma única regra para boss, finale, ameaça visual e recompensa de sementes.
