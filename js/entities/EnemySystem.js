@@ -7,6 +7,8 @@ class EnemySystem {
 
   spawnEnemy(type, row) {
     const base = ENEMIES[type];
+    if (!base) return null;
+
     const mode = MODES[this.scene.gameState.mode] || MODES.normal;
     const wave = this.scene.gameState.wave || 1;
     const hpScalingRate = mode.levelHpScaling || 0.14;
@@ -17,7 +19,6 @@ class EnemySystem {
     const hpScale = (base.boss ? 1 + (wave - 1) * 0.15 : waveHpScale) * mode.enemyHp;
     const speedScale = mode.enemySpeed * (1 + Math.min(0.30, (wave - 1) * speedScalingRate));
     const damageScale = mode.enemyDamage * (1 + Math.min(0.45, (wave - 1) * 0.025));
-
     const rewardScaled = Math.round(base.reward * (1 + (wave - 1) * rewardScalingRate));
 
     const x = this.scene.W + 42;
@@ -25,19 +26,31 @@ class EnemySystem {
 
     const enemy = {
       ...base, type, row, x, y,
-      hp: Math.round(base.hp * hpScale), maxHp: Math.round(base.hp * hpScale),
-      shield: Math.round((base.shield || 0) * (1 + (wave - 1) * 0.15)), maxShield: Math.round((base.shield || 0) * (1 + (wave - 1) * 0.15)),
-      speed: base.speed * speedScale, damage: Math.round(base.damage * damageScale),
+      hp: Math.round(base.hp * hpScale),
+      maxHp: Math.round(base.hp * hpScale),
+      shield: Math.round((base.shield || 0) * (1 + (wave - 1) * 0.15)),
+      maxShield: Math.round((base.shield || 0) * (1 + (wave - 1) * 0.15)),
+      speed: base.speed * speedScale,
+      damage: Math.round(base.damage * damageScale),
       reward: rewardScaled,
-      attackTimer: 0, hitFlash: 0, burnUntil: 0, burnTick: 0, wobble: Math.random() * 6
+      attackTimer: base.ranged ? 0.7 : 0,
+      hitFlash: 0,
+      burnUntil: 0,
+      burnTick: 0,
+      wobble: Math.random() * 6,
+      removed: false
     };
 
     enemy.shadowSprite = this.scene.add.sprite(x, y + 22, "tex_shadow").setOrigin(0.5).setScale(base.scale || 1);
-    enemy.sprite = this.scene.add.sprite(x, y - 4, "tex_" + type).setOrigin(0.5).setScale(base.scale || 1);
+    enemy.sprite = this.scene.add.sprite(x, y - 4, base.texture || ("tex_" + type)).setOrigin(0.5).setScale(base.scale || 1);
+    if (base.tint && enemy.sprite) enemy.sprite.setTint(base.tint);
     enemy.textObj = enemy.sprite;
     this.scene.gameState.enemies.push(enemy);
 
-    if (type === "candle") {
+    if (type === "gummy_brigadeiro") {
+      this.scene.effectsSystem.spawnFloater(720, y - 38, "🧸💣 GUMMY LV.2: CANHÃO DE BRIGADEIRO!", "#6d3b1f", 1.15);
+      this.scene.soundManager.beep(180, 0.18, "square", 0.05);
+    } else if (type === "candle") {
       this.scene.effectsSystem.triggerShake(14, 500);
       this.scene.soundManager.beep(120, 0.45, "sawtooth");
       this.scene.effectsSystem.spawnFloater(500, 150, "🔥 A VELA MESTRA CHEGOU! 🔥", "#ff3838", 1.5);
@@ -58,10 +71,40 @@ class EnemySystem {
       this.scene.soundManager.beep(75, 0.65, "sawtooth");
       this.scene.effectsSystem.spawnFloater(500, 150, "🤖🎂 ROBÔ BOLO MUTANTE GIGANTE ENTROU NA BATALHA! 🤖🎂", "#00e5ff", 1.65);
     }
+
+    return enemy;
+  }
+
+  fireRangedProjectile(enemy, target) {
+    if (!enemy || !target || target.removed || target.hp <= 0) return false;
+    const projectile = {
+      x: enemy.x - 28,
+      y: enemy.y - 6,
+      row: enemy.row,
+      speed: enemy.projectileSpeed || 300,
+      damage: enemy.damage,
+      color: enemy.projectileColor || "#6d3b1f",
+      icon: enemy.projectileIcon || "●",
+      effect: enemy.type === "gummy_brigadeiro" ? "brigadeiro" : null,
+      slowDuration: enemy.slowDuration || 0,
+      slowMultiplier: enemy.slowMultiplier || 0.7,
+      removed: false
+    };
+    projectile.textObj = this.scene.add.text(projectile.x, projectile.y, projectile.icon, {
+      fontSize: "24px",
+      color: projectile.color,
+      stroke: "#2b170d",
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    this.scene.gameState.enemyProjectiles.push(projectile);
+    this.scene.effectsSystem.burst(enemy.x - 20, enemy.y, projectile.color, 8);
+    this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 40, "PUM! BRIGADEIRO! 💣", "#8b4b2b", 0.95);
+    this.scene.soundManager.beep(150, 0.08, "square", 0.04);
+    return true;
   }
 
   damageEnemy(enemy, amount, color, sourceType = null) {
-    if (enemy.hp <= 0) return;
+    if (!enemy || enemy.hp <= 0 || enemy.removed) return;
     let remainingDamage = amount;
     let absorbedDamage = 0;
     if (enemy.shield > 0) {
@@ -135,8 +178,9 @@ class EnemySystem {
           this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 45, "BOMBA DE CHICLETE! 🟣", "#d175ff", 1.35);
           this.scene.soundManager.beep(160, 0.25, "sawtooth", 0.06);
           for (const defender of this.scene.gameState.defenders) {
-            if (Math.abs(defender.x - enemy.x) < 280) {
+            if (!defender.removed && Math.abs(defender.x - enemy.x) < 280) {
               defender.slowUntil = this.scene.gameState.time + 6;
+              defender.slowMultiplier = 0.6;
               this.scene.effectsSystem.burst(defender.x, defender.y, "#d175ff", 10);
               this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 25, "PRESO NO CHICLETE! 🟣", "#d175ff", 1.1);
             }
@@ -178,7 +222,6 @@ class EnemySystem {
           this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 55, "CHUVA DE AÇÚCAR & ROLO DE MASSA! 👨‍🍳🥖", "#ff1744", 1.5);
           this.scene.soundManager.beep(120, 0.35, "sawtooth", 0.08);
 
-          // Spawn 2 helper candies
           const minionTypes = ["gummy", "marshmallow", "cupcake", "chocolate"];
           for (let k = 0; k < 2; k++) {
             const mType = minionTypes[Math.floor(Math.random() * minionTypes.length)];
@@ -186,7 +229,6 @@ class EnemySystem {
             this.spawnEnemy(mType, mRow);
           }
 
-          // Launch Rolling Pin Projectile
           const rollingPin = {
             x: enemy.x - 30,
             y: this.scene.GRID_Y + enemy.row * this.scene.CELL_H + this.scene.CELL_H / 2,
@@ -211,15 +253,14 @@ class EnemySystem {
           this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 55, "LASER DE COBERTURA & PARALISIA! 🤖⚡", "#00e5ff", 1.5);
           this.scene.soundManager.beep(140, 0.35, "square", 0.08);
 
-          // Freeze / Slow nearby defenders
           for (const defender of this.scene.gameState.defenders) {
-            if (Math.abs(defender.x - enemy.x) < 260) {
+            if (!defender.removed && Math.abs(defender.x - enemy.x) < 260) {
               defender.slowUntil = this.scene.gameState.time + 4;
+              defender.slowMultiplier = 0.6;
               this.scene.effectsSystem.burst(defender.x, defender.y, "#00e5ff", 8);
             }
           }
 
-          // Fire Cyber Laser Projectile
           const laser = {
             x: enemy.x - 30,
             y: this.scene.GRID_Y + enemy.row * this.scene.CELL_H + this.scene.CELL_H / 2,
@@ -245,44 +286,28 @@ class EnemySystem {
       } else {
         enemy.burnTick = 0;
       }
+      if (enemy.hp <= 0 || enemy.removed) continue;
 
-      if (enemy.type === "gummy_cannon") {
-        const targetDefender = this.scene.gameState.defenders.find(
-          d => d.row === enemy.row && d.hp > 0 && d.x < enemy.x && (enemy.x - d.x) <= (enemy.range || 300)
-        );
-        if (targetDefender) {
+      if (enemy.ranged) {
+        const target = this.scene.gameState.defenders
+          .filter(d => !d.removed && d.hp > 0 && d.row === enemy.row && d.x < enemy.x && (enemy.x - d.x) <= (enemy.range || 300))
+          .sort((a, b) => b.x - a.x)[0];
+        if (target) {
           enemy.attackTimer = (enemy.attackTimer || 0) - dt;
           if (enemy.attackTimer <= 0) {
-            enemy.attackTimer = enemy.cooldown || 3.5;
-            const ep = {
-              x: enemy.x - 20,
-              y: enemy.y,
-              row: enemy.row,
-              speed: 320,
-              damage: enemy.damage || 25,
-              slowAttack: enemy.slowAttack || 0.3,
-              slowDuration: enemy.slowDuration || 5,
-              color: "#5c2c16",
-              icon: "🍫💣",
-              removed: false
-            };
-            ep.textObj = this.scene.add.text(ep.x, ep.y, ep.icon, { fontSize: "24px" }).setOrigin(0.5);
-            this.scene.gameState.enemyProjectiles.push(ep);
-            this.scene.effectsSystem.burst(enemy.x - 15, enemy.y, "#5c2c16", 12);
-            this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 35, "BRIGADEIRO! 🍫💣", "#5c2c16", 1.15);
-            this.scene.soundManager.beep(150, 0.15, "sawtooth", 0.05);
+            enemy.attackTimer = enemy.attackRate || 3.5;
+            this.fireRangedProjectile(enemy, target);
           }
+          if (enemy.sprite) enemy.sprite.setAngle(Math.sin(this.scene.gameState.time * 7) * 3);
           continue;
         }
       }
 
-      const blocker = this.scene.gameState.defenders.find(d => d.row === enemy.row && Math.abs(enemy.x - d.x) < 44 && d.hp > 0);
+      const blocker = this.scene.gameState.defenders.find(d => !d.removed && d.row === enemy.row && Math.abs(enemy.x - d.x) < 44 && d.hp > 0);
 
       if (blocker) {
         if (blocker.type === "potato" && blocker.armed) {
-          blocker.hp = 0;
-          if (blocker.sprite) blocker.sprite.destroy();
-          if (blocker.shadowSprite) blocker.shadowSprite.destroy();
+          this.scene.defenderSystem.defeatDefender(blocker, "potato-detonated", { silent: true });
           this.scene.effectsSystem.burst(blocker.x, blocker.y, "#ff5638", 30);
           this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, "BOOM! 💥 180", "#ff5638", 1.4);
           this.scene.effectsSystem.triggerShake(12, 300);
@@ -297,9 +322,7 @@ class EnemySystem {
         }
 
         if (blocker.spikeMine) {
-          blocker.hp = 0;
-          if (blocker.sprite) blocker.sprite.destroy();
-          if (blocker.shadowSprite) blocker.shadowSprite.destroy();
+          this.scene.defenderSystem.defeatDefender(blocker, "pineapple-detonated", { silent: true });
           this.scene.effectsSystem.burst(blocker.x, blocker.y, "#e4b419", 25);
           this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, "ESPINHOS! 🍍💥 140", "#e4b419", 1.3);
           this.scene.soundManager.beep(300, 0.15, "square", 0.06);
@@ -320,11 +343,7 @@ class EnemySystem {
           this.scene.effectsSystem.burst(enemy.x, enemy.y, "#f5f5dc", 14);
           this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 30, "🤢 REPELIDO!", "#f5f5dc", 1.15);
           this.scene.soundManager.beep(300, 0.1, "sine", 0.04);
-          blocker.hp -= 15;
-          if (blocker.hp <= 0) {
-            if (blocker.sprite) blocker.sprite.destroy();
-            if (blocker.shadowSprite) blocker.shadowSprite.destroy();
-          }
+          this.scene.defenderSystem.damageDefender(blocker, 15, { silent: true, reason: "garlic-repel" });
           continue;
         }
 
@@ -332,23 +351,17 @@ class EnemySystem {
         if (enemy.attackTimer <= 0) {
           enemy.attackTimer = enemy.attackRate || 1;
           const damage = enemy.damage || 18;
-          blocker.hp -= damage;
-
-          if (enemy.sticky) {
-            blocker.slowUntil = this.scene.gameState.time + 4;
+          const sticky = !!enemy.sticky;
+          this.scene.defenderSystem.damageDefender(blocker, damage, {
+            reason: "enemy-melee",
+            slowDuration: sticky ? 4 : 0,
+            slowMultiplier: sticky ? 0.6 : undefined,
+            color: sticky ? "#d175ff" : "#ff4d4d"
+          });
+          if (sticky && !blocker.removed) {
             this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 42, "LENTIDÃO! 🟣", "#d175ff", 1.1);
           }
-
-          this.scene.effectsSystem.burst(blocker.x + 10, blocker.y, "#fff0a8", 6);
-          this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 28, `-${damage}💔`, "#ff4d4d", 1.1);
           this.scene.soundManager.beep(220, 0.05, "sawtooth", 0.03);
-
-          if (blocker.hp <= 0) {
-            this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, "Derrotado! 💔", "#ef476f", 1.2);
-            if (blocker.sprite) blocker.sprite.destroy();
-            if (blocker.shadowSprite) blocker.shadowSprite.destroy();
-            this.scene.effectsSystem.burst(blocker.x, blocker.y, "#ef476f", 18);
-          }
         }
       } else {
         const moveSpeed = enemy.speed * (sodaRows.has(enemy.row) && enemy.type !== "soda" ? 1.4 : 1);
@@ -360,7 +373,7 @@ class EnemySystem {
           enemy.sprite.angle += (enemy.type === "lollipop_boss" ? 360 : 200) * dt;
         }
 
-        if ((enemy.type === "gummy" || enemy.type === "marshmallow") && enemy.sprite) {
+        if ((enemy.type === "gummy" || enemy.type === "gummy_brigadeiro" || enemy.type === "marshmallow") && enemy.sprite) {
           const baseScale = enemy.scale || 1;
           enemy.sprite.setScale(baseScale, baseScale + Math.sin(this.scene.gameState.time * 8 + enemy.wobble) * 0.08);
         }
@@ -382,7 +395,8 @@ class EnemySystem {
         this.scene.soundManager.beep(85, 0.25, "sawtooth", 0.08);
       }
     }
-    this.scene.gameState.defenders = this.scene.gameState.defenders.filter(d => d.hp > 0);
+
+    this.scene.defenderSystem.cleanupDefeated();
     this.scene.gameState.enemies = this.scene.gameState.enemies.filter(e => e.hp > 0 && !e.removed);
   }
 }

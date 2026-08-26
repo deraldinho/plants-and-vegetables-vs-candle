@@ -1,303 +1,253 @@
-Sim. Vou incorporar essas ideias ao planejamento, mas separando o que já existe do que realmente é novo.
+# 🍇 Plants and Vegetables vs Candle — Caderno de Ideias & Mecânicas 🕯️
 
-### Planejamento atualizado — Fruit and Vegetable vs Candle
+Este documento é o backlog autoritativo de ideias de gameplay, progressão, plantas, itens, economia e inimigos.
 
-| Fase                              |  Prioridade | Trabalho                                                                                                     |
-| --------------------------------- | ----------: | ------------------------------------------------------------------------------------------------------------ |
-| **S0 — Estabilização do Core**    |       🔴 P0 | Corrigir deck autoritativo, morte/lifecycle dos defensores, Morango, Pimenta, boss wave 16, CSS, CI e testes |
-| **S1 — Deck & Progressão**        |       🔴 P0 | Deck de 5 slots, expansão até 7/8, desbloqueios a cada 10 ondas, coleção persistente                         |
-| **S2 — Plantas v2**               |       🟠 P1 | Finalizar mecânicas próprias de Banana, Laranja, Couve-Flor, Morango, Brócolis, Abacaxi e Maçã               |
-| **S3 — Consumíveis**              |       🟠 P1 | Adubo como item real, inventário, quantidade, aplicação por drag/touch, duração e feedback                   |
-| **S4 — Economia Meta**            |       🟠 P1 | Sementes de Girassol, loja, skins, consumíveis e desbloqueios antecipados                                    |
-| **S5 — Candy Evolution**          |       🟠 P1 | Variantes Level 2 dos inimigos existentes                                                                    |
-| **S6 — Conteúdo e Balanceamento** |       🟡 P2 | Novas ondas, composição procedural, bosses, curvas de HP/dano/recompensa                                     |
-| **S7 — Certificação**             | 🔴 P0 final | Playwright, regressão, mobile, desktop, performance e campanha completa                                      |
+## Legenda
 
-## 🍌 Banana Boxeadora
-
-Ela **já existe no código**, então eu não trataria mais como “nova planta”. O trabalho agora passa a ser completar a identidade dela.
-
-Hoje eu evoluiria para:
-
-```text
-BANANA BOXEADORA
-
-Alcance:
-1 casa à frente
-
-Ataque:
-sequência rápida de socos
-
-Combo:
-1º golpe → dano normal
-2º golpe → +10%
-3º golpe → +20%
-4º golpe → KNOCKBACK
-
-Especial:
-🥊 Combo de Socos
-
-Efeito:
-5–6 segundos de velocidade extrema
-+ knockback aumentado
-+ impacto visual
-```
-
-Também adicionaria resistência diferente por tamanho de inimigo:
-
-```text
-Gummy / Marshmallow       → knockback alto
-Pirulito / Soda           → knockback médio
-Chocolate / Cupcake       → knockback baixo
-Boss                       → não empurra
-```
-
-Isso evita a Banana empurrando chefes indefinidamente.
+- ✅ Implementado no core atual
+- 🟡 Implementado parcialmente / precisa de acabamento ou balanceamento
+- ⏳ Planejado
 
 ---
 
-# 🧸 Novo inimigo: Gummy Bear Level 2
+## 1. 🃏 Sistema de Baralho & Progressão
 
-Esse entra oficialmente no planejamento como novo inimigo.
+### Deck Picker
 
-## 🧸💣 Gummy Bear Brigadeiro Cannon
+- ✅ Seleção de plantas antes da partida.
+- ✅ Início com 5 slots.
+- ✅ Bandeja de batalha sincronizada com o deck selecionado.
+- ✅ Gameplay recusa posicionamento de planta fora do deck ativo.
+- 🟡 Persistência do deck escolhido entre sessões.
 
-**Nome provisório:**
-**Ursinho de Goma Artilheiro**
+### Progressão por ondas
 
-Ou:
-
-**Gummy Bear Brigadeiro Cannon**
-
-### Papel
-
-```text
-Tipo:
-Ranged / Support / Control
-
-Perigo:
-não precisa chegar até a planta para atacá-la
-```
-
-Ele entra no campo e, quando encontra uma planta dentro do alcance:
-
-```text
-        🍌
-        ↑
-🌱 🌱 🌱 🌱
-
-                 🧸💣
-                  │
-                  │ brigadeiro
-                  └──────────► ●
-```
-
-### Ataque
-
-**Canhão de Brigadeiro**
-
-O projétil causa:
-
-* dano direto;
-* efeito grudento;
-* redução da velocidade de ataque;
-* pequeno efeito visual de chocolate/brigadeiro cobrindo a planta.
-
-Exemplo inicial de balanceamento:
-
-```text
-HP:                320
-Velocidade:        15
-Dano:              25
-Alcance:           ~300 px
-Cooldown:          3.5 s
-Slow de ataque:    -30%
-Duração:           5 s
-Recompensa:        60 ☀️
-```
-
-### Comportamento
-
-Não quero que ele funcione como os inimigos corpo a corpo atuais.
-
-O fluxo deveria ser:
-
-```text
-SPAWN
-  ↓
-AVANÇA
-  ↓
-PLANTA ENTROU NO ALCANCE?
-  ├── NÃO → continua andando
-  │
-  └── SIM
-       ↓
-    PARA
-       ↓
-  MIRA CANHÃO
-       ↓
- DISPARA BRIGADEIRO
-       ↓
-    RELOAD
-       ↓
-PLANTA AINDA EXISTE?
-   ├── SIM → dispara novamente
-   └── NÃO → volta a avançar
-```
-
-Isso cria uma classe nova de ameaça: **artilharia**.
+- ✅ Slot 6 liberado ao atingir onda 10.
+- ✅ Slot 7 liberado ao atingir onda 20.
+- ⏳ Avaliar 8º slot para progressão pós-campanha / modo infinito.
+- 🟡 Desbloqueio de novas plantas por sementes já existe, mas ainda precisa ser alinhado com a progressão automática por ondas.
 
 ---
 
-## 🍫 Brigadeiro como status effect
+## 2. 🌱 Plantas, Frutas e Vegetais
 
-Em vez de implementar o efeito diretamente dentro do Gummy Bear, eu criaria um status reutilizável:
+### 🍌 Banana Boxeadora — ✅/🟡
 
-```javascript
-StickyEffect
-```
+**Função:** melee / curto alcance.
 
-ou conceitualmente:
+Implementado:
 
-```text
-StatusEffect
- ├─ Sticky
- ├─ Acid
- ├─ Burn
- ├─ Shield
- ├─ Stun
- └─ AttackSpeedModifier
-```
+- golpes rápidos em curta distância;
+- combo de 4 golpes;
+- dano crescente durante o combo;
+- 4º golpe aplica knockback;
+- inimigos pesados recebem knockback reduzido;
+- chefes são imunes a knockback;
+- habilidade `Combo de Socos` acelera a própria Banana por 6 segundos.
 
-Assim o Brigadeiro Cannon aplica:
+Próximos ajustes:
 
-```text
-BRIGADEIRO_HIT
-      ↓
-damage
-      ↓
-StickyEffect
-      ↓
-attackSpeed × 0.70
-      ↓
-5 segundos
-      ↓
-expire
-```
+- animação própria de jab/direto/gancho;
+- telemetria para DPS e knockback;
+- balanceamento por dificuldade.
 
-Isso também serviria depois para Chiclete, Caramelo, Chocolate e outros doces.
+### 🍊 Laranja Ácida — 🟡
+
+**Função:** atacante à distância / anti-escudo.
+
+Implementado:
+
+- projétil ácido;
+- dano normal;
+- derretimento adicional de escudo de Chocolate;
+- habilidade de linha que remove escudos.
+
+Planejado:
+
+- DoT ácido completo por 3 segundos;
+- debuff reutilizável de armadura.
+
+### 🥦 Couve-Flor Mística — ✅/🟡
+
+- projétil perfurante;
+- atravessa múltiplos inimigos;
+- habilidade de onda mística.
+
+### 🍓 Morango Atrator — ✅
+
+- atrai inimigos próximos;
+- possui lifecycle de morte autoritativo;
+- explode uma única vez ao morrer;
+- explosão causa dano em área, inclusive se a morte vier de projétil inimigo.
+
+### 🥦 Brócolis Defensor — 🟡
+
+- não é focado em dano;
+- habilidade protege as oito casas vizinhas;
+- cura aliados próximos;
+- concede redução temporária de dano por 8 segundos.
+
+Planejado:
+
+- escudo visual individual;
+- barra de shield separada de HP.
+
+### 🍍 Abacaxi Mina de Espinhos — 🟡
+
+- mina de contato;
+- detona ao ser alcançada;
+- dano em área curta.
+
+Planejado:
+
+- tempo visual de armamento;
+- espinhos perfurantes persistentes por alguns segundos.
+
+### 🍎 Maçã Esmagadora — ✅/🟡
+
+- fica na grade aguardando alvo;
+- consome a si mesma ao esmagar inimigo dentro da zona de gatilho;
+- dano de impacto elevado.
+
+Planejado:
+
+- animação vertical de queda;
+- regra explícita de inimigos grandes/chefes.
 
 ---
 
-# 🍬 Sistema Level 2 de inimigos
+## 3. 🎒 Itens Especiais & Consumíveis
 
-O Gummy Bear Lvl 2 abre uma possibilidade melhor do que simplesmente adicionar inimigos aleatórios.
+### Saco de Adubo — ✅/🟡
 
-Podemos criar evolução das famílias:
+Implementado:
 
-```text
-GUMMY BEAR
-   ↓
-GUMMY BEAR LVL 2
-Brigadeiro Cannon
-   ↓
-GUMMY BEAR ELITE
-Brigadeiro Gatling
-```
+- custo em energia durante a partida;
+- restaura a planta para 100% de HP;
+- eleva temporariamente o poder ao nível máximo;
+- duração de 8 segundos;
+- partículas e feedback visual.
 
-E fazer o mesmo:
+Planejado:
 
-```text
-Cupcake
- └─ Cupcake Armored
-
-Chocolate
- └─ Chocolate Knight
-
-Soda
- └─ Soda Turbo
-
-Marshmallow
- └─ Marshmallow Ninja
-
-Lollipop
- └─ Lollipop Sorcerer
-```
-
-Isso ajuda muito a campanha de **26+ ondas**, porque aumenta variedade sem exigir dezenas de personagens completamente independentes.
+- inventário persistente;
+- quantidade por partida;
+- aplicação por drag-and-drop em desktop e gesto equivalente no mobile.
 
 ---
 
-# Nova organização das ondas
+## 4. 🪙 Economia & Loja de Sementes
 
-Eu aproveitaria isso para introduzir inimigos evoluídos progressivamente:
+### 🌻 Sementes de Girassol — ✅/🟡
+
+- moeda persistente em `localStorage`;
+- recebida ao completar ondas;
+- chefes concedem recompensa maior;
+- usada para desbloquear plantas.
+
+### 🛒 Loja de Sementes — ⏳
+
+Planejado:
+
+- skins e variações visuais;
+- power-ups iniciais;
+- Adubo extra;
+- desbloqueios antecipados;
+- cosméticos sem alterar balanceamento competitivo.
+
+---
+
+## 5. 🍬 Candies Level 2 / Elite
+
+A evolução dos doces passa a ser uma família formal de inimigos. Variantes Level 2 devem mudar comportamento, não apenas aumentar HP.
+
+### 🧸💣 Ursinho de Goma Artilheiro — ✅
+
+**Codename:** `gummy_brigadeiro`
+
+**Função:** ranged / support / control.
+
+Implementado:
+
+- estreia garantida na onda 6;
+- entra no pool procedural a partir da onda 6;
+- usa a aparência-base do Gummy com diferenciação visual;
+- alcance de artilharia de 300 px;
+- para quando uma planta da mesma linha entra no alcance;
+- dispara projétil de brigadeiro;
+- dano direto;
+- efeito grudento por 5 segundos;
+- redução de 30% da velocidade de ataque;
+- volta a avançar quando não há alvo no alcance;
+- recompensa superior ao Gummy básico.
+
+Balanceamento inicial:
+
+- HP base: 320
+- velocidade base: 15
+- dano: 25
+- recarga: 3,5 s
+- recompensa: 60 Energia Solar
+
+### Futuras famílias Level 2 — ⏳
+
+- Cupcake Armored;
+- Chocolate Knight;
+- Soda Turbo;
+- Marshmallow Ninja;
+- Lollipop Sorcerer;
+- Gummy Elite / Brigadeiro Gatling.
+
+---
+
+## 6. 🌊 Progressão de ameaça sugerida
 
 ```text
 Ondas 1–4
-Doces básicos
+  Doces básicos
 
 Onda 5
-Boss 1
+  Boss 1
 
 Ondas 6–9
-Doces básicos + primeira variante Level 2
-🧸💣 Gummy Brigadeiro Cannon
+  Doces básicos + Level 2
+  Primeira aparição: Gummy Brigadeiro Cannon
 
 Onda 10
-Boss 2
+  Boss 2 + slot adicional
 
 Ondas 11–14
-Mais Level 2
+  Mais variantes Level 2
 
 Onda 15
-Boss 3
+  Boss 3
 
 Ondas 16–19
-Elites + combinações de habilidades
+  Combinações de habilidades
 
 Onda 20
-Boss 4
+  Boss 4 + slot adicional
 
 Ondas 21–25
-Exército completo
+  Exército completo / elites
 
 Onda 26
-👑 FINAL
-5 BOSSES + elites
+  Grande Finale: cinco chefes nas cinco linhas
 ```
-
-Isso dá uma curva de aprendizado melhor.
 
 ---
 
-## Ordem que eu usaria agora
+## 7. 🧱 Roadmap técnico antes de expandir conteúdo
 
-Eu **não implementaria o Gummy novo imediatamente antes de corrigirmos o core**.
-
-A sequência fica:
-
-```text
-1. CORE STABLE
-   ↓
-2. DECK AUTORITATIVO
-   ↓
-3. DEFENDER LIFECYCLE
-   ↓
-4. STATUS EFFECT SYSTEM
-   ↓
-5. BANANA BOXEADORA COMPLETA
-   ↓
-6. GUMMY BEAR LVL 2
-   ↓
-7. OUTROS CANDIES LVL 2
-   ↓
-8. ECONOMIA / LOJA
-   ↓
-9. NOVAS ONDAS
-   ↓
-10. BALANCEAMENTO
-   ↓
-11. CERTIFICAÇÃO
-```
-
-Assim, **Banana Boxeadora passa de feature existente para feature a finalizar**, enquanto o **Gummy Bear Level 2 com Canhão de Brigadeiro entra oficialmente como primeiro inimigo da futura camada `Candy Level 2 / Elite`**. Isso encaixa bem no jogo sem transformar cada nova ideia em código especial isolado.
+1. ✅ Deck autoritativo na bandeja e no posicionamento.
+2. ✅ Lifecycle de morte de defensores centralizado.
+3. ✅ Morango `onDeath` idempotente.
+4. ✅ Banana combo/knockback.
+5. ✅ Primeiro Candy Level 2: Gummy Brigadeiro Cannon.
+6. ✅ Gate de sintaxe + smoke test do Game Core no GitHub Actions.
+7. ⏳ Persistência do deck escolhido.
+8. ⏳ Status Effect System formal (`Sticky`, `Acid`, `Burn`, `Shield`, `Stun`).
+9. ⏳ Playwright para boot, deck, posicionamento, combate, pausa e progressão de onda.
+10. ⏳ Loja de Sementes e inventário de consumíveis.
+11. ⏳ Novos Candies Level 2.
+12. ⏳ Balanceamento e certificação completa da campanha.
