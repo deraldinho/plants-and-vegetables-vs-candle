@@ -1,6 +1,17 @@
 "use strict";
 
 (() => {
+  // Reserve the Phaser board geometry before the canvas exists. Without a
+  // stable containing block the absolute intro overlay can overflow a
+  // collapsed board and neighboring sections may intercept its controls.
+  const layoutHardening = document.createElement("style");
+  layoutHardening.textContent = `
+    #gameContainer.board-wrap { aspect-ratio: 1000 / 620; }
+    #gameOverlay.overlay { pointer-events: none; }
+    #gameOverlay.overlay.visible { pointer-events: auto; }
+  `;
+  document.head.appendChild(layoutHardening);
+
   const ACTIVE_DECK_STORAGE_KEY = "healthy-family-home.active-deck";
 
   function readPersistedDeck() {
