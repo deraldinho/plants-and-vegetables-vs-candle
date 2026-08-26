@@ -17,14 +17,15 @@ class EffectsSystem {
   burst(x, y, colorHex, count) {
     const color = Phaser.Display.Color.HexStringToColor(colorHex).color;
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = this.random(35, 160);
+      const angle = this.scene.randomFx(0, Math.PI * 2);
+      const speed = this.scene.randomFx(35, 160);
       const gfx = this.scene.add.graphics();
       gfx.fillStyle(color, 1);
-      gfx.fillCircle(0, 0, this.random(3, 7));
+      gfx.fillCircle(0, 0, this.scene.randomFx(3, 7));
+      const life = this.scene.randomFx(0.35, 0.75);
       this.scene.gameState.particles.push({
         x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-        gravityY: 120, maxLife: this.random(0.35, 0.75), life: this.random(0.35, 0.75), gfx
+        gravityY: 120, maxLife: life, life, gfx
       });
     }
   }
@@ -32,19 +33,18 @@ class EffectsSystem {
   sparkleBurst(x, y, colorHex = "#ffd43b", count = 14) {
     const color = Phaser.Display.Color.HexStringToColor(colorHex).color;
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = this.random(50, 180);
+      const angle = this.scene.randomFx(0, Math.PI * 2);
+      const speed = this.scene.randomFx(50, 180);
       const gfx = this.scene.add.graphics();
       gfx.fillStyle(color, 1);
-      
-      // Draw 4-point star shape
-      const size = this.random(4, 9);
+      const size = this.scene.randomFx(4, 9);
       gfx.fillRect(-size / 2, -1, size, 2);
       gfx.fillRect(-1, -size / 2, 2, size);
+      const life = this.scene.randomFx(0.4, 0.8);
 
       this.scene.gameState.particles.push({
         x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-        gravityY: 40, spin: this.random(-10, 10), maxLife: this.random(0.4, 0.8), life: this.random(0.4, 0.8), gfx
+        gravityY: 40, spin: this.scene.randomFx(-10, 10), maxLife: life, life, gfx
       });
     }
   }
@@ -52,15 +52,16 @@ class EffectsSystem {
   spawnSugarDust(x, y, colorHex = "#ff9f1c", count = 16) {
     const color = Phaser.Display.Color.HexStringToColor(colorHex).color;
     for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = this.random(20, 110);
+      const angle = this.scene.randomFx(0, Math.PI * 2);
+      const speed = this.scene.randomFx(20, 110);
       const gfx = this.scene.add.graphics();
       gfx.fillStyle(color, 0.85);
-      gfx.fillRect(-2, -2, this.random(3, 6), this.random(3, 6));
+      gfx.fillRect(-2, -2, this.scene.randomFx(3, 6), this.scene.randomFx(3, 6));
+      const life = this.scene.randomFx(0.4, 0.85);
 
       this.scene.gameState.particles.push({
         x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 40,
-        gravityY: 220, maxLife: this.random(0.4, 0.85), life: this.random(0.4, 0.85), gfx
+        gravityY: 220, maxLife: life, life, gfx
       });
     }
   }
@@ -82,7 +83,7 @@ class EffectsSystem {
       color: color,
       stroke: "#10251c",
       strokeThickness: 4
-    }).setOrigin(0.5).setScale(0.2); // Start small for pop animation
+    }).setOrigin(0.5).setScale(0.2);
 
     this.scene.gameState.floaters.push({
       x, y, startY: y, targetY: y - 42, text, color,
@@ -124,11 +125,9 @@ class EffectsSystem {
       f.elapsed += dt;
       f.life -= dt;
       if (f.textObj) {
-        // Pop scaling easing
         const popProgress = Math.min(1, f.elapsed / 0.15);
         const currentScale = f.targetScale * (0.2 + popProgress * 0.9 - Math.sin(popProgress * Math.PI) * 0.1);
         f.y = f.startY - (f.startY - f.targetY) * Math.min(1, f.elapsed / 0.9);
-        
         f.textObj.setPosition(f.x, f.y);
         f.textObj.setScale(currentScale);
         f.textObj.setAlpha(Math.min(1, f.life * 2.5));
@@ -139,7 +138,7 @@ class EffectsSystem {
   }
 
   spawnSun() {
-    const roll = Math.random();
+    const roll = this.scene.random(0, 1);
     let type = "normal";
     let icon = "☀️";
     let value = 25;
@@ -158,13 +157,13 @@ class EffectsSystem {
     }
 
     const sunObj = {
-      x: this.random(this.scene.GRID_X + 30, this.scene.GRID_X + this.scene.COLS * this.scene.CELL_W - 30),
+      x: this.scene.random(this.scene.GRID_X + 30, this.scene.GRID_X + this.scene.COLS * this.scene.CELL_W - 30),
       y: -25,
-      targetY: this.random(this.scene.GRID_Y + 10, this.scene.GRID_Y + this.scene.ROWS * this.scene.CELL_H - 20),
+      targetY: this.scene.random(this.scene.GRID_Y + 10, this.scene.GRID_Y + this.scene.ROWS * this.scene.CELL_H - 20),
       life: 10,
-      value: value,
-      type: type,
-      color: color,
+      value,
+      type,
+      color,
       pulse: 0
     };
     sunObj.textObj = this.scene.add.text(sunObj.x, sunObj.y, icon, { fontSize: type === "golden" ? "42px" : "36px" }).setOrigin(0.5);
@@ -180,15 +179,9 @@ class EffectsSystem {
         s.textObj.setPosition(s.x, s.y);
         const scale = (s.type === "golden" ? 1.15 : 1) + Math.sin(s.pulse) * 0.08;
         s.textObj.setScale(scale);
-        if (s.life <= 0) {
-          s.textObj.destroy();
-        }
+        if (s.life <= 0) s.textObj.destroy();
       }
     }
     this.scene.gameState.suns = this.scene.gameState.suns.filter(s => s.life > 0);
-  }
-
-  random(min, max) {
-    return min + Math.random() * (max - min);
   }
 }
