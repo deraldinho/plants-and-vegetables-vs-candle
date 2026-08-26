@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
   bestEndlessWave: "healthy-family-home.best-endless-wave",
   sunflowerSeeds: "healthy-family-home.sunflower-seeds",
   unlockedCards: "healthy-family-home.unlocked-cards",
-  deckSlots: "healthy-family-home.deck-slots"
+  deckSlots: "healthy-family-home.deck-slots",
+  activeDeck: "healthy-family-home.active-deck"
 };
 
 const DEFENDERS = {
@@ -22,7 +23,7 @@ const DEFENDERS = {
   tomato: { name: "Tomate Bomba", icon: "🍅", cost: 150, hp: 150, damage: 50, cooldown: 2.3, color: "#e93835", projectile: "💥", area: true, seedPrice: 120, ability: { name: "Superexplosão", cooldown: 24, description: "120 de dano em uma grande área" } },
   watermelon: { name: "Melancia Devoradora", icon: "🍉", cost: 175, hp: 220, damage: 0, cooldown: 15, color: "#ff3b5c", projectile: "", seedPrice: 150, ability: { name: "Super Digestão", cooldown: 18, description: "conclui a digestão e cura 80 HP" } },
   banana: { name: "Banana Boxeadora", icon: "🍌", cost: 75, hp: 160, damage: 28, cooldown: 0.45, color: "#ffe135", melee: true, projectile: "", seedPrice: 150, ability: { name: "Combo de Socos", cooldown: 14, description: "socos frenéticos por 6 segundos; o 4º golpe empurra doces comuns" } },
-  orange: { name: "Laranja Ácida", icon: "🍊", cost: 100, hp: 110, damage: 18, cooldown: 1.1, color: "#ffa500", acid: true, projectile: "💧", seedPrice: 180, ability: { name: "Chuva Ácida", cooldown: 16, description: "derrete escudos e reduz a armadura dos doces da linha" } },
+  orange: { name: "Laranja Ácida", icon: "🍊", cost: 100, hp: 110, damage: 18, cooldown: 1.1, color: "#ffa500", acid: true, projectile: "💧", seedPrice: 180, ability: { name: "Chuva Ácida", cooldown: 16, description: "derrete escudos e aplica ácido contínuo na linha" } },
   strawberry: { name: "Morango Atrator", icon: "🍓", cost: 60, hp: 200, damage: 150, cooldown: 99, color: "#ff2a4b", taunt: true, explodeOnDeath: true, projectile: "", seedPrice: 200, ability: { name: "Aroma Irresistível", cooldown: 15, description: "atrai todos os doces para sua posição" } },
   apple: { name: "Maçã Esmagadora", icon: "🍎", cost: 90, hp: 120, damage: 220, cooldown: 99, color: "#e3242b", smash: true, projectile: "", seedPrice: 220, ability: { name: "Super Impacto", cooldown: 16, description: "esmaga com 300 de dano em área" } },
   pineapple: { name: "Abacaxi Mina", icon: "🍍", cost: 40, hp: 90, damage: 140, cooldown: 99, color: "#e4b419", spikeMine: true, projectile: "", seedPrice: 250, ability: { name: "Espinhos Perfurantes", cooldown: 12, description: "espalha espinhos pela grade" } },
@@ -53,7 +54,7 @@ const KNOCKBACK_RESISTANCE = {
   chocolate: 0.3,
   cupcake: 0.3,
   gum: 0.8,
-  gummy_cannon: 0.7,
+  gummy_brigadeiro: 0.7,
   candle: 0,
   gum_boss: 0,
   lollipop_boss: 0,
@@ -67,36 +68,6 @@ const MODES = {
   hard: { label: "Modo Desafio", startSun: 125, houseHp: 850, enemyHp: 1.28, enemySpeed: 1.12, enemyDamage: 1.22, scoreMultiplier: 1.35, preparationBonus: 60, levelHpScaling: 0.20, levelSpeedScaling: 0.025, levelRewardScaling: 0.16 },
   endless: { label: "Modo Infinito", startSun: 175, houseHp: 1000, enemyHp: 1, enemySpeed: 1, enemyDamage: 1, scoreMultiplier: 1.1, preparationBonus: 65, levelHpScaling: 0.16, levelSpeedScaling: 0.020, levelRewardScaling: 0.14 }
 };
-
-function isBossWaveNumber(waveNumber, mode = "normal") {
-  const isEndlessFinale = mode === "endless" && waveNumber > 0 && waveNumber % CAMPAIGN_MAX_WAVES === 0;
-  const isCampaignFinale = mode !== "endless" && waveNumber === CAMPAIGN_MAX_WAVES;
-  return waveNumber % 5 === 0 || isEndlessFinale || isCampaignFinale;
-}
-
-function getThreatLevelInfo(waveNumber, _legacyBossFlag = false, mode = "normal") {
-  const isFinale = (mode === "endless" && waveNumber > 0 && waveNumber % CAMPAIGN_MAX_WAVES === 0) || (mode !== "endless" && waveNumber === CAMPAIGN_MAX_WAVES);
-  const isBossWave = isBossWaveNumber(waveNumber, mode);
-  if (isFinale) {
-    return { name: "👑 BAPHO SUPREMO: 5 CHEFES SIMULTÂNEOS", color: "#ff1744", icon: "👑" };
-  }
-  if (isBossWave) {
-    return { name: "👑 AMEAÇA DE CHEFE", color: "#ff1744", icon: "👑" };
-  }
-  if (waveNumber <= 5) {
-    return { name: "🌱 AMEAÇA INICIAL", color: "#4caf50", icon: "🌱" };
-  }
-  if (waveNumber <= 10) {
-    return { name: "⚡ AMEAÇA MODERADA", color: "#ffb703", icon: "⚡" };
-  }
-  if (waveNumber <= 15) {
-    return { name: "🔥 AMEAÇA INTENSA", color: "#ff7043", icon: "🔥" };
-  }
-  if (waveNumber <= 20) {
-    return { name: "☠️ AMEAÇA EXTREMA", color: "#d50000", icon: "☠️" };
-  }
-  return { name: "🌋 AMEAÇA APOCALÍPTICA", color: "#9c27b0", icon: "🌋" };
-}
 
 const BIOMES = [
   { name: "Jardim Saudável", icon: "🌱", skyTop: 0x95dff5, skyBottom: 0x4c9d45, gridColor1: 0x65b74a, gridColor2: 0x7cc952, bushColor: 0x4a8c3e },
@@ -139,7 +110,7 @@ function readUnlockedCards() {
 }
 
 function saveUnlockedCards(cardsArray) {
-  writeStorage(STORAGE_KEYS.unlockedCards, JSON.stringify(cardsArray));
+  writeStorage(STORAGE_KEYS.unlockedCards, JSON.stringify([...new Set(cardsArray.filter(key => DEFENDERS[key]))]));
 }
 
 function readDeckSlots() {
@@ -151,5 +122,5 @@ function readDeckSlots() {
 }
 
 function saveDeckSlots(slotsCount) {
-  writeStorage(STORAGE_KEYS.deckSlots, slotsCount);
+  writeStorage(STORAGE_KEYS.deckSlots, Math.min(8, Math.max(5, Number(slotsCount) || 5)));
 }
