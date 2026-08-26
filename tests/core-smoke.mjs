@@ -34,7 +34,7 @@ assert.ok(ENEMIES.gummy_brigadeiro.slowMultiplier < 1, "brigadeiro must slow def
 assert.equal(isBossWaveNumber(15, "normal"), true, "wave 15 is a boss wave");
 assert.equal(isBossWaveNumber(16, "normal"), false, "wave 16 must not be a boss wave");
 assert.equal(isBossWaveNumber(26, "normal"), true, "wave 26 is the campaign finale");
-assert.equal(getThreatLevelInfo(16, true, "normal").icon, "🔥", "legacy bad boss flag must not reclassify wave 16");
+assert.equal(getThreatLevelInfo(16, true, "normal").icon, "☠️", "legacy bad boss flag must not reclassify wave 16");
 
 const wave6 = generateProceduralWave(6, 582914, "normal");
 assert.ok(wave6.some(item => item.type === "gummy_brigadeiro"), "wave 6 must introduce the brigadeiro gummy");
