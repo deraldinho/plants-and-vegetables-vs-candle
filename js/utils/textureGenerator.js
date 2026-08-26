@@ -26,6 +26,7 @@ class TextureGenerator {
 
     // Enemies
     this.createGummyTexture(scene);
+    this.createGummyCannonTexture(scene);
     this.createLollipopTexture(scene);
     this.createCupcakeTexture(scene);
     this.createMarshmallowTexture(scene);
@@ -304,6 +305,35 @@ class TextureGenerator {
     g.fillCircle(32, 33, 2);
 
     g.generateTexture("tex_gummy", 64, 64);
+    g.destroy();
+  }
+
+  static createGummyCannonTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Yellow/Amber Gummy Body (Lvl 2 Variant)
+    g.fillStyle(0xffb703, 0.95);
+    g.fillCircle(20, 16, 8); // Left Ear
+    g.fillCircle(44, 16, 8); // Right Ear
+    g.fillRoundedRect(16, 20, 32, 36, 12); // Body
+
+    // Muzzle & Angry Eyes
+    g.fillStyle(0xf4a261, 0.9);
+    g.fillCircle(32, 34, 7);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(26, 28, 3);
+    g.fillCircle(38, 28, 3);
+    g.fillStyle(0xff0000, 1);
+    g.fillCircle(25, 27, 1);
+    g.fillCircle(37, 27, 1);
+
+    // Brigadeiro Cannon Barrel on Arm
+    g.fillStyle(0x3e2723, 1);
+    g.fillRoundedRect(4, 28, 20, 12, 4); // Cannon tube
+    g.fillStyle(0x5c2c16, 1);
+    g.fillCircle(4, 34, 6); // Cannon opening
+
+    g.generateTexture("tex_gummy_cannon", 64, 64);
     g.destroy();
   }
 

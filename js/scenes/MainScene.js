@@ -367,9 +367,14 @@ class MainScene extends Phaser.Scene {
     this.effectsSystem.spawnFloater(500, 180, `🎉 ONDA COMPLETA! +${bonus}☀️ +${seedGain}🌻`, "#ffe27a", 1.4);
     this.soundManager.beep(660, 0.15, "triangle", 0.05);
 
-    // Deck slot progression unlocks at wave 10 and wave 20
+    // Deck slot progression unlocks at wave 10, 20, 30
     const currentSlots = readDeckSlots();
-    if (this.gameState.wave >= 20 && currentSlots < 7) {
+    if (this.gameState.wave >= 30 && currentSlots < 8) {
+      saveDeckSlots(8);
+      this.effectsSystem.spawnFloater(500, 230, "🎉 8º SLOT DE BARALHO DESBLOQUEADO! 🃏", "#69c743", 1.5);
+      this.soundManager.beep(880, 0.3, "sine", 0.08);
+      if (window.uiManager) window.uiManager.renderDeckBuilder();
+    } else if (this.gameState.wave >= 20 && currentSlots < 7) {
       saveDeckSlots(7);
       this.effectsSystem.spawnFloater(500, 230, "🎉 7º SLOT DE BARALHO DESBLOQUEADO! 🃏", "#69c743", 1.5);
       this.soundManager.beep(880, 0.3, "sine", 0.08);

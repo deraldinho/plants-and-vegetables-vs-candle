@@ -27,6 +27,7 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
   if (waveNumber >= 2) enemyPool.push("soda");
   if (waveNumber >= 3) enemyPool.push("cupcake", "gum");
   if (waveNumber >= 4) enemyPool.push("chocolate");
+  if (waveNumber >= 6) enemyPool.push("gummy_cannon");
 
   const count = isFinaleWave ? 45 : Math.min(6 + Math.floor(waveNumber * 2.2), 44);
   const spacing = isFinaleWave ? 0.4 : Math.max(0.35, 1.4 - waveNumber * 0.03);

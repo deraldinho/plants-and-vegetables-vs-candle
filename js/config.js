@@ -21,7 +21,7 @@ const DEFENDERS = {
   pepper: { name: "Pimenta Flamejante", icon: "🌶️", cost: 125, hp: 120, damage: 35, cooldown: 1.35, color: "#f04b36", projectile: "🔥", burn: true, seedPrice: 100, ability: { name: "Trilha de Fogo", cooldown: 22, description: "incendeia todos os doces da linha" } },
   tomato: { name: "Tomate Bomba", icon: "🍅", cost: 150, hp: 150, damage: 50, cooldown: 2.3, color: "#e93835", projectile: "💥", area: true, seedPrice: 120, ability: { name: "Superexplosão", cooldown: 24, description: "120 de dano em uma grande área" } },
   watermelon: { name: "Melancia Devoradora", icon: "🍉", cost: 175, hp: 220, damage: 0, cooldown: 15, color: "#ff3b5c", projectile: "", seedPrice: 150, ability: { name: "Super Digestão", cooldown: 18, description: "conclui a digestão e cura 80 HP" } },
-  banana: { name: "Banana Boxeadora", icon: "🍌", cost: 75, hp: 160, damage: 28, cooldown: 0.45, color: "#ffe135", melee: true, projectile: "", seedPrice: 150, ability: { name: "Combo de Socos", cooldown: 14, description: "socos super velozes por 5 segundos" } },
+  banana: { name: "Banana Boxeadora", icon: "🍌", cost: 75, hp: 160, damage: 28, cooldown: 0.45, color: "#ffe135", melee: true, maxCombo: 4, projectile: "", seedPrice: 150, ability: { name: "Combo de Socos", cooldown: 14, description: "socos super velozes por 5 segundos" } },
   orange: { name: "Laranja Ácida", icon: "🍊", cost: 100, hp: 110, damage: 18, cooldown: 1.1, color: "#ffa500", acid: true, projectile: "💧", seedPrice: 180, ability: { name: "Chuva Ácida", cooldown: 16, description: "derrete escudos e reduz a armadura dos doces da linha" } },
   strawberry: { name: "Morango Atrator", icon: "🍓", cost: 60, hp: 200, damage: 150, cooldown: 99, color: "#ff2a4b", taunt: true, explodeOnDeath: true, projectile: "", seedPrice: 200, ability: { name: "Aroma Irresistível", cooldown: 15, description: "atrai todos os doces para sua posição" } },
   apple: { name: "Maçã Esmagadora", icon: "🍎", cost: 90, hp: 120, damage: 220, cooldown: 99, color: "#e3242b", smash: true, projectile: "", seedPrice: 220, ability: { name: "Super Impacto", cooldown: 16, description: "esmaga com 300 de dano em área" } },
@@ -31,6 +31,7 @@ const DEFENDERS = {
 
 const ENEMIES = {
   gummy: { name: "Ursinho de Goma", icon: "🧸", hp: 130, speed: 24, damage: 18, attackRate: 1, reward: 25, scale: 1, description: "Inimigo básico e equilibrado." },
+  gummy_cannon: { name: "Gummy Bear Artilheiro", icon: "🧸💣", hp: 320, speed: 15, damage: 25, attackRate: 1, range: 300, cooldown: 3.5, slowAttack: 0.3, slowDuration: 5, reward: 60, scale: 1.1, ranged: true, preview: "canhão de brigadeiro", description: "Artilharia pesada de longo alcance com canhão de brigadeiro desacelerante." },
   lollipop: { name: "Pirulito Giratório", icon: "🍭", hp: 210, speed: 18, damage: 24, attackRate: 1.1, reward: 35, scale: 1.05, description: "Resistente e constante." },
   cupcake: { name: "Cupcake Tanque", icon: "🧁", hp: 430, speed: 10, damage: 35, attackRate: 1.2, reward: 55, scale: 1.15, description: "Muita vida, mas anda devagar." },
   marshmallow: { name: "Marshmallow Veloz", icon: "⬜", hp: 100, speed: 45, damage: 14, attackRate: .75, reward: 30, scale: .9, description: "Pouca vida e velocidade extrema." },
@@ -42,6 +43,22 @@ const ENEMIES = {
   lollipop_boss: { name: "Pirulito Giratório Supremo (Chefe 3)", icon: "🍭", hp: 5800, speed: 9, damage: 80, attackRate: .85, reward: 1200, scale: 1.7, boss: true, description: "Chefe 3 da Onda 15: Gira furiosamente e spamma tempestades de espinhos." },
   confeiteiro: { name: "O Confeiteiro Sombrio (Chefe Supremo)", icon: "👨‍🍳", hp: 8500, speed: 6, damage: 100, attackRate: .8, reward: 2000, scale: 1.85, boss: true, description: "O Chefão Supremo da Onda Final! Invoca doces ajudantes e dispara projéteis pesados." },
   cake_robot: { name: "Robô Bolo Mutante Gigante (Chefe Robótico)", icon: "🤖🎂", hp: 6500, speed: 5, damage: 90, attackRate: 1, reward: 1500, scale: 1.8, boss: true, description: "Uma criação cibernética de bolo mutante! Lança raios de laser de cobertura e paralisa vegetais." }
+};
+
+const KNOCKBACK_RESISTANCE = {
+  gummy: 1.0,
+  marshmallow: 1.0,
+  lollipop: 0.6,
+  soda: 0.6,
+  chocolate: 0.3,
+  cupcake: 0.3,
+  gum: 0.8,
+  gummy_cannon: 0.7,
+  candle: 0,
+  gum_boss: 0,
+  lollipop_boss: 0,
+  confeiteiro: 0,
+  cake_robot: 0
 };
 
 const MODES = {
@@ -120,7 +137,7 @@ function saveUnlockedCards(cardsArray) {
 function readDeckSlots() {
   try {
     const val = Number.parseInt(localStorage.getItem(STORAGE_KEYS.deckSlots), 10);
-    if (!Number.isNaN(val) && val >= 5) return Math.min(7, val);
+    if (!Number.isNaN(val) && val >= 5) return Math.min(8, val);
   } catch (_) {}
   return 5;
 }

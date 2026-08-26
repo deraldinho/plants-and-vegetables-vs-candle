@@ -246,6 +246,36 @@ class EnemySystem {
         enemy.burnTick = 0;
       }
 
+      if (enemy.type === "gummy_cannon") {
+        const targetDefender = this.scene.gameState.defenders.find(
+          d => d.row === enemy.row && d.hp > 0 && d.x < enemy.x && (enemy.x - d.x) <= (enemy.range || 300)
+        );
+        if (targetDefender) {
+          enemy.attackTimer = (enemy.attackTimer || 0) - dt;
+          if (enemy.attackTimer <= 0) {
+            enemy.attackTimer = enemy.cooldown || 3.5;
+            const ep = {
+              x: enemy.x - 20,
+              y: enemy.y,
+              row: enemy.row,
+              speed: 320,
+              damage: enemy.damage || 25,
+              slowAttack: enemy.slowAttack || 0.3,
+              slowDuration: enemy.slowDuration || 5,
+              color: "#5c2c16",
+              icon: "🍫💣",
+              removed: false
+            };
+            ep.textObj = this.scene.add.text(ep.x, ep.y, ep.icon, { fontSize: "24px" }).setOrigin(0.5);
+            this.scene.gameState.enemyProjectiles.push(ep);
+            this.scene.effectsSystem.burst(enemy.x - 15, enemy.y, "#5c2c16", 12);
+            this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 35, "BRIGADEIRO! 🍫💣", "#5c2c16", 1.15);
+            this.scene.soundManager.beep(150, 0.15, "sawtooth", 0.05);
+          }
+          continue;
+        }
+      }
+
       const blocker = this.scene.gameState.defenders.find(d => d.row === enemy.row && Math.abs(enemy.x - d.x) < 44 && d.hp > 0);
 
       if (blocker) {

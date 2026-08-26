@@ -83,11 +83,17 @@ class ProjectileSystem {
       const targetDef = this.scene.gameState.defenders.find(d => d.row === ep.row && Math.abs(d.x - ep.x) < 32 && d.hp > 0);
       if (targetDef) {
         targetDef.hp -= ep.damage;
-        this.scene.effectsSystem.burst(targetDef.x, targetDef.y, ep.color, 12);
-        this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 25, `-${ep.damage}🌵`, "#ff3b9a", 1.15);
+        if (ep.slowAttack) {
+          targetDef.slowUntil = this.scene.gameState.time + (ep.slowDuration || 5);
+          this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 42, "LENTIDÃO! 🍫💣", "#5c2c16", 1.15);
+        }
+        this.scene.effectsSystem.burst(targetDef.x, targetDef.y, ep.color || "#5c2c16", 12);
+        this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 25, `-${ep.damage}💔`, ep.color || "#ff3b9a", 1.15);
         this.scene.soundManager.beep(200, 0.05, "sawtooth", 0.03);
         if (targetDef.hp <= 0) {
           this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 35, "Derrotado! 💔", "#ef476f", 1.2);
+          if (targetDef.sprite) targetDef.sprite.destroy();
+          if (targetDef.shadowSprite) targetDef.shadowSprite.destroy();
           if (targetDef.textObj) targetDef.textObj.destroy();
           this.scene.effectsSystem.burst(targetDef.x, targetDef.y, "#ef476f", 18);
         }
@@ -95,8 +101,8 @@ class ProjectileSystem {
         if (ep.textObj) ep.textObj.destroy();
       } else if (ep.x < this.scene.HOUSE_X) {
         this.scene.gameState.houseHp -= 20;
-        this.scene.effectsSystem.burst(this.scene.HOUSE_X, ep.y, "#ff3b9a", 12);
-        this.scene.effectsSystem.spawnFloater(this.scene.HOUSE_X + 20, ep.y - 15, "-20 HP 🌵", "#ff3b9a", 1.1);
+        this.scene.effectsSystem.burst(this.scene.HOUSE_X, ep.y, ep.color || "#ff3b9a", 12);
+        this.scene.effectsSystem.spawnFloater(this.scene.HOUSE_X + 20, ep.y - 15, "-20 HP 💔", ep.color || "#ff3b9a", 1.1);
         ep.removed = true;
         if (ep.textObj) ep.textObj.destroy();
       }

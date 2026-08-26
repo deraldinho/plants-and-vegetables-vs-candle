@@ -253,12 +253,38 @@ class DefenderSystem {
           const enemyInRange = this.scene.gameState.enemies.find(e => e.row === defender.row && e.hp > 0 && !e.removed && Math.abs(e.x - (defender.x + 35)) < 55);
           if (enemyInRange) {
             defender.cooldownLeft = defender.cooldown;
-            const dmg = Math.round(defender.damage * (1 + activePower * 0.2));
+            defender.comboHit = (defender.comboHit || 0) + 1;
+            
+            let comboMult = 1.0;
+            if (defender.comboHit === 2) comboMult = 1.1;
+            else if (defender.comboHit === 3) comboMult = 1.2;
+            else if (defender.comboHit >= 4) comboMult = 1.3;
+
+            const dmg = Math.round(defender.damage * (1 + activePower * 0.2) * comboMult);
             this.scene.enemySystem.damageEnemy(enemyInRange, dmg, "#ffe135", defender.type);
             this.scene.effectsSystem.burst(enemyInRange.x, enemyInRange.y, "#ffe135", 10);
             this.scene.soundManager.beep(420, 0.06, "square", 0.04);
+
+            if (defender.comboHit >= (defender.maxCombo || 4)) {
+              defender.comboHit = 0;
+              const res = KNOCKBACK_RESISTANCE[enemyInRange.type] !== undefined ? KNOCKBACK_RESISTANCE[enemyInRange.type] : 0.6;
+              const frenzyActive = (this.scene.gameState.time < (defender.frenzyUntil || 0));
+              const knockDist = 48 * res * (frenzyActive ? 1.5 : 1.0);
+              if (knockDist > 0) {
+                enemyInRange.x = Math.min(this.scene.W + 30, enemyInRange.x + knockDist);
+                if (enemyInRange.sprite) enemyInRange.sprite.setX(enemyInRange.x);
+                if (enemyInRange.shadowSprite) enemyInRange.shadowSprite.setX(enemyInRange.x);
+                this.scene.effectsSystem.spawnFloater(enemyInRange.x, enemyInRange.y - 35, "KNOCKBACK! 🥊💥", "#ffe135", 1.25);
+                this.scene.effectsSystem.burst(enemyInRange.x, enemyInRange.y, "#ffe135", 16);
+              }
+            } else {
+              this.scene.effectsSystem.spawnFloater(enemyInRange.x, enemyInRange.y - 25, `${defender.comboHit}x COMBO! 🍌`, "#ffe135", 1.0);
+            }
+
             if (defender.sprite) defender.sprite.setAngle(15);
             setTimeout(() => { if (defender.sprite) defender.sprite.setAngle(0); }, 150);
+          } else {
+            defender.comboHit = 0;
           }
         }
         continue;
