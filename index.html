@@ -7,6 +7,7 @@
   <meta name="description" content="Plants and Vegetables vs Candle — um tower defense saudável.">
   <title>Plants and Vegetables vs Candle</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-core-integrity.css">
 </head>
 <body>
   <main class="game-shell">
@@ -55,7 +56,7 @@
       <button class="defender-card" data-defender="broccoli" type="button" title="Atalho: Tecla 5">
         <span class="card-icon">🥦</span><span class="card-copy"><strong>[5] Brócolis</strong><small>100 ☀️ · escudo</small></span>
       </button>
-      <button class="defender-card locked" data-defender="pepper" type="button" title="Atalho: Tecla 6" aria-label="Pimenta bloqueada; complete o hábito de comer vegetais">
+      <button class="defender-card locked" data-defender="pepper" type="button" title="Atalho: Tecla 6" aria-label="Pimenta bloqueada; desbloqueie com sementes de girassol">
         <span class="card-icon">🌶️</span><span class="card-copy"><strong>[6] Pimenta 🔒</strong><small>125 ☀️ · fogo</small></span>
       </button>
       <button class="defender-card" data-defender="tomato" type="button" title="Atalho: Tecla 7">
@@ -68,7 +69,7 @@
         <span class="card-icon">🪏</span><span class="card-copy"><strong>[P] Pá</strong><small>remover</small></span>
       </button>
       <button id="fertilizerButton" class="defender-card fertilizer" type="button" title="Atalho: Tecla A">
-        <span class="card-icon">🎒</span><span class="card-copy"><strong>[A] Adubo</strong><small>super nível 3</small></span>
+        <span class="card-icon">🎒</span><span class="card-copy"><strong>[A] Adubo</strong><small>nível 3 por 8s</small></span>
       </button>
     </section>
 
@@ -154,7 +155,7 @@
       <div class="habit-grid">
         <button class="habit" data-habit="water" type="button"><span>💧</span><strong>Beber água</strong><small>+50 Energia</small></button>
         <button class="habit" data-habit="fruit" type="button"><span>🍎</span><strong>Comer fruta</strong><small>+100 Energia</small></button>
-        <button class="habit" data-habit="vegetables" type="button"><span>🥗</span><strong>Comer vegetais</strong><small>Libera Pimenta</small></button>
+        <button class="habit" data-habit="vegetables" type="button"><span>🥗</span><strong>Comer vegetais</strong><small>Ataque +25% por 15s</small></button>
         <button class="habit" data-habit="exercise" type="button"><span>🏃</span><strong>30 min de exercício</strong><small>Ataque rápido por 20s</small></button>
         <button class="habit" data-habit="teeth" type="button"><span>🪥</span><strong>Escovar os dentes</strong><small>+300 HP da Casa</small></button>
         <button class="habit" data-habit="sleep" type="button"><span>😴</span><strong>Dormir no horário</strong><small>Ataque especial</small></button>
@@ -172,16 +173,19 @@
     </footer>
   </main>
   <script src="js/vendor/phaser.min.js"></script>
-  <script src="js/config.js?v=4"></script>
-  <script src="js/utils/waveGenerator.js?v=4"></script>
+  <script src="js/config.js?v=5"></script>
+  <script src="js/core/WaveRules.js?v=1"></script>
+  <script src="js/core/DeckService.js?v=1"></script>
+  <script src="js/utils/waveGenerator.js?v=5"></script>
   <script src="js/utils/textureGenerator.js?v=5"></script>
   <script src="js/utils/soundManager.js?v=4"></script>
-  <script src="js/entities/EffectsSystem.js?v=4"></script>
-  <script src="js/entities/ProjectileSystem.js?v=4"></script>
-  <script src="js/entities/DefenderSystem.js?v=4"></script>
-  <script src="js/entities/EnemySystem.js?v=4"></script>
-  <script src="js/ui/uiManager.js?v=4"></script>
-  <script src="js/scenes/MainScene.js?v=4"></script>
-  <script src="js/main.js?v=4"></script>
+  <script src="js/entities/EffectsSystem.js?v=5"></script>
+  <script src="js/core/StatusEffectSystem.js?v=1"></script>
+  <script src="js/entities/ProjectileSystem.js?v=5"></script>
+  <script src="js/entities/DefenderSystem.js?v=5"></script>
+  <script src="js/entities/EnemySystem.js?v=5"></script>
+  <script src="js/ui/uiManager.js?v=5"></script>
+  <script src="js/scenes/MainScene.js?v=5"></script>
+  <script src="js/main.js?v=5"></script>
 </body>
 </html>
