@@ -7,6 +7,7 @@ const waveSource = fs.readFileSync(new URL("../js/utils/waveGenerator.js", impor
 const defenderSource = fs.readFileSync(new URL("../js/entities/DefenderSystem.js", import.meta.url), "utf8");
 const enemySource = fs.readFileSync(new URL("../js/entities/EnemySystem.js", import.meta.url), "utf8");
 const projectileSource = fs.readFileSync(new URL("../js/entities/ProjectileSystem.js", import.meta.url), "utf8");
+const mainSource = fs.readFileSync(new URL("../js/main.js", import.meta.url), "utf8");
 
 const storage = new Map();
 const context = vm.createContext({
@@ -30,11 +31,13 @@ assert.match(DEFENDERS.banana.ability.description, /4º golpe/i, "banana ability
 assert.equal(ENEMIES.gummy_brigadeiro.ranged, true, "brigadeiro gummy must be ranged");
 assert.ok(ENEMIES.gummy_brigadeiro.range >= 250, "brigadeiro gummy needs meaningful artillery range");
 assert.ok(ENEMIES.gummy_brigadeiro.slowMultiplier < 1, "brigadeiro must slow defender attack speed");
+assert.equal(ENEMIES.gummy_cannon, undefined, "only one canonical brigadeiro gummy id may exist");
 
 assert.equal(isBossWaveNumber(15, "normal"), true, "wave 15 is a boss wave");
 assert.equal(isBossWaveNumber(16, "normal"), false, "wave 16 must not be a boss wave");
 assert.equal(isBossWaveNumber(26, "normal"), true, "wave 26 is the campaign finale");
 assert.equal(getThreatLevelInfo(16, true, "normal").icon, "☠️", "legacy bad boss flag must not reclassify wave 16");
+assert.equal(getThreatLevelInfo(52, false, "endless").icon, "👑", "wave 52 must be an endless finale");
 
 const wave6 = generateProceduralWave(6, 582914, "normal");
 assert.ok(wave6.some(item => item.type === "gummy_brigadeiro"), "wave 6 must introduce the brigadeiro gummy");
@@ -47,10 +50,15 @@ assert.deepEqual(new Set(finaleBosses.map(item => item.row)), new Set([0, 1, 2, 
 assert.match(defenderSource, /defeatDefender\(/, "defender lifecycle owner is required");
 assert.match(defenderSource, /deathEffectResolved/, "on-death effects must be idempotent");
 assert.match(defenderSource, /punchCombo/, "banana combo state must exist");
-assert.match(defenderSource, /isTypeAllowed/, "deck must be enforced by gameplay placement");
 assert.match(enemySource, /fireRangedProjectile/, "ranged enemy behavior must exist");
 assert.match(enemySource, /gummy_brigadeiro/, "brigadeiro gummy behavior must be wired");
 assert.match(projectileSource, /brigadeiro-projectile/, "brigadeiro projectile effect must be wired");
 assert.match(projectileSource, /damageDefender/, "enemy projectiles must use defender lifecycle ownership");
+
+assert.match(mainSource, /gameState\.activeDeck/, "deck admission must be owned by game state, not UI lookup");
+assert.doesNotMatch(mainSource, /isTypeAllowed[\s\S]{0,250}window\.uiManager/, "gameplay deck admission must not depend on window.uiManager");
+assert.match(mainSource, /__projectileShieldAudit/, "shield melt accounting ratchet is required");
+assert.match(mainSource, /minX[\s\S]{0,250}maxX/, "enemy projectile collision must use a swept segment");
+assert.match(mainSource, /ACTIVE_DECK_STORAGE_KEY/, "selected deck must persist between sessions");
 
 console.log("GAME_CORE_SMOKE_PASS");
