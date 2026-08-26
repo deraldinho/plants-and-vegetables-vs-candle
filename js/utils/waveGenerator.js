@@ -20,13 +20,14 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
   const add = (at, type, row) => list.push({ at, type, row, spawned: false });
 
   const isEndless = (mode === "endless");
-  const isFinaleWave = (waveNumber === 26 || (isEndless && waveNumber % 26 === 0));
-  const isBossWave = (waveNumber % 5 === 0) || isFinaleWave;
+  const isFinaleWave = (waveNumber === CAMPAIGN_MAX_WAVES || (isEndless && waveNumber % CAMPAIGN_MAX_WAVES === 0));
+  const isBossWave = isBossWaveNumber(waveNumber, mode);
 
   const enemyPool = ["gummy", "marshmallow", "lollipop"];
   if (waveNumber >= 2) enemyPool.push("soda");
   if (waveNumber >= 3) enemyPool.push("cupcake", "gum");
   if (waveNumber >= 4) enemyPool.push("chocolate");
+  if (waveNumber >= 6) enemyPool.push("gummy_brigadeiro");
 
   const count = isFinaleWave ? 45 : Math.min(6 + Math.floor(waveNumber * 2.2), 44);
   const spacing = isFinaleWave ? 0.4 : Math.max(0.35, 1.4 - waveNumber * 0.03);
@@ -39,12 +40,17 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
     add(at, type, row);
   }
 
+  // Garante que a primeira apresentação do Level 2 aconteça na onda 6,
+  // independentemente da rolagem procedural do pool.
+  if (waveNumber === 6) {
+    add(6.25, "gummy_brigadeiro", Math.floor(rand() * 5));
+  }
+
   if (isFinaleWave) {
-    // Onda 26 Grande Finale: Todos os 5 chefes entram simultaneamente nas 5 linhas!
     const bossTime = 15.0;
     add(bossTime, "candle", 0);
     add(bossTime, "gum_boss", 1);
-    add(bossTime, "confeiteiro", 2); // Líder Central
+    add(bossTime, "confeiteiro", 2);
     add(bossTime, "cake_robot", 3);
     add(bossTime, "lollipop_boss", 4);
   } else if (isBossWave) {
@@ -59,7 +65,7 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
       add(at, "lollipop_boss", bossRow);
     } else if (cycle === 20) {
       add(at, "cake_robot", bossRow);
-    } else if (cycle === 0 || cycle === 25) {
+    } else if (cycle === 0) {
       add(at, "confeiteiro", bossRow);
     }
   }
