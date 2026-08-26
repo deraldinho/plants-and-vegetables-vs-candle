@@ -16,6 +16,7 @@
     scene: [MainScene]
   };
 
-  // Initialize UI Manager
+  // Initialize UI Manager and make the selected deck authoritative immediately.
   window.uiManager = new UIManager();
+  window.uiManager.updateDefenderTrayUI();
 })();
