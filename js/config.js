@@ -45,6 +45,22 @@ const ENEMIES = {
   cake_robot: { name: "Robô Bolo Mutante Gigante (Chefe Robótico)", icon: "🤖🎂", hp: 6500, speed: 5, damage: 90, attackRate: 1, reward: 1500, scale: 1.8, boss: true, description: "Uma criação cibernética de bolo mutante! Lança raios de laser de cobertura e paralisa vegetais." }
 };
 
+const KNOCKBACK_RESISTANCE = {
+  gummy: 1.0,
+  marshmallow: 1.0,
+  lollipop: 0.6,
+  soda: 0.6,
+  chocolate: 0.3,
+  cupcake: 0.3,
+  gum: 0.8,
+  gummy_cannon: 0.7,
+  candle: 0,
+  gum_boss: 0,
+  lollipop_boss: 0,
+  confeiteiro: 0,
+  cake_robot: 0
+};
+
 const MODES = {
   easy: { label: "Modo Tranquilo", startSun: 225, houseHp: 1200, enemyHp: .78, enemySpeed: .9, enemyDamage: .78, scoreMultiplier: .8, preparationBonus: 90, levelHpScaling: 0.10, levelSpeedScaling: 0.012, levelRewardScaling: 0.08 },
   normal: { label: "Modo Normal", startSun: 150, houseHp: 1000, enemyHp: 1, enemySpeed: 1, enemyDamage: 1, scoreMultiplier: 1, preparationBonus: 75, levelHpScaling: 0.14, levelSpeedScaling: 0.018, levelRewardScaling: 0.12 },
@@ -129,7 +145,7 @@ function saveUnlockedCards(cardsArray) {
 function readDeckSlots() {
   try {
     const val = Number.parseInt(localStorage.getItem(STORAGE_KEYS.deckSlots), 10);
-    if (!Number.isNaN(val) && val >= 5) return Math.min(7, val);
+    if (!Number.isNaN(val) && val >= 5) return Math.min(8, val);
   } catch (_) {}
   return 5;
 }
