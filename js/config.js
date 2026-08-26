@@ -21,7 +21,7 @@ const DEFENDERS = {
   pepper: { name: "Pimenta Flamejante", icon: "🌶️", cost: 125, hp: 120, damage: 35, cooldown: 1.35, color: "#f04b36", projectile: "🔥", burn: true, seedPrice: 100, ability: { name: "Trilha de Fogo", cooldown: 22, description: "incendeia todos os doces da linha" } },
   tomato: { name: "Tomate Bomba", icon: "🍅", cost: 150, hp: 150, damage: 50, cooldown: 2.3, color: "#e93835", projectile: "💥", area: true, seedPrice: 120, ability: { name: "Superexplosão", cooldown: 24, description: "120 de dano em uma grande área" } },
   watermelon: { name: "Melancia Devoradora", icon: "🍉", cost: 175, hp: 220, damage: 0, cooldown: 15, color: "#ff3b5c", projectile: "", seedPrice: 150, ability: { name: "Super Digestão", cooldown: 18, description: "conclui a digestão e cura 80 HP" } },
-  banana: { name: "Banana Boxeadora", icon: "🍌", cost: 75, hp: 160, damage: 28, cooldown: 0.45, color: "#ffe135", melee: true, projectile: "", seedPrice: 150, ability: { name: "Combo de Socos", cooldown: 14, description: "socos super velozes por 5 segundos" } },
+  banana: { name: "Banana Boxeadora", icon: "🍌", cost: 75, hp: 160, damage: 28, cooldown: 0.45, color: "#ffe135", melee: true, projectile: "", seedPrice: 150, ability: { name: "Combo de Socos", cooldown: 14, description: "socos frenéticos por 6 segundos; o 4º golpe empurra doces comuns" } },
   orange: { name: "Laranja Ácida", icon: "🍊", cost: 100, hp: 110, damage: 18, cooldown: 1.1, color: "#ffa500", acid: true, projectile: "💧", seedPrice: 180, ability: { name: "Chuva Ácida", cooldown: 16, description: "derrete escudos e reduz a armadura dos doces da linha" } },
   strawberry: { name: "Morango Atrator", icon: "🍓", cost: 60, hp: 200, damage: 150, cooldown: 99, color: "#ff2a4b", taunt: true, explodeOnDeath: true, projectile: "", seedPrice: 200, ability: { name: "Aroma Irresistível", cooldown: 15, description: "atrai todos os doces para sua posição" } },
   apple: { name: "Maçã Esmagadora", icon: "🍎", cost: 90, hp: 120, damage: 220, cooldown: 99, color: "#e3242b", smash: true, projectile: "", seedPrice: 220, ability: { name: "Super Impacto", cooldown: 16, description: "esmaga com 300 de dano em área" } },
@@ -31,6 +31,7 @@ const DEFENDERS = {
 
 const ENEMIES = {
   gummy: { name: "Ursinho de Goma", icon: "🧸", hp: 130, speed: 24, damage: 18, attackRate: 1, reward: 25, scale: 1, description: "Inimigo básico e equilibrado." },
+  gummy_brigadeiro: { name: "Ursinho de Goma Artilheiro", icon: "🧸💣", hp: 320, speed: 15, damage: 25, attackRate: 3.5, reward: 60, scale: 1.08, ranged: true, range: 300, projectileSpeed: 300, projectileIcon: "●", projectileColor: "#6d3b1f", slowDuration: 5, slowMultiplier: .7, texture: "tex_gummy", tint: 0x7b3f00, preview: "canhão de brigadeiro", description: "Variante Level 2: para à distância e dispara brigadeiro grudento, reduzindo a velocidade de ataque das plantas." },
   lollipop: { name: "Pirulito Giratório", icon: "🍭", hp: 210, speed: 18, damage: 24, attackRate: 1.1, reward: 35, scale: 1.05, description: "Resistente e constante." },
   cupcake: { name: "Cupcake Tanque", icon: "🧁", hp: 430, speed: 10, damage: 35, attackRate: 1.2, reward: 55, scale: 1.15, description: "Muita vida, mas anda devagar." },
   marshmallow: { name: "Marshmallow Veloz", icon: "⬜", hp: 100, speed: 45, damage: 14, attackRate: .75, reward: 30, scale: .9, description: "Pouca vida e velocidade extrema." },
@@ -51,8 +52,16 @@ const MODES = {
   endless: { label: "Modo Infinito", startSun: 175, houseHp: 1000, enemyHp: 1, enemySpeed: 1, enemyDamage: 1, scoreMultiplier: 1.1, preparationBonus: 65, levelHpScaling: 0.16, levelSpeedScaling: 0.020, levelRewardScaling: 0.14 }
 };
 
-function getThreatLevelInfo(waveNumber, isBossWave) {
-  if (waveNumber === 26 || (waveNumber % 26 === 0 && waveNumber > 0)) {
+function isBossWaveNumber(waveNumber, mode = "normal") {
+  const isEndlessFinale = mode === "endless" && waveNumber > 0 && waveNumber % CAMPAIGN_MAX_WAVES === 0;
+  const isCampaignFinale = mode !== "endless" && waveNumber === CAMPAIGN_MAX_WAVES;
+  return waveNumber % 5 === 0 || isEndlessFinale || isCampaignFinale;
+}
+
+function getThreatLevelInfo(waveNumber, _legacyBossFlag = false, mode = "normal") {
+  const isFinale = (mode === "endless" && waveNumber > 0 && waveNumber % CAMPAIGN_MAX_WAVES === 0) || (mode !== "endless" && waveNumber === CAMPAIGN_MAX_WAVES);
+  const isBossWave = isBossWaveNumber(waveNumber, mode);
+  if (isFinale) {
     return { name: "👑 BAPHO SUPREMO: 5 CHEFES SIMULTÂNEOS", color: "#ff1744", icon: "👑" };
   }
   if (isBossWave) {
