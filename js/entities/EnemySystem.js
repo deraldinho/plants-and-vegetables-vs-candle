@@ -5,7 +5,7 @@ class EnemySystem {
     this.scene = scene;
   }
 
-  spawnEnemy(type, row) {
+  spawnEnemy(type, row, options = {}) {
     const base = ENEMIES[type];
     if (!base) return null;
 
@@ -33,11 +33,16 @@ class EnemySystem {
       speed: base.speed * speedScale,
       damage: Math.round(base.damage * damageScale),
       reward: rewardScaled,
+      rewardMultiplier: Number.isFinite(options.rewardMultiplier) ? Math.max(0, options.rewardMultiplier) : 1,
       attackTimer: base.ranged ? 0.7 : 0,
       hitFlash: 0,
-      burnUntil: 0,
-      burnTick: 0,
-      wobble: Math.random() * 6,
+      wobble: this.scene.random(0, 6),
+      statusEffects: new Map(),
+      summoned: !!options.summoned,
+      summonOwner: options.summonOwner || null,
+      summonReleased: false,
+      activeSummons: type === "confeiteiro" ? 0 : undefined,
+      summonBudget: type === "confeiteiro" ? 20 : undefined,
       removed: false
     };
 
@@ -46,6 +51,10 @@ class EnemySystem {
     if (base.tint && enemy.sprite) enemy.sprite.setTint(base.tint);
     enemy.textObj = enemy.sprite;
     this.scene.gameState.enemies.push(enemy);
+
+    if (enemy.summoned) {
+      this.scene.gameState.waveSummoned = (this.scene.gameState.waveSummoned || 0) + 1;
+    }
 
     if (type === "gummy_brigadeiro") {
       this.scene.effectsSystem.spawnFloater(720, y - 38, "🧸💣 GUMMY LV.2: CANHÃO DE BRIGADEIRO!", "#6d3b1f", 1.15);
@@ -65,7 +74,7 @@ class EnemySystem {
     } else if (type === "confeiteiro") {
       this.scene.effectsSystem.triggerShake(25, 750);
       this.scene.soundManager.beep(80, 0.7, "sawtooth");
-      this.scene.effectsSystem.spawnFloater(500, 150, "👨‍🍳 O CONFEITEIRO SOMBRIO CHEGOU! ONDA FINAL! 👨‍🍳", "#ff1744", 1.7);
+      this.scene.effectsSystem.spawnFloater(500, 150, "👨‍🍳 O CONFEITEIRO SOMBRIO CHEGOU! 👨‍🍳", "#ff1744", 1.7);
     } else if (type === "cake_robot") {
       this.scene.effectsSystem.triggerShake(22, 700);
       this.scene.soundManager.beep(75, 0.65, "sawtooth");
@@ -73,6 +82,12 @@ class EnemySystem {
     }
 
     return enemy;
+  }
+
+  releaseSummonSlot(enemy) {
+    if (!enemy?.summonOwner || enemy.summonReleased) return;
+    enemy.summonReleased = true;
+    enemy.summonOwner.activeSummons = Math.max(0, (enemy.summonOwner.activeSummons || 0) - 1);
   }
 
   fireRangedProjectile(enemy, target) {
@@ -103,9 +118,27 @@ class EnemySystem {
     return true;
   }
 
+  meltShield(enemy, amount, sourceType = null, color = "#ffa500") {
+    if (!enemy || enemy.removed || enemy.hp <= 0 || enemy.shield <= 0) return 0;
+    const melted = Math.min(enemy.shield, Math.max(0, Number(amount) || 0));
+    if (melted <= 0) return 0;
+
+    enemy.shield -= melted;
+    this.scene.gameState.stats.damageDealt += melted;
+    if (sourceType) {
+      this.scene.gameState.damageByType[sourceType] = (this.scene.gameState.damageByType[sourceType] || 0) + melted;
+    }
+    this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 44, `ÁCIDO -${Math.round(melted)} ESCUDO 🍊`, color, 1.0);
+    if (enemy.shield <= 0) {
+      this.scene.effectsSystem.burst(enemy.x, enemy.y, "#72d9ff", 18);
+      this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 58, "ESCUDO DERRETIDO!", color, 1.1);
+    }
+    return melted;
+  }
+
   damageEnemy(enemy, amount, color, sourceType = null) {
     if (!enemy || enemy.hp <= 0 || enemy.removed) return;
-    let remainingDamage = amount;
+    let remainingDamage = Math.max(0, Number(amount) || 0);
     let absorbedDamage = 0;
     if (enemy.shield > 0) {
       absorbedDamage = Math.min(enemy.shield, remainingDamage);
@@ -141,9 +174,11 @@ class EnemySystem {
       const mode = MODES[this.scene.gameState.mode];
       const endlessMultiplier = this.scene.gameState.mode === "endless" ? 1 + (this.scene.gameState.wave - 1) * 0.03 : 1;
       const comboMultiplier = 1 + (this.scene.gameState.combo - 1) * 0.25;
+      const effectiveReward = Math.round(enemy.reward * (enemy.rewardMultiplier ?? 1));
 
-      this.scene.gameState.score += Math.round(enemy.reward * 10 * mode.scoreMultiplier * endlessMultiplier * comboMultiplier);
-      this.scene.gameState.sun += enemy.reward;
+      this.scene.gameState.score += Math.round(effectiveReward * 10 * mode.scoreMultiplier * endlessMultiplier * comboMultiplier);
+      this.scene.gameState.sun += effectiveReward;
+      this.releaseSummonSlot(enemy);
       enemy.removed = true;
 
       if (enemy.sprite) enemy.sprite.destroy();
@@ -170,6 +205,9 @@ class EnemySystem {
     for (const enemy of this.scene.gameState.enemies) {
       if (enemy.hp <= 0 || enemy.removed) continue;
 
+      this.scene.statusEffectSystem.updateEnemy(enemy);
+      if (enemy.hp <= 0 || enemy.removed) continue;
+
       if (enemy.type === "gum_boss") {
         enemy.bossSkillTimer = (enemy.bossSkillTimer || 0) + dt;
         if (enemy.bossSkillTimer >= 4.5) {
@@ -179,8 +217,7 @@ class EnemySystem {
           this.scene.soundManager.beep(160, 0.25, "sawtooth", 0.06);
           for (const defender of this.scene.gameState.defenders) {
             if (!defender.removed && Math.abs(defender.x - enemy.x) < 280) {
-              defender.slowUntil = this.scene.gameState.time + 6;
-              defender.slowMultiplier = 0.6;
+              this.scene.statusEffectSystem.applySlow(defender, 6, 0.6, "gum_boss");
               this.scene.effectsSystem.burst(defender.x, defender.y, "#d175ff", 10);
               this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 25, "PRESO NO CHICLETE! 🟣", "#d175ff", 1.1);
             }
@@ -222,11 +259,23 @@ class EnemySystem {
           this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 55, "CHUVA DE AÇÚCAR & ROLO DE MASSA! 👨‍🍳🥖", "#ff1744", 1.5);
           this.scene.soundManager.beep(120, 0.35, "sawtooth", 0.08);
 
+          const maxAliveSummons = 6;
+          const remainingBudget = Math.max(0, enemy.summonBudget ?? 20);
+          const availableSlots = Math.max(0, maxAliveSummons - (enemy.activeSummons || 0));
+          const summonCount = Math.min(2, remainingBudget, availableSlots);
           const minionTypes = ["gummy", "marshmallow", "cupcake", "chocolate"];
-          for (let k = 0; k < 2; k++) {
-            const mType = minionTypes[Math.floor(Math.random() * minionTypes.length)];
-            const mRow = Math.floor(Math.random() * 5);
-            this.spawnEnemy(mType, mRow);
+          for (let k = 0; k < summonCount; k++) {
+            const mType = minionTypes[Math.floor(this.scene.random(0, minionTypes.length))];
+            const mRow = Math.floor(this.scene.random(0, 5));
+            const minion = this.spawnEnemy(mType, mRow, {
+              summoned: true,
+              summonOwner: enemy,
+              rewardMultiplier: 0.25
+            });
+            if (minion) {
+              enemy.activeSummons = (enemy.activeSummons || 0) + 1;
+              enemy.summonBudget = Math.max(0, (enemy.summonBudget ?? 20) - 1);
+            }
           }
 
           const rollingPin = {
@@ -255,8 +304,7 @@ class EnemySystem {
 
           for (const defender of this.scene.gameState.defenders) {
             if (!defender.removed && Math.abs(defender.x - enemy.x) < 260) {
-              defender.slowUntil = this.scene.gameState.time + 4;
-              defender.slowMultiplier = 0.6;
+              this.scene.statusEffectSystem.applySlow(defender, 4, 0.6, "cake_robot");
               this.scene.effectsSystem.burst(defender.x, defender.y, "#00e5ff", 8);
             }
           }
@@ -275,18 +323,6 @@ class EnemySystem {
           this.scene.gameState.enemyProjectiles.push(laser);
         }
       }
-
-      if (enemy.burnUntil > this.scene.gameState.time) {
-        enemy.burnTick = (enemy.burnTick || 0) + dt;
-        if (enemy.burnTick >= 0.5) {
-          enemy.burnTick = 0;
-          this.damageEnemy(enemy, enemy.burnDamage || 7, "#ff5638", enemy.burnSource || "pepper");
-          this.scene.effectsSystem.burst(enemy.x, enemy.y, "#ff6b4a", 3);
-        }
-      } else {
-        enemy.burnTick = 0;
-      }
-      if (enemy.hp <= 0 || enemy.removed) continue;
 
       if (enemy.ranged) {
         const target = this.scene.gameState.defenders
@@ -336,7 +372,7 @@ class EnemySystem {
         }
 
         if (blocker.type === "garlic") {
-          const newRow = enemy.row === 0 ? 1 : (enemy.row === 4 ? 3 : (Math.random() < 0.5 ? enemy.row - 1 : enemy.row + 1));
+          const newRow = enemy.row === 0 ? 1 : (enemy.row === 4 ? 3 : (this.scene.random(0, 1) < 0.5 ? enemy.row - 1 : enemy.row + 1));
           enemy.row = newRow;
           enemy.y = this.scene.GRID_Y + newRow * this.scene.CELL_H + this.scene.CELL_H / 2;
           if (enemy.textObj) enemy.textObj.setY(enemy.y);
@@ -356,6 +392,7 @@ class EnemySystem {
             reason: "enemy-melee",
             slowDuration: sticky ? 4 : 0,
             slowMultiplier: sticky ? 0.6 : undefined,
+            slowSource: sticky ? enemy.type : null,
             color: sticky ? "#d175ff" : "#ff4d4d"
           });
           if (sticky && !blocker.removed) {
@@ -378,7 +415,7 @@ class EnemySystem {
           enemy.sprite.setScale(baseScale, baseScale + Math.sin(this.scene.gameState.time * 8 + enemy.wobble) * 0.08);
         }
 
-        if (enemy.type === "candle" && Math.random() < 0.35) {
+        if (enemy.type === "candle" && this.scene.randomFx(0, 1) < 0.35) {
           this.scene.effectsSystem.burst(enemy.x, enemy.y - 28, "#ff3d00", 1);
         }
       }
@@ -387,6 +424,7 @@ class EnemySystem {
         this.scene.gameState.houseHp -= enemy.boss ? 450 : Math.max(80, enemy.maxHp * 0.5);
         this.scene.gameState.houseDamagedThisWave = true;
         this.scene.gameState.waveResolved += 1;
+        this.releaseSummonSlot(enemy);
         enemy.removed = true;
         if (enemy.sprite) enemy.sprite.destroy();
         if (enemy.shadowSprite) enemy.shadowSprite.destroy();
