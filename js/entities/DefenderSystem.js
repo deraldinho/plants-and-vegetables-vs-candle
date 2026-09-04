@@ -33,8 +33,8 @@ class DefenderSystem {
       maxHp: config.hp,
       cooldownLeft: 0.2,
       hitFlash: 0,
-      abilityReadyAt: 0,
-      sway: this.scene.random(0, 5),
+      abilityReadyAt: this.scene.gameState.time + (config.ability?.cooldown || 15),
+      sway: this.scene.randomFx(0, 5),
       powerLevel: 0,
       healthLevel: 0,
       armor: 0,
@@ -102,7 +102,8 @@ class DefenderSystem {
       if (enemy.hp <= 0 || enemy.removed) continue;
       const distance = Math.hypot(enemy.x - defender.x, (enemy.row - defender.row) * this.scene.CELL_H);
       if (distance < 150) {
-        this.scene.enemySystem.damageEnemy(enemy, 150, "#ff2a4b", "strawberry");
+        const dmg = this.getEffectiveDamage(defender);
+        this.scene.enemySystem.damageEnemy(enemy, dmg, "#ff2a4b", "strawberry");
       }
     }
     this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 35, "BOOM MORANGO! 🍓💥", "#ff2a4b", 1.35);
@@ -288,6 +289,8 @@ class DefenderSystem {
         const nearbyEnemies = this.scene.gameState.enemies.filter(e => Math.abs(e.row - defender.row) <= 1 && Math.abs(e.x - defender.x) < 160 && e.hp > 0 && !e.removed);
         for (const e of nearbyEnemies) {
           e.x = Math.max(this.scene.GRID_X + defender.col * this.scene.CELL_W, e.x - 40);
+          if (e.sprite) e.sprite.setPosition(e.x, e.y);
+          if (e.shadowSprite) e.shadowSprite.setPosition(e.x, e.y + 22);
           this.scene.effectsSystem.burst(e.x, e.y, "#ff2a4b", 10);
         }
         this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "AROMA ATRATOR! +100 HP 🍓", "#ff2a4b", 1.2);
@@ -395,7 +398,11 @@ class DefenderSystem {
 
             this.scene.soundManager.beep(420 + defender.punchCombo * 35, 0.06, "square", 0.04);
             if (defender.sprite) defender.sprite.setAngle(defender.punchCombo % 2 ? 15 : -15);
-            setTimeout(() => { if (defender.sprite && !defender.removed) defender.sprite.setAngle(0); }, 120);
+            if (this.scene.time?.delayedCall) {
+              this.scene.time.delayedCall(120, () => { if (defender.sprite && !defender.removed) defender.sprite.setAngle(0); });
+            } else {
+              setTimeout(() => { if (defender.sprite && !defender.removed) defender.sprite.setAngle(0); }, 120);
+            }
           }
         }
         continue;
@@ -404,7 +411,7 @@ class DefenderSystem {
       if (defender.smash) {
         const enemyUnder = this.scene.gameState.enemies.find(e => e.row === defender.row && e.hp > 0 && !e.removed && Math.abs(e.x - defender.x) < 35);
         if (enemyUnder) {
-          const dmg = Math.round(effectiveDamage * (1 + activePower * 0.2));
+          const dmg = effectiveDamage;
           this.scene.enemySystem.damageEnemy(enemyUnder, dmg, "#e3242b", defender.type);
           this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, `SMASH! -${dmg}🍎💥`, "#e3242b", 1.3);
           this.scene.effectsSystem.burst(defender.x, defender.y, "#e3242b", 25);
@@ -418,7 +425,11 @@ class DefenderSystem {
       if (defender.taunt) {
         const nearbyEnemies = this.scene.gameState.enemies.filter(e => Math.abs(e.row - defender.row) <= 1 && Math.abs(e.x - defender.x) < 140 && e.hp > 0 && !e.removed);
         for (const e of nearbyEnemies) {
-          if (e.x > defender.x + 20) e.x -= 20 * dt;
+          if (e.x > defender.x + 20) {
+            e.x -= 20 * dt;
+            if (e.sprite) e.sprite.setPosition(e.x, e.y);
+            if (e.shadowSprite) e.shadowSprite.setPosition(e.x, e.y + 22);
+          }
         }
         continue;
       }
@@ -480,12 +491,12 @@ class DefenderSystem {
         this.scene.soundManager.beep(defender.type === "pepper" ? 260 : 520, 0.025, "square", 0.025);
       }
 
-      // Auto-cast: dispara a habilidade automaticamente quando o cooldown terminar
-      if (defender.ability && this.scene.gameState.time >= defender.abilityReadyAt) {
+      // Auto-cast: dispara a habilidade automaticamente quando desbloqueada (Nível 2+ ou Adubo) e a onda estiver ativa
+      const abilityUnlocked = ((defender.powerLevel || 0) + (defender.healthLevel || 0) + 1 >= 2) || isFertilized;
+      if (this.scene.gameState.waveActive && defender.ability && abilityUnlocked && this.scene.gameState.time >= (defender.abilityReadyAt || 0)) {
         const hasEnemies = this.scene.gameState.enemies.some(e => e.hp > 0 && !e.removed);
-        // Habilidades de suporte disparam sempre; ofensivas só com inimigos em campo
         const supportTypes = new Set(["broccoli", "watermelon", "strawberry", "banana"]);
-        if (hasEnemies || supportTypes.has(defender.type)) {
+        if (hasEnemies || (supportTypes.has(defender.type) && hasEnemies)) {
           this.useAbility(defender);
         }
       }
