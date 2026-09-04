@@ -266,9 +266,22 @@ class MainScene extends Phaser.Scene {
       if (!collection) continue;
       for (const item of collection) {
         if (!item) continue;
-        if (item.textObj) item.textObj.destroy();
-        if (item.sprite) item.sprite.destroy();
-        if (item.shadowSprite) item.shadowSprite.destroy();
+        if (item.textObj && item.textObj !== item.sprite) {
+          item.textObj.destroy();
+          item.textObj = null;
+        }
+        if (item.sprite) {
+          item.sprite.destroy();
+          item.sprite = null;
+        }
+        if (item.shadowSprite) {
+          item.shadowSprite.destroy();
+          item.shadowSprite = null;
+        }
+        if (item.textObj) {
+          item.textObj.destroy();
+          item.textObj = null;
+        }
       }
     }
     if (this.gameState.particles) {
@@ -376,17 +389,17 @@ class MainScene extends Phaser.Scene {
     this.soundManager.beep(660, 0.15, "triangle", 0.05);
 
     const currentSlots = readDeckSlots();
-    if (this.gameState.wave >= 30 && currentSlots < 8) {
+    if (this.gameState.wave >= 24 && currentSlots < 8) {
       saveDeckSlots(8);
       this.effectsSystem.spawnFloater(500, 230, "🎉 8º SLOT DE BARALHO DESBLOQUEADO! 🃏", "#69c743", 1.5);
       this.soundManager.beep(880, 0.3, "sine", 0.08);
       if (window.uiManager) window.uiManager.renderDeckBuilder();
-    } else if (this.gameState.wave >= 20 && currentSlots < 7) {
+    } else if (this.gameState.wave >= 16 && currentSlots < 7) {
       saveDeckSlots(7);
       this.effectsSystem.spawnFloater(500, 230, "🎉 7º SLOT DE BARALHO DESBLOQUEADO! 🃏", "#69c743", 1.5);
       this.soundManager.beep(880, 0.3, "sine", 0.08);
       if (window.uiManager) window.uiManager.renderDeckBuilder();
-    } else if (this.gameState.wave >= 10 && currentSlots < 6) {
+    } else if (this.gameState.wave >= 8 && currentSlots < 6) {
       saveDeckSlots(6);
       this.effectsSystem.spawnFloater(500, 230, "🎉 6º SLOT DE BARALHO DESBLOQUEADO! 🃏", "#69c743", 1.5);
       this.soundManager.beep(880, 0.3, "sine", 0.08);
@@ -455,7 +468,11 @@ class MainScene extends Phaser.Scene {
     this.gameState.sun += sun.value;
     this.gameState.stats.sunCollected += sun.value;
     sun.life = 0;
-    if (sun.textObj) sun.textObj.destroy();
+    if (sun.textObj) {
+      sun.textObj.destroy();
+      sun.textObj = null;
+    }
+    this.gameState.suns = this.gameState.suns.filter(s => s !== sun && s.life > 0);
 
     if (sun.type === "golden") {
       this.gameState.attackBoostUntil = this.gameState.time + 4;

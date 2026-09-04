@@ -36,7 +36,7 @@ class EnemySystem {
       rewardMultiplier: Number.isFinite(options.rewardMultiplier) ? Math.max(0, options.rewardMultiplier) : 1,
       attackTimer: base.ranged ? 0.7 : 0,
       hitFlash: 0,
-      wobble: this.scene.random(0, 6),
+      wobble: this.scene.randomFx ? this.scene.randomFx(0, 6) : this.scene.random(0, 6),
       statusEffects: new Map(),
       summoned: !!options.summoned,
       summonOwner: options.summonOwner || null,
@@ -208,6 +208,29 @@ class EnemySystem {
       this.scene.statusEffectSystem.updateEnemy(enemy);
       if (enemy.hp <= 0 || enemy.removed) continue;
 
+      if (enemy.type === "candle") {
+        enemy.bossSkillTimer = (enemy.bossSkillTimer || 0) + dt;
+        if (enemy.bossSkillTimer >= 5.0) {
+          enemy.bossSkillTimer = 0;
+          this.scene.effectsSystem.burst(enemy.x, enemy.y, "#ff6600", 24);
+          this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 45, "ONDA DE CHAMA! 🔥", "#ff6600", 1.35);
+          this.scene.soundManager.beep(280, 0.3, "sawtooth", 0.07);
+          const flame = {
+            x: enemy.x - 30,
+            y: enemy.y,
+            row: enemy.row,
+            speed: 300,
+            damage: 40,
+            effect: "flame",
+            color: "#ff3d00",
+            icon: "🔥",
+            removed: false
+          };
+          flame.textObj = this.scene.add.text(flame.x, flame.y, flame.icon, { fontSize: "24px" }).setOrigin(0.5);
+          this.scene.gameState.enemyProjectiles.push(flame);
+        }
+      }
+
       if (enemy.type === "gum_boss") {
         enemy.bossSkillTimer = (enemy.bossSkillTimer || 0) + dt;
         if (enemy.bossSkillTimer >= 4.5) {
@@ -343,15 +366,16 @@ class EnemySystem {
 
       if (blocker) {
         if (blocker.type === "potato" && blocker.armed) {
+          const potatoDamage = this.scene.defenderSystem.getEffectiveDamage(blocker);
           this.scene.defenderSystem.defeatDefender(blocker, "potato-detonated", { silent: true });
           this.scene.effectsSystem.burst(blocker.x, blocker.y, "#ff5638", 30);
-          this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, "BOOM! 💥 180", "#ff5638", 1.4);
+          this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, `BOOM! 💥 ${potatoDamage}`, "#ff5638", 1.4);
           this.scene.effectsSystem.triggerShake(12, 300);
           this.scene.soundManager.beep(110, 0.35, "sawtooth", 0.08);
 
           for (const e of this.scene.gameState.enemies) {
             if (e.hp > 0 && !e.removed && Math.hypot(e.x - blocker.x, (e.row - blocker.row) * this.scene.CELL_H) < 120) {
-              this.damageEnemy(e, 180, "#ff5638", "potato");
+              this.damageEnemy(e, potatoDamage, "#ff5638", "potato");
             }
           }
           continue;
@@ -361,7 +385,9 @@ class EnemySystem {
           const newRow = enemy.row === 0 ? 1 : (enemy.row === 4 ? 3 : (this.scene.random(0, 1) < 0.5 ? enemy.row - 1 : enemy.row + 1));
           enemy.row = newRow;
           enemy.y = this.scene.GRID_Y + newRow * this.scene.CELL_H + this.scene.CELL_H / 2;
-          if (enemy.textObj) enemy.textObj.setY(enemy.y);
+          if (enemy.sprite) enemy.sprite.setY(enemy.y - 4);
+          if (enemy.shadowSprite) enemy.shadowSprite.setY(enemy.y + 22);
+          if (enemy.textObj && enemy.textObj !== enemy.sprite) enemy.textObj.setY(enemy.y);
           this.scene.effectsSystem.burst(enemy.x, enemy.y, "#f5f5dc", 14);
           this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 30, "🤢 REPELIDO!", "#f5f5dc", 1.15);
           this.scene.soundManager.beep(300, 0.1, "sine", 0.04);
@@ -387,7 +413,8 @@ class EnemySystem {
           this.scene.soundManager.beep(220, 0.05, "sawtooth", 0.03);
         }
       } else {
-        const moveSpeed = enemy.speed * (sodaRows.has(enemy.row) && enemy.type !== "soda" ? 1.4 : 1);
+        const slowMult = this.scene.statusEffectSystem?.getMovementSpeedMultiplier ? this.scene.statusEffectSystem.getMovementSpeedMultiplier(enemy) : 1;
+        const moveSpeed = enemy.speed * slowMult * (sodaRows.has(enemy.row) && enemy.type !== "soda" ? 1.4 : 1);
         enemy.x -= moveSpeed * dt;
         if (enemy.sprite) enemy.sprite.setPosition(enemy.x, enemy.y);
         if (enemy.shadowSprite) enemy.shadowSprite.setPosition(enemy.x, enemy.y + 22);

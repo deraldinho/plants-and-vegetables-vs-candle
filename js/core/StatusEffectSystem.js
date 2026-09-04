@@ -16,12 +16,17 @@ class StatusEffectSystem {
     const effects = this.ensure(entity);
     const current = effects.get(id);
     const expiresAt = now + Math.max(0, options.duration || 0);
+    const inputMagnitude = Number.isFinite(options.magnitude) ? options.magnitude : 1;
+    const magnitude = current && (id === "slow" || id === "guard")
+      ? Math.min(current.magnitude, inputMagnitude)
+      : inputMagnitude;
+    const damage = Math.max(current?.damage || 0, Math.max(0, Number(options.damage) || 0));
     const effect = {
       id,
-      source: options.source || null,
-      color: options.color || "#ffffff",
-      magnitude: Number.isFinite(options.magnitude) ? options.magnitude : 1,
-      damage: Math.max(0, Number(options.damage) || 0),
+      source: options.source || current?.source || null,
+      color: options.color || current?.color || "#ffffff",
+      magnitude,
+      damage,
       tickEvery: Math.max(0.05, Number(options.tickEvery) || 0.5),
       nextTickAt: current?.nextTickAt && current.nextTickAt > now ? current.nextTickAt : now + Math.max(0.05, Number(options.tickEvery) || 0.5),
       expiresAt: Math.max(current?.expiresAt || 0, expiresAt)
@@ -65,6 +70,10 @@ class StatusEffectSystem {
   }
 
   getAttackSpeedMultiplier(entity) {
+    return this.get(entity, "slow")?.magnitude ?? 1;
+  }
+
+  getMovementSpeedMultiplier(entity) {
     return this.get(entity, "slow")?.magnitude ?? 1;
   }
 

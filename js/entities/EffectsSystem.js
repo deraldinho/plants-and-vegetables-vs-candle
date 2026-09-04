@@ -171,6 +171,16 @@ class EffectsSystem {
   }
 
   spawnAcidPool(x, row, duration, damagePerSecond, sourceType) {
+    if (!this.scene.gameState.acidPools) this.scene.gameState.acidPools = [];
+    const existing = this.scene.gameState.acidPools.find(p => p.row === row && Math.abs(p.x - x) < 35 && p.life > 0);
+    if (existing) {
+      existing.life = Math.max(existing.life, duration);
+      existing.maxLife = Math.max(existing.maxLife, duration);
+      existing.damagePerSecond = Math.max(existing.damagePerSecond, damagePerSecond);
+      this.scene.effectsSystem.burst(x, existing.y - 10, "#b8e04a", 6);
+      return;
+    }
+
     const y = this.scene.GRID_Y + row * this.scene.CELL_H + this.scene.CELL_H / 2 + 22;
     const gfx = this.scene.add.graphics();
     const pool = {
@@ -240,8 +250,11 @@ class EffectsSystem {
   updateSuns(dt) {
     for (const s of this.scene.gameState.suns) {
       s.pulse += dt * 4;
-      s.life -= dt;
-      if (s.y < s.targetY) s.y = Math.min(s.targetY, s.y + 75 * dt);
+      if (s.y < s.targetY) {
+        s.y = Math.min(s.targetY, s.y + 75 * dt);
+      } else {
+        s.life -= dt;
+      }
       if (s.textObj) {
         s.textObj.setPosition(s.x, s.y);
         const scale = (s.type === "golden" ? 1.15 : 1) + Math.sin(s.pulse) * 0.08;

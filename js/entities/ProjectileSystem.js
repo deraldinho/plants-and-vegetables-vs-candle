@@ -127,21 +127,24 @@ class ProjectileSystem {
 
       if (targetDef) {
         const brigadeiro = ep.effect === "brigadeiro";
+        const flame = ep.effect === "flame";
         this.scene.defenderSystem.damageDefender(targetDef, ep.damage, {
-          reason: brigadeiro ? "brigadeiro-projectile" : "enemy-projectile",
+          reason: flame ? "candle-flame" : (brigadeiro ? "brigadeiro-projectile" : "enemy-projectile"),
           slowDuration: brigadeiro ? (ep.slowDuration || 5) : 0,
           slowMultiplier: brigadeiro ? (ep.slowMultiplier || 0.7) : undefined,
           slowSource: brigadeiro ? "gummy_brigadeiro" : null,
-          color: brigadeiro ? "#8b4b2b" : (ep.color || "#ff3b9a"),
+          color: ep.color || (brigadeiro ? "#8b4b2b" : "#ff3b9a"),
           burstColor: ep.color || "#ff3b9a",
-          suffix: brigadeiro ? "🍫" : "🌵"
+          suffix: flame ? "🔥" : (brigadeiro ? "🍫" : "🌵")
         });
 
         if (brigadeiro && !targetDef.removed) {
           this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 45, "BRIGADEIRO GRUDENTO! -30% ATAQUE 🍫", "#8b4b2b", 1.05);
+        } else if (flame && !targetDef.removed) {
+          this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 45, "CHAMA DA VELA! 🔥", "#ff6600", 1.05);
         }
 
-        this.scene.soundManager.beep(brigadeiro ? 145 : 200, 0.05, "sawtooth", 0.03);
+        this.scene.soundManager.beep(flame ? 280 : (brigadeiro ? 145 : 200), 0.05, "sawtooth", 0.03);
         ep.removed = true;
         if (ep.textObj) ep.textObj.destroy();
       } else if (ep.x < this.scene.HOUSE_X) {
