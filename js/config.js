@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
   sunflowerSeeds: "healthy-family-home.sunflower-seeds",
   unlockedCards: "healthy-family-home.unlocked-cards",
   deckSlots: "healthy-family-home.deck-slots",
-  activeDeck: "healthy-family-home.active-deck"
+  activeDeck: "healthy-family-home.active-deck",
+  soundOn: "healthy-family-home.sound-on"
 };
 
 const DEFENDERS = {
@@ -26,7 +27,7 @@ const DEFENDERS = {
   orange: { name: "Laranja Ácida", icon: "🍊", cost: 100, hp: 110, damage: 18, cooldown: 1.1, color: "#ffa500", acid: true, projectile: "💧", seedPrice: 180, ability: { name: "Chuva Ácida", cooldown: 16, description: "derrete escudos e aplica ácido contínuo na linha" } },
   strawberry: { name: "Morango Atrator", icon: "🍓", cost: 60, hp: 200, damage: 150, cooldown: 99, color: "#ff2a4b", taunt: true, explodeOnDeath: true, projectile: "", seedPrice: 200, ability: { name: "Aroma Irresistível", cooldown: 15, description: "atrai todos os doces para sua posição" } },
   apple: { name: "Maçã Esmagadora", icon: "🍎", cost: 90, hp: 120, damage: 220, cooldown: 99, color: "#e3242b", smash: true, projectile: "", seedPrice: 220, ability: { name: "Super Impacto", cooldown: 16, description: "esmaga com 300 de dano em área" } },
-  pineapple: { name: "Abacaxi Mina", icon: "🍍", cost: 40, hp: 90, damage: 140, cooldown: 99, color: "#e4b419", spikeMine: true, projectile: "", seedPrice: 250, ability: { name: "Espinhos Perfurantes", cooldown: 12, description: "espalha espinhos pela grade" } },
+  pineapple: { name: "Abacaxi Ácido", icon: "🍍", cost: 50, hp: 100, damage: 22, cooldown: 1.4, color: "#b8e04a", acid: true, acidPool: true, projectile: "💧", seedPrice: 250, ability: { name: "Enxurrada Ácida", cooldown: 14, description: "cria uma grande poça de ácido na linha que dura 6 segundos" } },
   cauliflower: { name: "Couve-Flor Mística", icon: "🥦", cost: 125, hp: 100, damage: 24, cooldown: 1.25, color: "#d8f8e1", piercing: true, projectile: "🌀", seedPrice: 300, ability: { name: "Onda Mística", cooldown: 18, description: "projétil místico que atravessa a linha inteira" } }
 };
 
@@ -81,9 +82,12 @@ function readNumber(key) {
   catch (_) { return 0; }
 }
 
-function readFlag(key) {
-  try { return localStorage.getItem(key) === "true"; }
-  catch (_) { return false; }
+function readFlag(key, defaultValue = false) {
+  try {
+    const val = localStorage.getItem(key);
+    if (val === null) return defaultValue;
+    return val === "true";
+  } catch (_) { return defaultValue; }
 }
 
 function readMode() {

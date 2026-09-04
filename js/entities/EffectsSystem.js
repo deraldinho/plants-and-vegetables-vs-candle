@@ -170,6 +170,73 @@ class EffectsSystem {
     this.scene.gameState.suns.push(sunObj);
   }
 
+  spawnAcidPool(x, row, duration, damagePerSecond, sourceType) {
+    const y = this.scene.GRID_Y + row * this.scene.CELL_H + this.scene.CELL_H / 2 + 22;
+    const gfx = this.scene.add.graphics();
+    const pool = {
+      x, y, row,
+      life: duration,
+      maxLife: duration,
+      damagePerSecond,
+      sourceType: sourceType || "pineapple",
+      tickTimer: 0,
+      tickInterval: 0.5,
+      radius: 38,
+      bubbleTimer: 0,
+      gfx
+    };
+    this.scene.gameState.acidPools.push(pool);
+    // entrada visual: burst de ácido
+    this.scene.effectsSystem.burst(x, y - 10, "#b8e04a", 14);
+    this.scene.soundManager.beep(180, 0.12, "sine", 0.05);
+    this.scene.effectsSystem.spawnFloater(x, y - 30, "POÇA DE ÁCIDO! 🍍☠️", "#b8e04a", 1.15);
+  }
+
+  updateAcidPools(dt) {
+    if (!this.scene.gameState.acidPools) return;
+    for (const pool of this.scene.gameState.acidPools) {
+      pool.life -= dt;
+      pool.tickTimer -= dt;
+      pool.bubbleTimer -= dt;
+
+      // render poça
+      if (pool.gfx) {
+        pool.gfx.clear();
+        const alpha = Math.min(0.7, (pool.life / pool.maxLife) * 0.7 + 0.15);
+        pool.gfx.fillStyle(0x7dde1a, alpha);
+        pool.gfx.fillEllipse(pool.x, pool.y, pool.radius * 2.4, pool.radius * 0.85);
+        // borda levemente mais clara
+        pool.gfx.lineStyle(2, 0xb8e04a, alpha * 0.9);
+        pool.gfx.strokeEllipse(pool.x, pool.y, pool.radius * 2.4, pool.radius * 0.85);
+
+        if (pool.life <= 0) pool.gfx.destroy();
+      }
+
+      // bolhas de superfície
+      if (pool.bubbleTimer <= 0) {
+        pool.bubbleTimer = this.scene.randomFx(0.2, 0.55);
+        const bx = pool.x + this.scene.randomFx(-pool.radius * 0.9, pool.radius * 0.9);
+        const by = pool.y + this.scene.randomFx(-8, 8);
+        this.scene.effectsSystem.burst(bx, by, "#b8e04a", 1);
+      }
+
+      // dano periódico
+      if (pool.tickTimer <= 0) {
+        pool.tickTimer = pool.tickInterval;
+        const dmg = Math.round(pool.damagePerSecond * pool.tickInterval);
+        for (const e of this.scene.gameState.enemies) {
+          if (e.removed || e.hp <= 0 || e.row !== pool.row) continue;
+          const dx = Math.abs(e.x - pool.x);
+          if (dx <= pool.radius * 1.2) {
+            this.scene.enemySystem.damageEnemy(e, dmg, "#b8e04a", pool.sourceType);
+            this.scene.effectsSystem.burst(e.x, e.y - 10, "#b8e04a", 3);
+          }
+        }
+      }
+    }
+    this.scene.gameState.acidPools = this.scene.gameState.acidPools.filter(p => p.life > 0);
+  }
+
   updateSuns(dt) {
     for (const s of this.scene.gameState.suns) {
       s.pulse += dt * 4;

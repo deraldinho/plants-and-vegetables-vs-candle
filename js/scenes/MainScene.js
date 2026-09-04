@@ -120,6 +120,7 @@ class MainScene extends Phaser.Scene {
       enemies: [],
       projectiles: [],
       enemyProjectiles: [],
+      acidPools: [],
       particles: [],
       suns: [],
       floaters: [],
@@ -275,6 +276,11 @@ class MainScene extends Phaser.Scene {
         if (p?.gfx) p.gfx.destroy();
       }
     }
+    if (this.gameState.acidPools) {
+      for (const pool of this.gameState.acidPools) {
+        if (pool?.gfx) pool.gfx.destroy();
+      }
+    }
   }
 
   startGame() {
@@ -316,6 +322,7 @@ class MainScene extends Phaser.Scene {
     this.projectileSystem.updateProjectiles(dt);
     this.projectileSystem.updateEnemyProjectiles(dt);
     this.enemySystem.updateEnemies(dt);
+    this.effectsSystem.updateAcidPools(dt);
     this.effectsSystem.updateSuns(dt);
     this.effectsSystem.updateParticles(dt);
     this.effectsSystem.updateFloaters(dt);

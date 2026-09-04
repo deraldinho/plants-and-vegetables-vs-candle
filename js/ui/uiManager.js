@@ -7,6 +7,7 @@ class UIManager {
     this.DEFENDER_KEYS = [...this.activeDeck];
     this.activeScene = null;
     this.selectedDefender = null;
+    this.soundOn = readFlag(STORAGE_KEYS.soundOn, true);
 
     this.ui = {
       sun: document.getElementById("sunValue"),
@@ -88,10 +89,16 @@ class UIManager {
   initGlobalCallbacks() {
     window.onPhaserGameStarted = (scene) => {
       this.activeScene = scene;
+      scene.soundOn = this.soundOn;
       this.deckService?.syncScene(scene);
       this.refreshDeckFromService();
       this.resetInteractionUi();
       this.ui.habits.forEach(b => b.classList.remove("used"));
+      if (this.ui.speed) this.ui.speed.textContent = "⏩ 1×";
+      if (this.ui.sound) {
+        this.ui.sound.textContent = this.soundOn ? "🔊" : "🔇";
+        this.ui.sound.setAttribute("aria-pressed", String(!this.soundOn));
+      }
       this.syncUi(scene.gameState);
       this.updateTutorial(scene.gameState);
     };
@@ -165,9 +172,22 @@ class UIManager {
 
     this.addTouchClick(this.ui.abilityBtn, () => {
       if (!this.activeScene || !this.selectedDefender) return;
-      if (this.activeScene.useAbility(this.selectedDefender)) {
-        this.showToast(`Habilidade ${this.selectedDefender.ability.name} ativada! ✨`);
-        this.updateUpgradePanelUI(this.selectedDefender);
+      const def = this.selectedDefender;
+      const now = this.activeScene.gameState.time || 0;
+      const isFertilized = (def.fertilizerBoostUntil || 0) > now;
+      const totalLevel = (def.powerLevel || 0) + (def.healthLevel || 0) + 1;
+      const unlocked = totalLevel >= 2 || isFertilized;
+      if (!unlocked) {
+        this.showToast("Desbloqueie o Nível 2 ou use Adubo para ativar a habilidade! ✨");
+        return;
+      }
+      if ((def.abilityReadyAt || 0) > now) {
+        this.showToast(`Recarga: ${Math.ceil(def.abilityReadyAt - now)}s restantes`);
+        return;
+      }
+      if (this.activeScene.useAbility(def)) {
+        this.showToast(`Habilidade ${def.ability.name} ativada! ✨`);
+        this.updateUpgradePanelUI(def);
         this.syncUi(this.activeScene.gameState);
       }
     });
@@ -225,6 +245,23 @@ class UIManager {
         const state = this.activeScene.gameState;
         const name = button.dataset.habit;
         if (state.usedHabits.has(name)) return;
+
+        if (name === "teeth" && state.houseHp >= state.maxHouseHp) {
+          this.showToast("A Casa já está com a vida máxima! 💚");
+          return;
+        }
+
+        if (name === "sleep") {
+          const aliveEnemies = state.enemies.filter(e => e && !e.removed && e.hp > 0);
+          if (aliveEnemies.length === 0) {
+            this.showToast("Nenhum doce na tela para adormecer! 😴");
+            return;
+          }
+          for (const enemy of aliveEnemies) {
+            this.activeScene.enemySystem.damageEnemy(enemy, enemy.boss ? 400 : 220, "#72d9ff");
+          }
+        }
+
         state.usedHabits.add(name);
         state.stats.habitsUsed += 1;
         button.classList.add("used");
@@ -234,9 +271,6 @@ class UIManager {
         if (name === "vegetables") state.vegetableBoostUntil = state.time + 15;
         if (name === "exercise") state.attackBoostUntil = state.time + 20;
         if (name === "teeth") state.houseHp = Math.min(state.maxHouseHp, state.houseHp + 300);
-        if (name === "sleep") {
-          for (const enemy of state.enemies) this.activeScene.enemySystem.damageEnemy(enemy, enemy.boss ? 400 : 220, "#72d9ff");
-        }
 
         this.showToast(`Hábito ativado: ${button.querySelector("strong")?.textContent || name}! ✨`);
         this.syncUi(state);
@@ -253,11 +287,12 @@ class UIManager {
     this.addTouchClick(this.ui.pause, () => this.togglePauseGame());
 
     this.addTouchClick(this.ui.sound, () => {
-      if (!this.activeScene) return;
-      this.activeScene.soundOn = !this.activeScene.soundOn;
-      this.ui.sound.textContent = this.activeScene.soundOn ? "🔊" : "🔇";
-      this.ui.sound.setAttribute("aria-pressed", String(!this.activeScene.soundOn));
-      this.showToast(this.activeScene.soundOn ? "Som ativado 🔊" : "Som desativado 🔇");
+      this.soundOn = !this.soundOn;
+      writeStorage(STORAGE_KEYS.soundOn, String(this.soundOn));
+      if (this.activeScene) this.activeScene.soundOn = this.soundOn;
+      this.ui.sound.textContent = this.soundOn ? "🔊" : "🔇";
+      this.ui.sound.setAttribute("aria-pressed", String(!this.soundOn));
+      this.showToast(this.soundOn ? "Som ativado 🔊" : "Som desativado 🔇");
     });
 
     document.addEventListener("keydown", (e) => this.handleKeyDown(e));
@@ -286,8 +321,13 @@ class UIManager {
     if (key === " ") {
       e.preventDefault();
       if (this.ui.overlay.classList.contains("visible")) {
-        if (this.activeScene && this.activeScene.gameState.paused) this.resumeGame();
-        else this.ui.overlayButton.click();
+        if (this.activeScene && this.activeScene.gameState.paused && this.activeScene.gameState.phase === "playing") {
+          this.resumeGame();
+        } else if (this.activeScene && (this.activeScene.gameState.phase === "gameover" || this.activeScene.gameState.phase === "victory")) {
+          this.restartGame();
+        } else {
+          this.ui.overlayButton.click();
+        }
       } else if (this.activeScene && !this.activeScene.gameState.waveActive) {
         this.ui.startWave.click();
       } else {
@@ -549,7 +589,7 @@ class UIManager {
     } else {
       const ready = (def.abilityReadyAt || 0) <= now;
       this.ui.abilityBtn.disabled = !ready;
-      if (abilityBtnSmall) abilityBtnSmall.textContent = ready ? "PRONTO!" : `${Math.ceil((def.abilityReadyAt || 0) - now)}s`;
+      if (abilityBtnSmall) abilityBtnSmall.textContent = ready ? "PRONTO! ✨" : `Recarga: ${Math.ceil((def.abilityReadyAt || 0) - now)}s`;
     }
   }
 
@@ -665,6 +705,7 @@ class UIManager {
     if (!this.activeScene) return;
     this.activeScene.gameState.paused = false;
     this.ui.pause.textContent = "⏸ Pausar";
+    if (this.ui.speed) this.ui.speed.textContent = "⏩ 1×";
     this.ui.overlay.classList.remove("visible");
     if (this.ui.restartButton) this.ui.restartButton.hidden = true;
     this.activeScene.startGame();

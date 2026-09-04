@@ -26,6 +26,7 @@ class ProjectileSystem {
       area: defender.area,
       burn: defender.burn,
       acid: defender.acid,
+      acidPool: defender.acidPool,
       piercing: defender.piercing,
       hitsLeft: defender.piercing ? 3 : 1,
       sourceType: defender.type,
@@ -45,6 +46,10 @@ class ProjectileSystem {
 
       if (p.sourceType === "pepper" && this.scene.randomFx(0, 1) < 0.4) {
         this.scene.effectsSystem.burst(p.x - 10, p.y, "#ff6b4a", 1);
+      }
+
+      if (p.sourceType === "pineapple" && this.scene.randomFx(0, 1) < 0.3) {
+        this.scene.effectsSystem.burst(p.x - 8, p.y, "#b8e04a", 1);
       }
 
       const minX = Math.min(previousX, p.x) - 32;
@@ -86,6 +91,11 @@ class ProjectileSystem {
         if (p.acid && hit.hp > 0 && !hit.removed) {
           this.scene.statusEffectSystem.applyDot(hit, "acid", 3, 5, p.sourceType, "#ffa500", 0.5);
         }
+
+        if (p.acidPool) {
+          this.scene.effectsSystem.spawnAcidPool(hit.x, hit.row, 5, 18, p.sourceType);
+        }
+
         this.scene.effectsSystem.burst(hit.x, hit.y, p.color, 8);
       }
 

@@ -304,13 +304,15 @@ class DefenderSystem {
         break;
       }
       case "pineapple": {
-        for (const e of this.scene.gameState.enemies) {
-          if (Math.hypot(e.x - defender.x, (e.row - defender.row) * this.scene.CELL_H) < 140) {
-            this.scene.enemySystem.damageEnemy(e, 140, "#e4b419", "pineapple");
-            this.scene.effectsSystem.burst(e.x, e.y, "#e4b419", 10);
-          }
-        }
-        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "CHUVA DE ESPINHOS! 🍍⚡", "#e4b419", 1.25);
+        // Cria uma poça de ácido grande diretamente à frente
+        const poolX = defender.x + 60;
+        const poolRow = defender.row;
+        this.scene.effectsSystem.spawnAcidPool(poolX, poolRow, 6, 25, "pineapple");
+        // aumenta o raio da poça da habilidade
+        const newPool = this.scene.gameState.acidPools[this.scene.gameState.acidPools.length - 1];
+        if (newPool) newPool.radius = 60;
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "ENXURRADA ÁCIDA! 🍍☠️", "#b8e04a", 1.25);
+        this.scene.effectsSystem.triggerShake(5, 180);
         break;
       }
       case "cauliflower": {
@@ -476,6 +478,16 @@ class DefenderSystem {
         defender.cooldownLeft = defender.cooldown;
         this.scene.projectileSystem.spawnProjectile(defender);
         this.scene.soundManager.beep(defender.type === "pepper" ? 260 : 520, 0.025, "square", 0.025);
+      }
+
+      // Auto-cast: dispara a habilidade automaticamente quando o cooldown terminar
+      if (defender.ability && this.scene.gameState.time >= defender.abilityReadyAt) {
+        const hasEnemies = this.scene.gameState.enemies.some(e => e.hp > 0 && !e.removed);
+        // Habilidades de suporte disparam sempre; ofensivas só com inimigos em campo
+        const supportTypes = new Set(["broccoli", "watermelon", "strawberry", "banana"]);
+        if (hasEnemies || supportTypes.has(defender.type)) {
+          this.useAbility(defender);
+        }
       }
     }
 

@@ -357,20 +357,6 @@ class EnemySystem {
           continue;
         }
 
-        if (blocker.spikeMine) {
-          this.scene.defenderSystem.defeatDefender(blocker, "pineapple-detonated", { silent: true });
-          this.scene.effectsSystem.burst(blocker.x, blocker.y, "#e4b419", 25);
-          this.scene.effectsSystem.spawnFloater(blocker.x, blocker.y - 35, "ESPINHOS! 🍍💥 140", "#e4b419", 1.3);
-          this.scene.soundManager.beep(300, 0.15, "square", 0.06);
-
-          for (const e of this.scene.gameState.enemies) {
-            if (e.hp > 0 && !e.removed && Math.hypot(e.x - blocker.x, (e.row - blocker.row) * this.scene.CELL_H) < 80) {
-              this.damageEnemy(e, 140, "#e4b419", "pineapple");
-            }
-          }
-          continue;
-        }
-
         if (blocker.type === "garlic") {
           const newRow = enemy.row === 0 ? 1 : (enemy.row === 4 ? 3 : (this.scene.random(0, 1) < 0.5 ? enemy.row - 1 : enemy.row + 1));
           enemy.row = newRow;
