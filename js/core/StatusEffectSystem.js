@@ -14,7 +14,8 @@ class StatusEffectSystem {
     if (!entity || entity.removed) return null;
     const now = this.scene.gameState.time;
     const effects = this.ensure(entity);
-    const current = effects.get(id);
+    const currentRaw = effects.get(id);
+    const current = currentRaw && currentRaw.expiresAt > now ? currentRaw : null;
     const expiresAt = now + Math.max(0, options.duration || 0);
     const inputMagnitude = Number.isFinite(options.magnitude) ? options.magnitude : 1;
     const magnitude = current && (id === "slow" || id === "guard")
