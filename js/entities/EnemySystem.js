@@ -223,7 +223,7 @@ class EnemySystem {
     if (!enemy || enemy.hp <= 0 || enemy.removed) return;
     let initialDamage = Math.max(0, Number(amount) || 0);
 
-    const papainMultiplier = this.scene.statusEffectSystem?.getEnemyDamageMultiplier?.(enemy) || 1;
+    const papainMultiplier = this.scene.statusEffectSystem?.getDamageTakenMultiplier?.(enemy) || 1;
     initialDamage = Math.round(initialDamage * papainMultiplier);
 
     if (enemy.type === "caramel_sticky") {
@@ -278,6 +278,11 @@ class EnemySystem {
       this.scene.gameState.sun += effectiveReward;
       this.releaseSummonSlot(enemy);
       enemy.removed = true;
+
+      if (enemy.type === "strawberry_shooter") {
+        const col = Math.max(0, Math.min(this.scene.COLS - 1, Math.floor((enemy.x - this.scene.GRID_X) / this.scene.CELL_W)));
+        this.scene.effectsSystem?.spawnToxicPuddle?.(col, enemy.row, 6.0, 4);
+      }
 
       if (enemy.sprite) enemy.sprite.destroy();
       if (enemy.shadowSprite) enemy.shadowSprite.destroy();
@@ -560,7 +565,7 @@ class EnemySystem {
         }
       }
 
-      const blocker = this.scene.gameState.defenders.find(d => !d.removed && d.row === enemy.row && Math.abs(enemy.x - d.x) < 44 && d.hp > 0);
+      const blocker = this.scene.gameState.defenders.find(d => !d.removed && !d.charging && d.row === enemy.row && Math.abs(enemy.x - d.x) < 44 && d.hp > 0);
 
       if (blocker) {
         if (blocker.type === "potato" && blocker.armed) {
@@ -614,7 +619,7 @@ class EnemySystem {
         const slowMult = this.scene.statusEffectSystem?.getMovementSpeedMultiplier ? this.scene.statusEffectSystem.getMovementSpeedMultiplier(enemy) : 1;
         const moveSpeed = enemy.speed * slowMult * (sodaRows.has(enemy.row) && enemy.type !== "soda" ? 1.4 : 1);
         enemy.x -= moveSpeed * dt;
-        if (enemy.sprite) enemy.sprite.setPosition(enemy.x, enemy.y);
+        if (enemy.sprite) enemy.sprite.setPosition(enemy.x, enemy.y - 4);
         if (enemy.shadowSprite) enemy.shadowSprite.setPosition(enemy.x, enemy.y + 22);
 
         if ((enemy.type === "lollipop" || enemy.type === "lollipop_boss") && enemy.sprite) {

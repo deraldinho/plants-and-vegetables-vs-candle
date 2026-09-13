@@ -206,7 +206,9 @@ class DefenderSystem {
           const newRow = e.row === 0 ? 1 : (e.row === 4 ? 3 : (this.scene.random(0, 1) < 0.5 ? e.row - 1 : e.row + 1));
           e.row = newRow;
           e.y = this.scene.GRID_Y + newRow * this.scene.CELL_H + this.scene.CELL_H / 2;
-          if (e.textObj) e.textObj.setY(e.y);
+          if (e.sprite) e.sprite.setY(e.y - 4);
+          if (e.shadowSprite) e.shadowSprite.setY(e.y + 22);
+          if (e.textObj && e.textObj !== e.sprite) e.textObj.setY(e.y);
           this.scene.effectsSystem.burst(e.x, e.y, "#f5f5dc", 12);
           this.scene.effectsSystem.spawnFloater(e.x, e.y - 30, "🤢 REPELIDO!", "#f5f5dc", 1.15);
         }

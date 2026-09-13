@@ -166,6 +166,13 @@ class StatusEffectSystem {
         this.scene.effectsSystem?.burst(defender.x, defender.y, "#ff85a2", 15);
       }
     }
+    for (const enemy of (this.scene.gameState?.enemies || [])) {
+      if (!enemy.removed && enemy.type === "bubblegum_jumper" && enemy.shield > 0) {
+        enemy.shield = 0;
+        this.scene.effectsSystem?.burst(enemy.x, enemy.y, "#ff85a2", 18);
+        this.scene.effectsSystem?.spawnFloater(enemy.x, enemy.y - 35, "BOLHA ESTOURADA! 💥", "#ff85a2", 1.15);
+      }
+    }
   }
 
   getAttackSpeedMultiplier(entity) {
@@ -185,6 +192,10 @@ class StatusEffectSystem {
     const papain = this.get(entity, "papain_shred");
     const papainBonus = papain?.magnitudeBonus || 0;
     return guard * (1 + papainBonus);
+  }
+
+  getEnemyDamageMultiplier(enemy) {
+    return this.getDamageTakenMultiplier(enemy);
   }
 
   updateDefender(defender) {

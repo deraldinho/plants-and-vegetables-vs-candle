@@ -121,6 +121,8 @@ class MainScene extends Phaser.Scene {
       projectiles: [],
       enemyProjectiles: [],
       acidPools: [],
+      stickyTrails: [],
+      toxicPuddles: [],
       particles: [],
       suns: [],
       floaters: [],
@@ -292,6 +294,16 @@ class MainScene extends Phaser.Scene {
     if (this.gameState.acidPools) {
       for (const pool of this.gameState.acidPools) {
         if (pool?.gfx) pool.gfx.destroy();
+      }
+    }
+    if (this.gameState.stickyTrails) {
+      for (const t of this.gameState.stickyTrails) {
+        if (t?.sprite) t.sprite.destroy();
+      }
+    }
+    if (this.gameState.toxicPuddles) {
+      for (const p of this.gameState.toxicPuddles) {
+        if (p?.sprite) p.sprite.destroy();
       }
     }
   }

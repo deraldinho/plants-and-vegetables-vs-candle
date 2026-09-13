@@ -10,8 +10,9 @@ function mulberry32(a) {
 }
 
 function getBiomeForWave(waveNumber) {
-  const index = Math.floor((waveNumber - 1) / 4) % BIOMES.length;
-  return BIOMES[index];
+  const safeWave = Math.max(1, Number.isFinite(waveNumber) ? waveNumber : 1);
+  const index = Math.floor((safeWave - 1) / 4) % BIOMES.length;
+  return BIOMES[index] || BIOMES[0];
 }
 
 function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {

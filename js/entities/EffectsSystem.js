@@ -249,6 +249,13 @@ class EffectsSystem {
 
   spawnStickyTrail(col, row, duration = 8.0) {
     if (!this.scene.gameState.stickyTrails) this.scene.gameState.stickyTrails = [];
+    const existing = this.scene.gameState.stickyTrails.find(t => t.col === col && t.row === row && t.life > 0);
+    if (existing) {
+      existing.life = Math.max(existing.life, duration);
+      existing.maxLife = Math.max(existing.maxLife, duration);
+      if (existing.sprite) existing.sprite.setAlpha(1);
+      return;
+    }
     const x = this.scene.GRID_X + col * this.scene.CELL_W + this.scene.CELL_W / 2;
     const y = this.scene.GRID_Y + row * this.scene.CELL_H + this.scene.CELL_H / 2 + 14;
     const sprite = this.scene.add.sprite(x, y, "tex_caramel_trail").setOrigin(0.5);
@@ -257,6 +264,14 @@ class EffectsSystem {
 
   spawnToxicPuddle(col, row, duration = 6.0, dps = 4) {
     if (!this.scene.gameState.toxicPuddles) this.scene.gameState.toxicPuddles = [];
+    const existing = this.scene.gameState.toxicPuddles.find(p => p.col === col && p.row === row && p.life > 0);
+    if (existing) {
+      existing.life = Math.max(existing.life, duration);
+      existing.maxLife = Math.max(existing.maxLife, duration);
+      existing.dps = Math.max(existing.dps || 0, dps);
+      if (existing.sprite) existing.sprite.setAlpha(1);
+      return;
+    }
     const x = this.scene.GRID_X + col * this.scene.CELL_W + this.scene.CELL_W / 2;
     const y = this.scene.GRID_Y + row * this.scene.CELL_H + this.scene.CELL_H / 2 + 12;
     const sprite = this.scene.add.sprite(x, y, "tex_toxic_puddle").setOrigin(0.5);

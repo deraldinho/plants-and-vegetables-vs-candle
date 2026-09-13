@@ -99,6 +99,22 @@ class ProjectileSystem {
         this.scene.effectsSystem.burst(p.x - 8, p.y, "#b8e04a", 1);
       }
 
+      if (p.bowling && !p.bouncedBroccoli) {
+        const broccoliInRow = this.scene.gameState.defenders.find(d => !d.removed && d.type === "broccoli" && d.row === p.row && Math.abs(d.x - p.x) < 45);
+        if (broccoliInRow) {
+          p.bouncedBroccoli = true;
+          this.scene.effectsSystem.spawnShockwave(p.x, p.y, "#7ea310", 110, 0.4);
+          this.scene.soundManager.beep(300, 0.2, "sawtooth", 0.08);
+          this.scene.effectsSystem.spawnFloater(p.x, p.y - 30, "RICOCHETE DE BRÓCOLIS! 🥦⚡", "#7ea310", 1.2);
+          for (const e of this.scene.gameState.enemies) {
+            if (!e.removed && e.hp > 0 && Math.abs(e.row - p.row) <= 1 && Math.abs(e.x - p.x) < 130) {
+              this.scene.statusEffectSystem.applySlow(e, 1.5, 0.1, "kiwi_broccoli_stun");
+              this.scene.effectsSystem.burst(e.x, e.y, "#b8e34d", 8);
+            }
+          }
+        }
+      }
+
       const minX = Math.min(previousX, p.x) - 32;
       const maxX = Math.max(previousX, p.x) + 32;
       const hit = this.scene.gameState.enemies
@@ -122,7 +138,7 @@ class ProjectileSystem {
 
       if (p.bowling) {
         p.hitCount = (p.hitCount || 0) + 1;
-        const dmg = p.hitCount === 1 ? 70 : (p.hitCount === 2 ? 50 : 35);
+        const dmg = p.hitCount === 1 ? 70 : (p.hitCount === 2 ? 50 : (p.hitCount === 3 ? 35 : 25));
         this.scene.enemySystem.damageEnemy(hit, dmg, "#7ea310", "kiwi");
         const res = KNOCKBACK_RESISTANCE[hit.type] ?? 1;
         if (res > 0 && !hit.boss) {
@@ -135,19 +151,6 @@ class ProjectileSystem {
           this.scene.gameState.sun += 25;
           this.scene.effectsSystem.spawnFloater(p.x, p.y - 35, "STRIKE DE FRUTAS! +25 ☀️", "#ffd700", 1.25);
           this.scene.soundManager.beep(660, 0.15, "sine", 0.06);
-        }
-
-        const broccoliInRow = this.scene.gameState.defenders.find(d => !d.removed && d.type === "broccoli" && d.row === p.row && Math.abs(d.x - p.x) < 50);
-        if (broccoliInRow) {
-          this.scene.effectsSystem.spawnShockwave(p.x, p.y, "#7ea310", 110, 0.4);
-          this.scene.soundManager.beep(300, 0.2, "sawtooth", 0.08);
-          this.scene.effectsSystem.spawnFloater(p.x, p.y - 30, "RICOCHETE DE BRÓCOLIS! 🥦⚡", "#7ea310", 1.2);
-          for (const e of this.scene.gameState.enemies) {
-            if (!e.removed && e.hp > 0 && Math.abs(e.row - p.row) <= 1 && Math.abs(e.x - p.x) < 130) {
-              this.scene.statusEffectSystem.applySlow(e, 1.5, 0.1, "kiwi_broccoli_stun");
-              this.scene.effectsSystem.burst(e.x, e.y, "#b8e34d", 8);
-            }
-          }
         }
       } else if (p.area) {
         for (const enemy of this.scene.gameState.enemies) {
