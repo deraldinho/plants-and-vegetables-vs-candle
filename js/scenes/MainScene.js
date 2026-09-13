@@ -336,6 +336,7 @@ class MainScene extends Phaser.Scene {
     this.projectileSystem.updateEnemyProjectiles(dt);
     this.enemySystem.updateEnemies(dt);
     this.effectsSystem.updateAcidPools(dt);
+    this.effectsSystem.updateTrailsAndPuddles(dt);
     this.effectsSystem.updateSuns(dt);
     this.effectsSystem.updateParticles(dt);
     this.effectsSystem.updateFloaters(dt);

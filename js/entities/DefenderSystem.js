@@ -42,6 +42,8 @@ class DefenderSystem {
       punchCombo: 0,
       punchComboExpiresAt: 0,
       fertilizerBoostUntil: 0,
+      chargeTimer: type === "apple_warrior" ? 1.0 : undefined,
+      charging: false,
       statusEffects: new Map(),
       removed: false,
       deathEffectResolved: false
@@ -329,6 +331,58 @@ class DefenderSystem {
         this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "ONDA MÍSTICA! 🥦🌀", "#d8f8e1", 1.25);
         break;
       }
+      case "papaya": {
+        for (const r of [defender.row - 1, defender.row, defender.row + 1]) {
+          if (r >= 0 && r < this.scene.ROWS) {
+            for (let i = 0; i < 4; i++) {
+              const p = {
+                x: defender.x + 20 - i * 18,
+                y: this.scene.GRID_Y + r * this.scene.CELL_H + this.scene.CELL_H / 2,
+                row: r,
+                speed: 380,
+                damage: 25,
+                color: "#ffd700",
+                icon: "✨",
+                papayaSeed: true,
+                hitsLeft: 2,
+                sourceType: "papaya",
+                removed: false
+              };
+              p.textObj = this.scene.add.text(p.x, p.y, p.icon, { fontSize: "22px" }).setOrigin(0.5);
+              this.scene.gameState.projectiles.push(p);
+            }
+          }
+        }
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "CHUVA DE PAPAÍNA! 🍈✨", "#ffd700", 1.25);
+        break;
+      }
+      case "kiwi": {
+        const p = {
+          x: defender.x + 25,
+          y: defender.y - 3,
+          row: defender.row,
+          speed: 380,
+          damage: 140,
+          color: "#7ea310",
+          icon: "🥝",
+          bowling: true,
+          hitCount: 0,
+          hitsLeft: 6,
+          sourceType: "kiwi",
+          removed: false
+        };
+        p.textObj = this.scene.add.text(p.x, p.y, p.icon, { fontSize: "32px" }).setOrigin(0.5);
+        this.scene.gameState.projectiles.push(p);
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "STRIKE FURIOSO! 🥝💥", "#7ea310", 1.25);
+        break;
+      }
+      case "apple_warrior": {
+        defender.chargeTimer = 0;
+        defender.charging = true;
+        defender.isSuper = true;
+        this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "SUPER ARRANCADA! 🍎⚡", "#ffd700", 1.35);
+        break;
+      }
     }
     return true;
   }
@@ -360,13 +414,20 @@ class DefenderSystem {
     for (const defender of this.scene.gameState.defenders) {
       if (!defender || defender.removed || defender.hp <= 0) continue;
 
+      this.scene.statusEffectSystem.updateDefender(defender);
+      if (!defender || defender.removed || defender.hp <= 0) continue;
+      if (this.scene.statusEffectSystem.isImmobilized(defender)) continue;
+
+      const hasTrail = this.scene.gameState.stickyTrails?.some(t => t.col === defender.col && t.row === defender.row);
+      const trailMult = hasTrail ? 0.7 : 1;
+
       const attackSpeedStatus = this.scene.statusEffectSystem.getAttackSpeedMultiplier(defender);
       const isFertilized = defender.fertilizerBoostUntil > this.scene.gameState.time;
       const activePower = isFertilized ? 3 : defender.powerLevel;
       const effectiveDamage = this.getEffectiveDamage(defender);
       const bananaFrenzy = defender.type === "banana" && defender.frenzyUntil > this.scene.gameState.time;
       const localSpeedMult = globalSpeedMult * (bananaFrenzy ? 2.2 : 1);
-      defender.cooldownLeft -= dt * localSpeedMult * attackSpeedStatus;
+      defender.cooldownLeft -= dt * localSpeedMult * attackSpeedStatus * trailMult;
 
       if (defender.melee) {
         if (defender.cooldownLeft <= 0) {
@@ -478,6 +539,104 @@ class DefenderSystem {
               this.scene.effectsSystem.spawnFloater(defender.x + 20, defender.y - 35, "NHAM! 😋", "#ff3b5c", 1.2);
             }
           }
+        }
+        continue;
+      }
+
+      if (defender.type === "apple_warrior") {
+        if (!defender.charging) {
+          defender.chargeTimer = (defender.chargeTimer || 1.0) - dt;
+          if (defender.chargeTimer <= 0) {
+            defender.charging = true;
+            const isSuper = this.scene.gameState.time < (this.scene.gameState.fruitBuffUntil || 0);
+            defender.isSuper = isSuper;
+            this.scene.effectsSystem.spawnFloater(
+              defender.x,
+              defender.y - 35,
+              isSuper ? "SUPER MAÇÃ DOURADA! 🍎⚡" : "ARRANCADA PECTÍNICA! 🍎💨",
+              isSuper ? "#ffd700" : "#e3242b",
+              1.3
+            );
+            this.scene.soundManager.beep(480, 0.2, "sawtooth", 0.08);
+          }
+        } else {
+          const speed = 700;
+          const previousX = defender.x;
+          defender.x += speed * dt;
+          if (defender.sprite) defender.sprite.setX(defender.x);
+          if (defender.shadowSprite) defender.shadowSprite.setX(defender.x);
+
+          const col = Math.floor((defender.x - this.scene.GRID_X) / this.scene.CELL_W);
+          if (col >= 0 && col < this.scene.COLS) {
+            this.scene.effectsSystem.cleanseLaneCell(col, defender.row);
+          }
+
+          const minX = previousX - 25;
+          const maxX = defender.x + 25;
+          const enemiesHit = this.scene.gameState.enemies.filter(e => !e.removed && e.row === defender.row && e.hp > 0 && e.x >= minX && e.x <= maxX && (!defender.hitEnemies || !defender.hitEnemies.has(e)));
+          if (!defender.hitEnemies) defender.hitEnemies = new Set();
+
+          for (const e of enemiesHit) {
+            defender.hitEnemies.add(e);
+            const isHeavy = e.boss || (e.shield || 0) > 0 || e.type === "cupcake" || e.type === "candle" || e.type === "candy_catapult_boss";
+            const baseDmg = defender.isSuper ? 250 : 180;
+            const dmg = isHeavy ? Math.round(baseDmg * 1.5) : baseDmg;
+            this.scene.enemySystem.damageEnemy(e, dmg, defender.isSuper ? "#ffd700" : "#e3242b", "apple_warrior");
+            this.scene.effectsSystem.burst(e.x, e.y, "#e3242b", 16);
+            this.scene.effectsSystem.spawnFloater(e.x, e.y - 35, `-${dmg}💥`, "#e3242b", 1.2);
+          }
+
+          if (defender.isSuper) {
+            for (const adjRow of [defender.row - 1, defender.row + 1]) {
+              if (adjRow >= 0 && adjRow < this.scene.ROWS) {
+                const adjEnemies = this.scene.gameState.enemies.filter(e => !e.removed && e.row === adjRow && e.hp > 0 && Math.abs(e.x - defender.x) < 40 && (!defender.adjHit || !defender.adjHit.has(e)));
+                if (!defender.adjHit) defender.adjHit = new Set();
+                for (const ae of adjEnemies) {
+                  defender.adjHit.add(ae);
+                  this.scene.enemySystem.damageEnemy(ae, 90, "#ffd700", "apple_warrior");
+                  this.scene.effectsSystem.burst(ae.x, ae.y, "#ffd700", 10);
+                }
+              }
+            }
+          }
+
+          if (defender.x >= this.scene.W + 20) {
+            for (const e of this.scene.gameState.enemies) {
+              if (e.removed || e.hp <= 0) continue;
+              if (Math.abs(e.row - defender.row) <= 1 && Math.abs(e.x - (this.scene.W - 50)) < 160) {
+                this.scene.enemySystem.damageEnemy(e, 60, "#ff4444", "apple_warrior");
+                const res = KNOCKBACK_RESISTANCE[e.type] ?? 1;
+                if (res > 0 && !e.boss) {
+                  e.x = Math.min(this.scene.W + 40, e.x + 45 * res);
+                  if (e.sprite) e.sprite.setX(e.x);
+                  if (e.shadowSprite) e.shadowSprite.setX(e.x);
+                }
+              }
+            }
+            this.scene.effectsSystem.burst(this.scene.W - 30, defender.y, "#ff3b30", 30);
+            this.scene.effectsSystem.triggerShake(8, 250);
+            this.defeatDefender(defender, "apple_charge_end", { silent: true });
+          }
+        }
+        continue;
+      }
+
+      if (defender.type === "papaya") {
+        const hasEnemy = this.scene.gameState.enemies.some(e => e.row === defender.row && e.x > defender.x - 5 && e.hp > 0 && !e.removed);
+        if (hasEnemy && defender.cooldownLeft <= 0) {
+          defender.cooldownLeft = defender.cooldown;
+          this.scene.projectileSystem.spawnPapayaBurst(defender);
+          this.scene.soundManager.beep(460, 0.04, "sine", 0.03);
+        }
+        continue;
+      }
+
+      if (defender.type === "kiwi") {
+        const hasEnemy = this.scene.gameState.enemies.some(e => e.row === defender.row && e.x > defender.x - 5 && e.hp > 0 && !e.removed);
+        if (hasEnemy && defender.cooldownLeft <= 0) {
+          defender.cooldownLeft = defender.cooldown;
+          this.scene.projectileSystem.spawnKiwi(defender);
+          this.scene.soundManager.beep(220, 0.1, "sawtooth", 0.05);
         }
         continue;
       }

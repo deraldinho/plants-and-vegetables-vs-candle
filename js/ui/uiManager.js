@@ -266,11 +266,45 @@ class UIManager {
         state.stats.habitsUsed += 1;
         button.classList.add("used");
 
-        if (name === "water") state.sun += 50;
-        if (name === "fruit") state.sun += 100;
+        if (name === "water") {
+          state.sun += 50;
+          this.activeScene.effectsSystem?.cleanseAllTrailsAndPuddles?.();
+          this.activeScene.statusEffectSystem?.cleanseAllDefenders?.();
+          for (const e of state.enemies) {
+            if (!e.removed && e.type === "bubblegum_jumper") {
+              this.activeScene.statusEffectSystem?.applySlow?.(e, 6.0, 0.5, "water_habit");
+            }
+          }
+          this.activeScene.effectsSystem?.burst?.(500, 300, "#48cae4", 30);
+          this.activeScene.effectsSystem?.spawnFloater?.(500, 260, "ÁGUA PURIFICADORA! +50 ☀️ & LIMPEZA!", "#48cae4", 1.3);
+          this.activeScene.soundManager?.beep?.(600, 0.15, "sine", 0.06);
+        }
+        if (name === "fruit") {
+          state.sun += 100;
+          state.fruitBuffUntil = state.time + 8;
+          for (const def of state.defenders) {
+            if (!def.removed && def.hp > 0) {
+              this.activeScene.statusEffectSystem?.applyImmunity?.(def, 8.0);
+            }
+          }
+          this.activeScene.effectsSystem?.burst?.(500, 300, "#ffd700", 30);
+          this.activeScene.effectsSystem?.spawnFloater?.(500, 260, "FRUTA SUPER NUTRIDA! +100 ☀️ & IMUNIDADE!", "#ffd700", 1.3);
+          this.activeScene.soundManager?.beep?.(720, 0.18, "triangle", 0.06);
+        }
         if (name === "vegetables") state.vegetableBoostUntil = state.time + 15;
-        if (name === "exercise") state.attackBoostUntil = state.time + 20;
-        if (name === "teeth") state.houseHp = Math.min(state.maxHouseHp, state.houseHp + 300);
+        if (name === "exercise") {
+          state.attackBoostUntil = state.time + 10;
+          this.activeScene.effectsSystem?.burst?.(500, 300, "#ff9f1c", 25);
+          this.activeScene.effectsSystem?.spawnFloater?.(500, 260, "SUPER VELOCIDADE 2X! 🏃⚡", "#ff9f1c", 1.3);
+          this.activeScene.soundManager?.beep?.(640, 0.18, "sawtooth", 0.06);
+        }
+        if (name === "teeth") {
+          state.houseHp = Math.min(state.maxHouseHp, state.houseHp + 300);
+          this.activeScene.statusEffectSystem?.popAllBubbles?.();
+          this.activeScene.effectsSystem?.burst?.(500, 300, "#72d9ff", 25);
+          this.activeScene.effectsSystem?.spawnFloater?.(500, 260, "ESCOVAÇÃO TOTAL! +300 HP CASA & BOLHAS ESTOURADAS!", "#72d9ff", 1.3);
+          this.activeScene.soundManager?.beep?.(800, 0.2, "sine", 0.07);
+        }
 
         this.showToast(`Hábito ativado: ${button.querySelector("strong")?.textContent || name}! ✨`);
         this.syncUi(state);

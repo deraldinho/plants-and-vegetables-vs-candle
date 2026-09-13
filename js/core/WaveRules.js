@@ -43,7 +43,7 @@ const WaveRules = Object.freeze({
 
     const cycle = waveNumber % 25;
     if (cycle === 5) return `🕯️ CHEFE 1 (Onda ${waveNumber}): VELA MESTRA!`;
-    if (cycle === 10) return `🟣 CHEFE 2 (Onda ${waveNumber}): CHICLETE GIGANTE GRUDENTO!`;
+    if (cycle === 10) return `🍬 CHEFE DE CERCO (Onda ${waveNumber}): GENERAL CONFEITO DA CATAPULTA!`;
     if (cycle === 15) return `🍭 CHEFE 3 (Onda ${waveNumber}): PIRULITO GIRATÓRIO SUPREMO!`;
     if (cycle === 20) return `🤖🎂 CHEFE 4 (Onda ${waveNumber}): ROBÔ BOLO MUTANTE GIGANTE!`;
     return `👨‍🍳 CHEFE 5 (Onda ${waveNumber}): O CONFEITEIRO SOMBRIO!`;

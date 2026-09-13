@@ -36,6 +36,53 @@ class ProjectileSystem {
     this.scene.gameState.projectiles.push(p);
   }
 
+  spawnPapayaBurst(defender) {
+    const isSuper = this.scene.gameState.time < (this.scene.gameState.fruitBuffUntil || 0);
+    const rows = isSuper ? [defender.row - 1, defender.row, defender.row + 1].filter(r => r >= 0 && r < this.scene.ROWS) : [defender.row];
+    const dmg = this.getEffectiveProjectileDamage(defender);
+
+    for (const r of rows) {
+      for (let i = 0; i < 3; i++) {
+        const delayOffset = i * 22;
+        const y = this.scene.GRID_Y + r * this.scene.CELL_H + this.scene.CELL_H / 2 - 2;
+        const p = {
+          x: defender.x + 22 - delayOffset,
+          y,
+          row: r,
+          speed: 340,
+          damage: dmg,
+          color: isSuper ? "#ffd700" : "#ff9933",
+          icon: isSuper ? "✨" : "●",
+          papayaSeed: true,
+          hitsLeft: 1,
+          sourceType: "papaya",
+          removed: false
+        };
+        p.textObj = this.scene.add.text(p.x, p.y, p.icon, { fontSize: "20px" }).setOrigin(0.5);
+        this.scene.gameState.projectiles.push(p);
+      }
+    }
+  }
+
+  spawnKiwi(defender) {
+    const p = {
+      x: defender.x + 25,
+      y: defender.y - 3,
+      row: defender.row,
+      speed: 280,
+      damage: 70,
+      color: "#7ea310",
+      icon: "🥝",
+      bowling: true,
+      hitCount: 0,
+      hitsLeft: 4,
+      sourceType: "kiwi",
+      removed: false
+    };
+    p.textObj = this.scene.add.text(p.x, p.y, p.icon, { fontSize: "28px" }).setOrigin(0.5);
+    this.scene.gameState.projectiles.push(p);
+  }
+
   updateProjectiles(dt) {
     for (const p of this.scene.gameState.projectiles) {
       if (!p || p.removed) continue;
@@ -69,7 +116,40 @@ class ProjectileSystem {
       if (!p.hitEnemies) p.hitEnemies = new Set();
       p.hitEnemies.add(hit);
 
-      if (p.area) {
+      if (p.papayaSeed) {
+        this.scene.statusEffectSystem.applyPapainShred(hit, 6.0);
+      }
+
+      if (p.bowling) {
+        p.hitCount = (p.hitCount || 0) + 1;
+        const dmg = p.hitCount === 1 ? 70 : (p.hitCount === 2 ? 50 : 35);
+        this.scene.enemySystem.damageEnemy(hit, dmg, "#7ea310", "kiwi");
+        const res = KNOCKBACK_RESISTANCE[hit.type] ?? 1;
+        if (res > 0 && !hit.boss) {
+          const knock = Math.round(48 * res);
+          hit.x = Math.min(this.scene.W + 30, hit.x + knock);
+          if (hit.sprite) hit.sprite.setX(hit.x);
+          if (hit.shadowSprite) hit.shadowSprite.setX(hit.x);
+        }
+        if (p.hitCount === 3) {
+          this.scene.gameState.sun += 25;
+          this.scene.effectsSystem.spawnFloater(p.x, p.y - 35, "STRIKE DE FRUTAS! +25 ☀️", "#ffd700", 1.25);
+          this.scene.soundManager.beep(660, 0.15, "sine", 0.06);
+        }
+
+        const broccoliInRow = this.scene.gameState.defenders.find(d => !d.removed && d.type === "broccoli" && d.row === p.row && Math.abs(d.x - p.x) < 50);
+        if (broccoliInRow) {
+          this.scene.effectsSystem.spawnShockwave(p.x, p.y, "#7ea310", 110, 0.4);
+          this.scene.soundManager.beep(300, 0.2, "sawtooth", 0.08);
+          this.scene.effectsSystem.spawnFloater(p.x, p.y - 30, "RICOCHETE DE BRÓCOLIS! 🥦⚡", "#7ea310", 1.2);
+          for (const e of this.scene.gameState.enemies) {
+            if (!e.removed && e.hp > 0 && Math.abs(e.row - p.row) <= 1 && Math.abs(e.x - p.x) < 130) {
+              this.scene.statusEffectSystem.applySlow(e, 1.5, 0.1, "kiwi_broccoli_stun");
+              this.scene.effectsSystem.burst(e.x, e.y, "#b8e34d", 8);
+            }
+          }
+        }
+      } else if (p.area) {
         for (const enemy of this.scene.gameState.enemies) {
           if (enemy.removed || enemy.hp <= 0) continue;
           const distance = Math.hypot(enemy.x - hit.x, (enemy.row - hit.row) * this.scene.CELL_H);
@@ -115,6 +195,53 @@ class ProjectileSystem {
     for (const ep of state.enemyProjectiles) {
       if (!ep || ep.removed) continue;
 
+      if (ep.parabolic) {
+        ep.t += dt / (ep.duration || 1.4);
+        ep.x = ep.startX + (ep.targetX - ep.startX) * ep.t;
+        const arcH = Math.sin(Math.min(1, ep.t) * Math.PI) * 160;
+        ep.y = ep.startY + (ep.targetY - ep.startY) * ep.t - arcH;
+        if (ep.textObj) ep.textObj.setPosition(ep.x, ep.y);
+
+        if (ep.t >= 1) {
+          const col = Math.max(0, Math.min(this.scene.COLS - 1, Math.floor((ep.targetX - this.scene.GRID_X) / this.scene.CELL_W)));
+          const row = ep.row;
+          const targetDef = state.defenders.find(d => !d.removed && d.hp > 0 && d.col === col && d.row === row);
+
+          if (targetDef) {
+            this.scene.defenderSystem.damageDefender(targetDef, 35, {
+              reason: "catapult-bomb",
+              color: "#4a044e",
+              burstColor: "#d946ef",
+              suffix: "💣"
+            });
+            this.scene.statusEffectSystem.applySugarRot(targetDef, 6.0, 6);
+          }
+
+          for (const neighbor of state.defenders) {
+            if (!neighbor.removed && neighbor !== targetDef) {
+              const dCol = Math.abs(neighbor.col - col);
+              const dRow = Math.abs(neighbor.row - row);
+              if ((dCol === 1 && dRow === 0) || (dCol === 0 && dRow === 1)) {
+                this.scene.defenderSystem.damageDefender(neighbor, 15, {
+                  reason: "catapult-shrapnel",
+                  color: "#d946ef",
+                  suffix: "💥"
+                });
+              }
+            }
+          }
+
+          this.scene.effectsSystem.spawnToxicPuddle(col, row, 8.0, 4);
+          this.scene.effectsSystem.burst(ep.targetX, ep.targetY, "#d946ef", 24);
+          this.scene.effectsSystem.triggerShake(10, 300);
+          this.scene.soundManager.beep(90, 0.25, "sawtooth", 0.08);
+
+          ep.removed = true;
+          if (ep.textObj) ep.textObj.destroy();
+        }
+        continue;
+      }
+
       const previousX = ep.x;
       ep.x -= (ep.speed || 300) * dt;
       if (ep.textObj) ep.textObj.setPosition(ep.x, ep.y);
@@ -128,15 +255,46 @@ class ProjectileSystem {
       if (targetDef) {
         const brigadeiro = ep.effect === "brigadeiro";
         const flame = ep.effect === "flame";
-        this.scene.defenderSystem.damageDefender(targetDef, ep.damage, {
-          reason: flame ? "candle-flame" : (brigadeiro ? "brigadeiro-projectile" : "enemy-projectile"),
-          slowDuration: brigadeiro ? (ep.slowDuration || 5) : 0,
-          slowMultiplier: brigadeiro ? (ep.slowMultiplier || 0.7) : undefined,
-          slowSource: brigadeiro ? "gummy_brigadeiro" : null,
-          color: ep.color || (brigadeiro ? "#8b4b2b" : "#ff3b9a"),
-          burstColor: ep.color || "#ff3b9a",
-          suffix: flame ? "🔥" : (brigadeiro ? "🍫" : "🌵")
-        });
+        const toxicCandy = ep.effect === "toxic_candy";
+        const bubbleSnare = ep.effect === "bubble_snare";
+        const sugarBind = ep.effect === "sugar_bind";
+
+        if (toxicCandy) {
+          const wasKilled = targetDef.hp <= ep.damage;
+          this.scene.defenderSystem.damageDefender(targetDef, ep.damage, {
+            reason: "strawberry-toxic-candy",
+            color: "#e11d48",
+            burstColor: "#9333ea",
+            suffix: "🍓"
+          });
+          this.scene.statusEffectSystem.applyToxicWilting(targetDef, 5.0, 4);
+          if (wasKilled || targetDef.hp <= 0 || targetDef.removed) {
+            this.scene.effectsSystem.spawnToxicPuddle(targetDef.col, targetDef.row, 6.0, 4);
+          }
+        } else if (bubbleSnare) {
+          this.scene.statusEffectSystem.applyBubbleSnare(targetDef, 4.0);
+          this.scene.effectsSystem.burst(targetDef.x, targetDef.y, "#ff85a2", 15);
+          this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 35, "PRESO NA BOLHA! 🫧", "#ff85a2", 1.2);
+        } else if (sugarBind) {
+          this.scene.defenderSystem.damageDefender(targetDef, ep.damage || 10, {
+            reason: "caramel-bind",
+            color: "#d97706",
+            burstColor: "#f59e0b",
+            suffix: "🍮"
+          });
+          this.scene.statusEffectSystem.applySugarBind(targetDef, 4.0);
+          this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 35, "GOSMA APRISIONADORA! 🍮", "#d97706", 1.2);
+        } else {
+          this.scene.defenderSystem.damageDefender(targetDef, ep.damage, {
+            reason: flame ? "candle-flame" : (brigadeiro ? "brigadeiro-projectile" : "enemy-projectile"),
+            slowDuration: brigadeiro ? (ep.slowDuration || 5) : 0,
+            slowMultiplier: brigadeiro ? (ep.slowMultiplier || 0.7) : undefined,
+            slowSource: brigadeiro ? "gummy_brigadeiro" : null,
+            color: ep.color || (brigadeiro ? "#8b4b2b" : "#ff3b9a"),
+            burstColor: ep.color || "#ff3b9a",
+            suffix: flame ? "🔥" : (brigadeiro ? "🍫" : "🌵")
+          });
+        }
 
         if (brigadeiro && !targetDef.removed) {
           this.scene.effectsSystem.spawnFloater(targetDef.x, targetDef.y - 45, "BRIGADEIRO GRUDENTO! -30% ATAQUE 🍫", "#8b4b2b", 1.05);

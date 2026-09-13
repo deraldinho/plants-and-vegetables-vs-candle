@@ -28,12 +28,18 @@ const DEFENDERS = {
   strawberry: { name: "Morango Atrator", icon: "🍓", cost: 60, hp: 200, damage: 150, cooldown: 99, color: "#ff2a4b", taunt: true, explodeOnDeath: true, projectile: "", seedPrice: 200, ability: { name: "Aroma Irresistível", cooldown: 15, description: "atrai todos os doces para sua posição" } },
   apple: { name: "Maçã Esmagadora", icon: "🍎", cost: 90, hp: 120, damage: 220, cooldown: 99, color: "#e3242b", smash: true, projectile: "", seedPrice: 220, ability: { name: "Super Impacto", cooldown: 16, description: "esmaga com 300 de dano em área" } },
   pineapple: { name: "Abacaxi Ácido", icon: "🍍", cost: 50, hp: 100, damage: 22, cooldown: 1.4, color: "#b8e04a", acid: true, acidPool: true, projectile: "💧", seedPrice: 250, ability: { name: "Enxurrada Ácida", cooldown: 14, description: "cria uma grande poça de ácido na linha que dura 6 segundos" } },
-  cauliflower: { name: "Couve-Flor Mística", icon: "🥦", cost: 125, hp: 100, damage: 24, cooldown: 1.25, color: "#d8f8e1", piercing: true, projectile: "🌀", seedPrice: 300, ability: { name: "Onda Mística", cooldown: 18, description: "projétil místico que atravessa a linha inteira" } }
+  cauliflower: { name: "Couve-Flor Mística", icon: "🥦", cost: 125, hp: 100, damage: 24, cooldown: 1.25, color: "#d8f8e1", piercing: true, projectile: "🌀", seedPrice: 300, ability: { name: "Onda Mística", cooldown: 18, description: "projétil místico que atravessa a linha inteira" } },
+  papaya: { name: "Mamão Atirador", icon: "🍈", cost: 175, hp: 110, damage: 12, cooldown: 1.4, color: "#ff9933", burstCount: 3, projectile: "●", seedPrice: 240, ability: { name: "Chuva de Papaína", cooldown: 16, description: "rajada de sementes douradas cobrindo 3 linhas com papaína" } },
+  kiwi: { name: "Kiwi Boliche", icon: "🥝", cost: 125, hp: 140, damage: 70, cooldown: 3.0, color: "#7ea310", bowling: true, projectile: "", seedPrice: 220, ability: { name: "Strike Furioso", cooldown: 14, description: "rolamento de alta rotação com repulsão pesada" } },
+  apple_warrior: { name: "Maçã Guerreira", icon: "🍎", cost: 175, hp: 130, damage: 180, cooldown: 99, color: "#e3242b", laneCharge: true, projectile: "", seedPrice: 260, ability: { name: "Super Arrancada", cooldown: 18, description: "investida supersônica explosiva por toda a linha" } }
 };
 
 const ENEMIES = {
   gummy: { name: "Ursinho de Goma", icon: "🧸", hp: 130, speed: 24, damage: 18, attackRate: 1, reward: 25, scale: 1, description: "Inimigo básico e equilibrado." },
   gummy_brigadeiro: { name: "Ursinho de Goma Artilheiro", icon: "🧸💣", hp: 320, speed: 15, damage: 25, attackRate: 3.5, reward: 60, scale: 1.08, ranged: true, range: 300, projectileSpeed: 300, projectileIcon: "●", projectileColor: "#6d3b1f", slowDuration: 5, slowMultiplier: .7, texture: "tex_gummy", tint: 0x7b3f00, preview: "canhão de brigadeiro", description: "Variante Level 2: para à distância e dispara brigadeiro grudento, reduzindo a velocidade de ataque das plantas." },
+  caramel_sticky: { name: "Caramelo Grudento", icon: "🍮", hp: 320, speed: 12, damage: 20, attackRate: 1.3, reward: 50, scale: 1.15, armorReduction: 0.25, stickyTrail: true, skillInterval: 7.0, bindDuration: 4.0, preview: "trilha pegajosa", description: "Derrama trilhas que reduzem a cadência dos vegetais e cospe calda que os aprisiona." },
+  strawberry_shooter: { name: "Bala de Morango Atiradora", icon: "🍓", hp: 140, speed: 12, damage: 18, attackRate: 2.0, reward: 45, scale: 1.05, ranged: true, range: 750, poisonDps: 4, poisonDuration: 5.0, burstInterval: 12.0, preview: "veneno DoT", description: "Atira confeitos tóxicos que causam veneno contínuo e lentidão na retaguarda." },
+  bubblegum_jumper: { name: "Chiclete Saltador", icon: "🫧", hp: 110, speed: 32, damage: 16, attackRate: 0.9, reward: 40, scale: 1.05, jumper: true, bubbleInterval: 6.0, bubbleDuration: 4.0, bubbleShield: 60, preview: "salta barreira", description: "Salta sobre a primeira barreira e sopra bolhas que suspendem vegetais." },
   lollipop: { name: "Pirulito Giratório", icon: "🍭", hp: 210, speed: 18, damage: 24, attackRate: 1.1, reward: 35, scale: 1.05, description: "Resistente e constante." },
   cupcake: { name: "Cupcake Tanque", icon: "🧁", hp: 430, speed: 10, damage: 35, attackRate: 1.2, reward: 55, scale: 1.15, description: "Muita vida, mas anda devagar." },
   marshmallow: { name: "Marshmallow Veloz", icon: "⬜", hp: 100, speed: 45, damage: 14, attackRate: .75, reward: 30, scale: .9, description: "Pouca vida e velocidade extrema." },
@@ -41,6 +47,7 @@ const ENEMIES = {
   soda: { name: "Refrigerante Energético", icon: "🥤", hp: 180, speed: 22, damage: 18, attackRate: 1, reward: 40, scale: 1.05, aura: true, preview: "acelera aliados", description: "Acelera doces próximos na mesma linha." },
   gum: { name: "Chiclete Pegajoso", icon: "🟣", hp: 190, speed: 20, damage: 20, attackRate: .9, reward: 45, scale: 1, sticky: true, preview: "causa lentidão", description: "Desacelera o ataque do defensor atingido." },
   candle: { name: "Vela Mestra (Chefe 1)", icon: "🕯️", hp: 2200, speed: 8, damage: 55, attackRate: 1.05, reward: 500, scale: 1.55, boss: true, description: "Chefe 1 da Onda 5: Enorme vida e dano violento." },
+  candy_catapult_boss: { name: "General Confeito da Catapulta", icon: "🍬", hp: 1200, speed: 6, damage: 35, attackRate: 7.0, reward: 800, scale: 1.6, boss: true, siege: true, preview: "catapulta de cerco", description: "Chefe de Cerco da Fase 2: Lança bombas parabólicas tóxicas que cobrem a horta de necrose." },
   gum_boss: { name: "Chiclete Gigante Grudento (Chefe 2)", icon: "🟣", hp: 3800, speed: 7, damage: 65, attackRate: .95, reward: 750, scale: 1.65, sticky: true, boss: true, description: "Chefe 2 da Onda 10: Lança bombas de chiclete grudento desacelerando os vegetais." },
   lollipop_boss: { name: "Pirulito Giratório Supremo (Chefe 3)", icon: "🍭", hp: 5800, speed: 9, damage: 80, attackRate: .85, reward: 1200, scale: 1.7, boss: true, description: "Chefe 3 da Onda 15: Gira furiosamente e spamma tempestades de espinhos." },
   confeiteiro: { name: "O Confeiteiro Sombrio (Chefe Supremo)", icon: "👨‍🍳", hp: 8500, speed: 6, damage: 100, attackRate: .8, reward: 2000, scale: 1.85, boss: true, description: "O Chefão Supremo da Onda Final! Invoca doces ajudantes e dispara projéteis pesados." },
@@ -50,13 +57,17 @@ const ENEMIES = {
 const KNOCKBACK_RESISTANCE = {
   gummy: 1.0,
   marshmallow: 1.0,
+  strawberry_shooter: 0.8,
+  bubblegum_jumper: 1.0,
   lollipop: 0.6,
   soda: 0.6,
   chocolate: 0.3,
+  caramel_sticky: 0.4,
   cupcake: 0.3,
   gum: 0.8,
   gummy_brigadeiro: 0.7,
   candle: 0,
+  candy_catapult_boss: 0,
   gum_boss: 0,
   lollipop_boss: 0,
   confeiteiro: 0,

@@ -70,8 +70,110 @@ class StatusEffectSystem {
     return this.apply(entity, id, { duration, damage, source, color, tickEvery });
   }
 
+  applyPapainShred(enemy, duration = 6.0) {
+    if (!enemy || enemy.removed) return null;
+    const current = this.get(enemy, "papain_shred");
+    const currentStacks = current ? (current.stacks || 1) : 0;
+    const newStacks = Math.min(5, currentStacks + 1);
+    const magnitudeBonus = newStacks * 0.05;
+    const effect = this.apply(enemy, "papain_shred", {
+      duration,
+      magnitude: 1 + magnitudeBonus,
+      source: "papaya"
+    });
+    if (effect) {
+      effect.stacks = newStacks;
+      effect.magnitudeBonus = magnitudeBonus;
+    }
+    return effect;
+  }
+
+  applySugarBind(defender, duration = 4.0) {
+    if (this.hasImmunity(defender)) return null;
+    return this.apply(defender, "sugar_bind", { duration, magnitude: 0, source: "caramel_sticky" });
+  }
+
+  applyBubbleSnare(defender, duration = 4.0) {
+    if (this.hasImmunity(defender)) return null;
+    return this.apply(defender, "bubble_snare", { duration, magnitude: 0, source: "bubblegum_jumper" });
+  }
+
+  applyToxicWilting(defender, duration = 5.0, dps = 4, source = "strawberry_shooter") {
+    if (this.hasImmunity(defender)) return null;
+    const current = this.get(defender, "toxic_wilting");
+    const newDps = current ? Math.min(8, current.damage + 2) : dps;
+    return this.apply(defender, "toxic_wilting", {
+      duration,
+      damage: newDps,
+      color: "#e63946",
+      source,
+      tickEvery: 1.0
+    });
+  }
+
+  applySugarRot(defender, duration = 6.0, dps = 6, source = "candy_catapult_boss") {
+    if (this.hasImmunity(defender)) return null;
+    const current = this.get(defender, "sugar_rot");
+    if (current) {
+      this.applySugarBind(defender, 3.0);
+      return this.apply(defender, "sugar_rot", {
+        duration,
+        damage: 12,
+        color: "#9d0208",
+        source,
+        tickEvery: 1.0
+      });
+    }
+    return this.apply(defender, "sugar_rot", {
+      duration,
+      damage: dps,
+      color: "#9d0208",
+      source,
+      tickEvery: 1.0
+    });
+  }
+
+  applyImmunity(defender, duration = 8.0) {
+    this.remove(defender, "toxic_wilting");
+    this.remove(defender, "sugar_rot");
+    this.remove(defender, "sugar_bind");
+    this.remove(defender, "bubble_snare");
+    return this.apply(defender, "immune_buff", { duration, magnitude: 1, source: "fruit_habit" });
+  }
+
+  hasImmunity(defender) {
+    return !!this.get(defender, "immune_buff");
+  }
+
+  isImmobilized(defender) {
+    return !!(this.get(defender, "sugar_bind") || this.get(defender, "bubble_snare"));
+  }
+
+  cleanseAllDefenders() {
+    for (const defender of (this.scene.gameState?.defenders || [])) {
+      this.remove(defender, "toxic_wilting");
+      this.remove(defender, "sugar_rot");
+      this.remove(defender, "sugar_bind");
+      this.remove(defender, "bubble_snare");
+      this.remove(defender, "slow");
+    }
+  }
+
+  popAllBubbles() {
+    for (const defender of (this.scene.gameState?.defenders || [])) {
+      if (this.get(defender, "bubble_snare")) {
+        this.remove(defender, "bubble_snare");
+        this.scene.effectsSystem?.burst(defender.x, defender.y, "#ff85a2", 15);
+      }
+    }
+  }
+
   getAttackSpeedMultiplier(entity) {
-    return this.get(entity, "slow")?.magnitude ?? 1;
+    if (this.isImmobilized(entity)) return 0;
+    let mult = this.get(entity, "slow")?.magnitude ?? 1;
+    if (this.get(entity, "toxic_wilting")) mult *= 0.75;
+    if (this.get(entity, "sugar_rot")) mult *= 0.65;
+    return mult;
   }
 
   getMovementSpeedMultiplier(entity) {
@@ -79,7 +181,32 @@ class StatusEffectSystem {
   }
 
   getDamageTakenMultiplier(entity) {
-    return this.get(entity, "guard")?.magnitude ?? 1;
+    const guard = this.get(entity, "guard")?.magnitude ?? 1;
+    const papain = this.get(entity, "papain_shred");
+    const papainBonus = papain?.magnitudeBonus || 0;
+    return guard * (1 + papainBonus);
+  }
+
+  updateDefender(defender) {
+    if (!defender || defender.removed || defender.hp <= 0 || !defender.statusEffects) return;
+    const now = this.scene.gameState.time;
+    for (const [id, effect] of [...defender.statusEffects.entries()]) {
+      if (effect.expiresAt <= now) {
+        defender.statusEffects.delete(id);
+        continue;
+      }
+      if ((id === "toxic_wilting" || id === "sugar_rot") && effect.damage > 0) {
+        while (!defender.removed && defender.hp > 0 && effect.nextTickAt <= now && effect.nextTickAt < effect.expiresAt + 0.0001) {
+          this.scene.defenderSystem.damageDefender(defender, effect.damage, {
+            color: effect.color,
+            suffix: "☠️",
+            burstColor: effect.color,
+            reason: id
+          });
+          effect.nextTickAt += effect.tickEvery;
+        }
+      }
+    }
   }
 
   updateEnemy(enemy) {

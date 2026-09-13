@@ -25,8 +25,9 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
   const enemyPool = ["gummy", "marshmallow", "lollipop"];
   if (waveNumber >= 2) enemyPool.push("soda");
   if (waveNumber >= 3) enemyPool.push("cupcake", "gum");
-  if (waveNumber >= 4) enemyPool.push("chocolate");
-  if (waveNumber >= 6) enemyPool.push("gummy_brigadeiro");
+  if (waveNumber >= 4) enemyPool.push("chocolate", "caramel_sticky");
+  if (waveNumber >= 5) enemyPool.push("bubblegum_jumper");
+  if (waveNumber >= 6) enemyPool.push("gummy_brigadeiro", "strawberry_shooter");
 
   const count = isFinaleWave ? 45 : Math.min(6 + Math.floor(waveNumber * 2.2), 44);
   const spacing = isFinaleWave ? 0.4 : Math.max(0.35, 1.4 - waveNumber * 0.03);
@@ -41,6 +42,7 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
 
   if (waveNumber === 6) {
     add(6.25, "gummy_brigadeiro", Math.floor(rand() * 5));
+    add(7.0, "strawberry_shooter", Math.floor(rand() * 5));
   }
 
   if (isFinaleWave) {
@@ -55,7 +57,7 @@ function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
     const at = Math.min(10.0, 2.0 + (count * spacing) * 0.25);
     const cycle = waveNumber % 25;
     if (cycle === 5) add(at, "candle", bossRow);
-    else if (cycle === 10) add(at, "gum_boss", bossRow);
+    else if (cycle === 10) add(at, "candy_catapult_boss", bossRow);
     else if (cycle === 15) add(at, "lollipop_boss", bossRow);
     else if (cycle === 20) add(at, "cake_robot", bossRow);
     else if (cycle === 0) add(at, "confeiteiro", bossRow);

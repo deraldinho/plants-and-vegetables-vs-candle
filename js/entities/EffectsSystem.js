@@ -247,6 +247,96 @@ class EffectsSystem {
     this.scene.gameState.acidPools = this.scene.gameState.acidPools.filter(p => p.life > 0);
   }
 
+  spawnStickyTrail(col, row, duration = 8.0) {
+    if (!this.scene.gameState.stickyTrails) this.scene.gameState.stickyTrails = [];
+    const x = this.scene.GRID_X + col * this.scene.CELL_W + this.scene.CELL_W / 2;
+    const y = this.scene.GRID_Y + row * this.scene.CELL_H + this.scene.CELL_H / 2 + 14;
+    const sprite = this.scene.add.sprite(x, y, "tex_caramel_trail").setOrigin(0.5);
+    this.scene.gameState.stickyTrails.push({ col, row, x, y, life: duration, maxLife: duration, sprite });
+  }
+
+  spawnToxicPuddle(col, row, duration = 6.0, dps = 4) {
+    if (!this.scene.gameState.toxicPuddles) this.scene.gameState.toxicPuddles = [];
+    const x = this.scene.GRID_X + col * this.scene.CELL_W + this.scene.CELL_W / 2;
+    const y = this.scene.GRID_Y + row * this.scene.CELL_H + this.scene.CELL_H / 2 + 12;
+    const sprite = this.scene.add.sprite(x, y, "tex_toxic_puddle").setOrigin(0.5);
+    this.scene.gameState.toxicPuddles.push({ col, row, x, y, dps, life: duration, maxLife: duration, tickTimer: 1.0, sprite });
+  }
+
+  cleanseAllTrailsAndPuddles() {
+    if (this.scene.gameState.stickyTrails) {
+      for (const t of this.scene.gameState.stickyTrails) {
+        if (t.sprite) t.sprite.destroy();
+        this.burst(t.x, t.y, "#ffd54f", 6);
+      }
+      this.scene.gameState.stickyTrails = [];
+    }
+    if (this.scene.gameState.toxicPuddles) {
+      for (const p of this.scene.gameState.toxicPuddles) {
+        if (p.sprite) p.sprite.destroy();
+        this.burst(p.x, p.y, "#90caf9", 8);
+      }
+      this.scene.gameState.toxicPuddles = [];
+    }
+  }
+
+  cleanseLaneCell(col, row) {
+    if (this.scene.gameState.stickyTrails) {
+      this.scene.gameState.stickyTrails = this.scene.gameState.stickyTrails.filter(t => {
+        if (t.col === col && t.row === row) {
+          if (t.sprite) t.sprite.destroy();
+          this.burst(t.x, t.y, "#ffd54f", 6);
+          return false;
+        }
+        return true;
+      });
+    }
+    if (this.scene.gameState.toxicPuddles) {
+      this.scene.gameState.toxicPuddles = this.scene.gameState.toxicPuddles.filter(p => {
+        if (p.col === col && p.row === row) {
+          if (p.sprite) p.sprite.destroy();
+          this.burst(p.x, p.y, "#90caf9", 8);
+          return false;
+        }
+        return true;
+      });
+    }
+  }
+
+  updateTrailsAndPuddles(dt) {
+    if (this.scene.gameState.stickyTrails) {
+      for (const t of this.scene.gameState.stickyTrails) {
+        t.life -= dt;
+        if (t.sprite) t.sprite.setAlpha(Math.min(1, t.life / t.maxLife));
+        if (t.life <= 0 && t.sprite) t.sprite.destroy();
+      }
+      this.scene.gameState.stickyTrails = this.scene.gameState.stickyTrails.filter(t => t.life > 0);
+    }
+
+    if (this.scene.gameState.toxicPuddles) {
+      for (const p of this.scene.gameState.toxicPuddles) {
+        p.life -= dt;
+        p.tickTimer -= dt;
+        if (p.sprite) p.sprite.setAlpha(Math.min(1, p.life / p.maxLife));
+
+        if (p.tickTimer <= 0) {
+          p.tickTimer = 1.0;
+          // Apply poison tick to defender on this cell
+          const def = this.scene.gameState.defenders?.find(d => !d.removed && d.hp > 0 && d.col === p.col && d.row === p.row);
+          if (def) {
+            this.scene.defenderSystem.damageDefender(def, p.dps || 4, {
+              color: "#9333ea",
+              suffix: "☠️",
+              reason: "toxic_puddle"
+            });
+          }
+        }
+        if (p.life <= 0 && p.sprite) p.sprite.destroy();
+      }
+      this.scene.gameState.toxicPuddles = this.scene.gameState.toxicPuddles.filter(p => p.life > 0);
+    }
+  }
+
   updateSuns(dt) {
     for (const s of this.scene.gameState.suns) {
       s.pulse += dt * 4;

@@ -79,6 +79,19 @@ class EnemySystem {
       this.scene.effectsSystem.triggerShake(22, 700);
       this.scene.soundManager.beep(75, 0.65, "sawtooth");
       this.scene.effectsSystem.spawnFloater(500, 150, "🤖🎂 ROBÔ BOLO MUTANTE GIGANTE ENTROU NA BATALHA! 🤖🎂", "#00e5ff", 1.65);
+    } else if (type === "candy_catapult_boss") {
+      this.scene.effectsSystem.triggerShake(20, 650);
+      this.scene.soundManager.beep(90, 0.55, "sawtooth");
+      this.scene.effectsSystem.spawnFloater(500, 150, "🍬 GENERAL CONFEITO DA CATAPULTA CHEGOU! 🍬", "#d946ef", 1.6);
+    } else if (type === "caramel_sticky") {
+      this.scene.effectsSystem.spawnFloater(720, y - 38, "🍮 CARAMELO GRUDENTO: TRILHA VISCOSA!", "#d97706", 1.15);
+      this.scene.soundManager.beep(160, 0.15, "square", 0.04);
+    } else if (type === "strawberry_shooter") {
+      this.scene.effectsSystem.spawnFloater(720, y - 38, "🍓 BALA DE MORANGO: ATIRADORA TÓXICA!", "#e11d48", 1.15);
+      this.scene.soundManager.beep(280, 0.12, "square", 0.04);
+    } else if (type === "bubblegum_jumper") {
+      this.scene.effectsSystem.spawnFloater(720, y - 38, "🫧 CHICLETE SALTADOR: SALTO ACROBÁTICO!", "#ff5d8f", 1.15);
+      this.scene.soundManager.beep(420, 0.12, "sine", 0.05);
     }
 
     return enemy;
@@ -92,6 +105,29 @@ class EnemySystem {
 
   fireRangedProjectile(enemy, target) {
     if (!enemy || !target || target.removed || target.hp <= 0) return false;
+
+    if (enemy.type === "strawberry_shooter") {
+      const projectile = {
+        x: enemy.x - 28,
+        y: enemy.y - 6,
+        row: enemy.row,
+        speed: 280,
+        damage: enemy.damage || 18,
+        color: "#e11d48",
+        icon: "🍓",
+        effect: "toxic_candy",
+        removed: false
+      };
+      projectile.textObj = this.scene.add.text(projectile.x, projectile.y, projectile.icon, {
+        fontSize: "22px",
+        color: projectile.color
+      }).setOrigin(0.5);
+      this.scene.gameState.enemyProjectiles.push(projectile);
+      this.scene.effectsSystem.burst(enemy.x - 20, enemy.y, "#e11d48", 6);
+      this.scene.soundManager.beep(260, 0.06, "square", 0.03);
+      return true;
+    }
+
     const projectile = {
       x: enemy.x - 28,
       y: enemy.y - 6,
@@ -118,6 +154,53 @@ class EnemySystem {
     return true;
   }
 
+  fireStrawberryFanBurst(enemy) {
+    for (const r of [enemy.row - 1, enemy.row, enemy.row + 1]) {
+      if (r >= 0 && r < this.scene.ROWS) {
+        const p = {
+          x: enemy.x - 30,
+          y: this.scene.GRID_Y + r * this.scene.CELL_H + this.scene.CELL_H / 2,
+          row: r,
+          speed: 290,
+          damage: 10,
+          color: "#9333ea",
+          icon: "✨",
+          effect: "toxic_candy",
+          removed: false
+        };
+        p.textObj = this.scene.add.text(p.x, p.y, p.icon, { fontSize: "20px" }).setOrigin(0.5);
+        this.scene.gameState.enemyProjectiles.push(p);
+      }
+    }
+    this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 45, "RAJADA EFERVESCENTE! 🍓⚡", "#9333ea", 1.2);
+    this.scene.soundManager.beep(330, 0.15, "sawtooth", 0.05);
+  }
+
+  fireCatapultBomb(enemy, target) {
+    const p = {
+      x: enemy.x - 40,
+      y: enemy.y,
+      startX: enemy.x - 40,
+      startY: enemy.y,
+      targetX: target.x,
+      targetY: target.y,
+      row: target.row,
+      t: 0,
+      duration: 1.4,
+      effect: "catapult_bomb",
+      damage: 35,
+      color: "#4a044e",
+      icon: "💣",
+      parabolic: true,
+      removed: false
+    };
+    p.textObj = this.scene.add.text(p.x, p.y, p.icon, { fontSize: "26px" }).setOrigin(0.5);
+    this.scene.gameState.enemyProjectiles.push(p);
+    this.scene.effectsSystem.burst(enemy.x - 35, enemy.y, "#d946ef", 12);
+    this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 50, "LANÇAMENTO DE CONFEITO! 🍬💣", "#d946ef", 1.2);
+    this.scene.soundManager.beep(120, 0.25, "sawtooth", 0.07);
+  }
+
   meltShield(enemy, amount, sourceType = null, color = "#ffa500") {
     if (!enemy || enemy.removed || enemy.hp <= 0 || enemy.shield <= 0) return 0;
     const melted = Math.min(enemy.shield, Math.max(0, Number(amount) || 0));
@@ -138,7 +221,22 @@ class EnemySystem {
 
   damageEnemy(enemy, amount, color, sourceType = null) {
     if (!enemy || enemy.hp <= 0 || enemy.removed) return;
-    let remainingDamage = Math.max(0, Number(amount) || 0);
+    let initialDamage = Math.max(0, Number(amount) || 0);
+
+    const papainMultiplier = this.scene.statusEffectSystem?.getEnemyDamageMultiplier?.(enemy) || 1;
+    initialDamage = Math.round(initialDamage * papainMultiplier);
+
+    if (enemy.type === "caramel_sticky") {
+      if (sourceType === "corn" || sourceType === "carrot") {
+        initialDamage = Math.round(initialDamage * 0.75);
+      } else if (sourceType === "pepper") {
+        initialDamage = Math.round(initialDamage * 2.0);
+        const col = Math.floor((enemy.x - this.scene.GRID_X) / this.scene.CELL_W);
+        this.scene.effectsSystem?.cleanseLaneCell?.(col, enemy.row);
+      }
+    }
+
+    let remainingDamage = initialDamage;
     let absorbedDamage = 0;
     if (enemy.shield > 0) {
       absorbedDamage = Math.min(enemy.shield, remainingDamage);
@@ -344,6 +442,106 @@ class EnemySystem {
           };
           laser.textObj = this.scene.add.text(laser.x, laser.y, laser.icon, { fontSize: "28px" }).setOrigin(0.5);
           this.scene.gameState.enemyProjectiles.push(laser);
+        }
+      }
+
+      if (enemy.type === "candy_catapult_boss") {
+        if (enemy.hp <= enemy.maxHp * 0.5 && !enemy.inPhase2) {
+          enemy.inPhase2 = true;
+          enemy.shield = (enemy.shield || 0) + 250;
+          this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 50, "SOBRECARGA DE AÇÚCAR! 🍬⚡", "#ffd700", 1.4);
+          this.scene.effectsSystem.triggerShake(14, 400);
+          this.scene.soundManager.beep(160, 0.4, "sawtooth", 0.08);
+        }
+
+        enemy.catapultTimer = (enemy.catapultTimer || 0) + dt;
+        const interval = enemy.inPhase2 ? 4.5 : 7.0;
+        if (enemy.catapultTimer >= interval) {
+          enemy.catapultTimer = 0;
+          const aliveDefenders = this.scene.gameState.defenders.filter(d => !d.removed && d.hp > 0);
+          if (aliveDefenders.length > 0) {
+            const target = [...aliveDefenders].sort((a, b) => a.x - b.x)[0];
+            this.fireCatapultBomb(enemy, target);
+
+            if (enemy.inPhase2) {
+              for (const adjRow of [target.row - 1, target.row + 1]) {
+                if (adjRow >= 0 && adjRow < this.scene.ROWS) {
+                  const adjTarget = aliveDefenders.find(d => d.row === adjRow) || {
+                    x: target.x,
+                    y: this.scene.GRID_Y + adjRow * this.scene.CELL_H + this.scene.CELL_H / 2,
+                    row: adjRow,
+                    col: target.col
+                  };
+                  this.fireCatapultBomb(enemy, adjTarget);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (enemy.type === "caramel_sticky") {
+        enemy.trailTimer = (enemy.trailTimer || 1.5) - dt;
+        if (enemy.trailTimer <= 0) {
+          enemy.trailTimer = 2.0;
+          const col = Math.floor((enemy.x - this.scene.GRID_X) / this.scene.CELL_W);
+          if (col >= 0 && col < this.scene.COLS) {
+            this.scene.effectsSystem.spawnStickyTrail(col, enemy.row, 8.0);
+          }
+        }
+
+        enemy.skillTimer = (enemy.skillTimer || 7.0) - dt;
+        if (enemy.skillTimer <= 0) {
+          enemy.skillTimer = 7.0;
+          const frontDef = this.scene.gameState.defenders
+            .filter(d => !d.removed && d.hp > 0 && d.row === enemy.row && d.x < enemy.x)
+            .sort((a, b) => b.x - a.x)[0];
+          if (frontDef) {
+            this.scene.statusEffectSystem.applySugarBind(frontDef, 4.0);
+            this.scene.effectsSystem.burst(frontDef.x, frontDef.y, "#d97706", 14);
+            this.scene.effectsSystem.spawnFloater(frontDef.x, frontDef.y - 35, "GOSMA APRISIONADORA! 🍮", "#d97706", 1.2);
+            this.scene.soundManager.beep(200, 0.15, "sawtooth", 0.05);
+          }
+        }
+      }
+
+      if (enemy.type === "bubblegum_jumper") {
+        if (!enemy.hasJumped) {
+          const frontDef = this.scene.gameState.defenders
+            .filter(d => !d.removed && d.hp > 0 && d.row === enemy.row && d.x < enemy.x && (enemy.x - d.x) < 55)
+            .sort((a, b) => b.x - a.x)[0];
+          if (frontDef) {
+            enemy.hasJumped = true;
+            enemy.shield = (enemy.shield || 0) + 60;
+            enemy.x = Math.max(this.scene.GRID_X - 20, frontDef.x - 55);
+            if (enemy.sprite) enemy.sprite.setX(enemy.x);
+            if (enemy.shadowSprite) enemy.shadowSprite.setX(enemy.x);
+            this.scene.effectsSystem.burst(enemy.x, enemy.y, "#ff5d8f", 18);
+            this.scene.effectsSystem.spawnFloater(enemy.x, enemy.y - 40, "SALTO ACROBÁTICO! 🫧🦘", "#ff5d8f", 1.3);
+            this.scene.soundManager.beep(520, 0.15, "sine", 0.06);
+          }
+        }
+
+        enemy.bubbleTimer = (enemy.bubbleTimer || 6.0) - dt;
+        if (enemy.bubbleTimer <= 0) {
+          enemy.bubbleTimer = 6.0;
+          const frontDef = this.scene.gameState.defenders
+            .filter(d => !d.removed && d.hp > 0 && d.row === enemy.row && d.x < enemy.x)
+            .sort((a, b) => b.x - a.x)[0];
+          if (frontDef) {
+            this.scene.statusEffectSystem.applyBubbleSnare(frontDef, 4.0);
+            this.scene.effectsSystem.burst(frontDef.x, frontDef.y, "#ff85a2", 15);
+            this.scene.effectsSystem.spawnFloater(frontDef.x, frontDef.y - 35, "BOLHA APRISIONADORA! 🫧", "#ff85a2", 1.2);
+            this.scene.soundManager.beep(350, 0.12, "sine", 0.05);
+          }
+        }
+      }
+
+      if (enemy.type === "strawberry_shooter") {
+        enemy.burstTimer = (enemy.burstTimer || 12.0) - dt;
+        if (enemy.burstTimer <= 0) {
+          enemy.burstTimer = 12.0;
+          this.fireStrawberryFanBurst(enemy);
         }
       }
 

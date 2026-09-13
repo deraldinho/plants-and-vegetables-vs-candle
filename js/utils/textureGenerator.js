@@ -22,11 +22,17 @@ class TextureGenerator {
     this.createAppleTexture(scene);
     this.createPineappleTexture(scene);
     this.createCauliflowerTexture(scene);
+    this.createPapayaTexture(scene);
+    this.createKiwiTexture(scene);
+    this.createAppleWarriorTexture(scene);
     this.createFertilizerTexture(scene);
 
     // Enemies
     this.createGummyTexture(scene);
     this.createGummyCannonTexture(scene);
+    this.createCaramelStickyTexture(scene);
+    this.createStrawberryShooterTexture(scene);
+    this.createBubblegumJumperTexture(scene);
     this.createLollipopTexture(scene);
     this.createCupcakeTexture(scene);
     this.createMarshmallowTexture(scene);
@@ -35,11 +41,16 @@ class TextureGenerator {
     this.createGumTexture(scene);
     this.createCandleTexture(scene);
 
-    // Bosses
+    // Bosses & Effects
+    this.createCandyCatapultBossTexture(scene);
     this.createGumBossTexture(scene);
     this.createLollipopBossTexture(scene);
     this.createConfeiteiroTexture(scene);
     this.createCakeRobotTexture(scene);
+    this.createBubbleSnareTexture(scene);
+    this.createCaramelTrailTexture(scene);
+    this.createToxicPuddleTexture(scene);
+    this.createCatapultBombTexture(scene);
   }
 
   static createShadowTexture(scene) {
@@ -792,6 +803,308 @@ class TextureGenerator {
     g.fillCircle(76, 34, 4);
 
     g.generateTexture("tex_cake_robot", 80, 80);
+    g.destroy();
+  }
+
+  static createPapayaTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Papaya outer green-yellow rind
+    g.fillStyle(0x8db600, 1);
+    g.fillEllipse(32, 38, 22, 26);
+    g.fillEllipse(32, 24, 16, 18);
+
+    // Papaya rich orange inner flesh
+    g.fillStyle(0xff9933, 1);
+    g.fillEllipse(32, 36, 18, 22);
+    g.fillEllipse(32, 24, 13, 15);
+
+    // Seed cavity (deep orange)
+    g.fillStyle(0xcc6600, 1);
+    g.fillEllipse(32, 34, 9, 15);
+
+    // Black papaya seeds
+    g.fillStyle(0x222222, 1);
+    g.fillCircle(30, 28, 2);
+    g.fillCircle(34, 30, 2);
+    g.fillCircle(31, 35, 2);
+    g.fillCircle(33, 38, 2);
+    g.fillCircle(31, 41, 2);
+
+    // Expressive Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(25, 20, 4);
+    g.fillCircle(39, 20, 4);
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillCircle(26, 20, 2);
+    g.fillCircle(40, 20, 2);
+
+    // Smile
+    g.lineStyle(2, 0x5a2d0c, 1);
+    g.beginPath();
+    g.arc(32, 23, 4, 0.2, Math.PI - 0.2, false);
+    g.strokePath();
+
+    g.generateTexture("tex_papaya", 64, 64);
+    g.destroy();
+  }
+
+  static createKiwiTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Outer brown fuzzy skin
+    g.fillStyle(0x8b5a2b, 1);
+    g.fillCircle(32, 32, 26);
+
+    // Inner bright kiwi lime green
+    g.fillStyle(0x7ea310, 1);
+    g.fillCircle(32, 32, 22);
+
+    // Pale creamy center core
+    g.fillStyle(0xf4f1de, 1);
+    g.fillEllipse(32, 32, 7, 9);
+
+    // Tiny black kiwi seeds radiating
+    g.fillStyle(0x1a1a1a, 1);
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
+      const sx = 32 + Math.cos(angle) * 13;
+      const sy = 32 + Math.sin(angle) * 13;
+      g.fillCircle(sx, sy, 1.5);
+    }
+
+    // Bowling / Determined Headband
+    g.fillStyle(0xd90429, 1);
+    g.fillRect(10, 16, 44, 6);
+
+    // Confident Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(25, 28, 4);
+    g.fillCircle(39, 28, 4);
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillCircle(27, 28, 2);
+    g.fillCircle(41, 28, 2);
+
+    g.generateTexture("tex_kiwi", 64, 64);
+    g.destroy();
+  }
+
+  static createAppleWarriorTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Crimson Apple Body
+    g.fillStyle(0xd90429, 1);
+    g.fillCircle(26, 36, 18);
+    g.fillCircle(38, 36, 18);
+    g.fillCircle(32, 42, 17);
+
+    // Green Leaf and Stem on Top
+    g.fillStyle(0x5c4033, 1);
+    g.fillRect(31, 10, 3, 8);
+    g.fillStyle(0x38b000, 1);
+    g.fillEllipse(39, 13, 7, 4);
+
+    // Golden Warrior Helm / Visor Band
+    g.fillStyle(0xffd700, 1);
+    g.fillRect(14, 24, 36, 8);
+    g.fillStyle(0xffa500, 1);
+    g.fillTriangle(32, 18, 28, 24, 36, 24);
+
+    // Fierce Hero Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(24, 28, 3);
+    g.fillCircle(40, 28, 3);
+    g.fillStyle(0x1a1a1a, 1);
+    g.fillCircle(25, 28, 1.8);
+    g.fillCircle(41, 28, 1.8);
+
+    // Chest Emblem (Cross / Shield Star)
+    g.fillStyle(0xffea00, 1);
+    g.fillCircle(32, 44, 4);
+
+    g.generateTexture("tex_apple_warrior", 64, 64);
+    g.destroy();
+  }
+
+  static createCaramelStickyTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Amber Flan / Caramel Body
+    g.fillStyle(0xd97706, 1);
+    g.fillRoundedRect(14, 26, 36, 28, 8);
+
+    // Dark caramelized molten syrup topping
+    g.fillStyle(0x92400e, 1);
+    g.fillRoundedRect(12, 18, 40, 16, 6);
+
+    // Caramel drips down the body
+    g.fillCircle(18, 34, 4);
+    g.fillCircle(28, 38, 5);
+    g.fillCircle(42, 33, 4);
+    g.fillCircle(48, 26, 3);
+
+    // Sleepy Viscous Eyes
+    g.fillStyle(0xfffbeb, 1);
+    g.fillCircle(25, 28, 4);
+    g.fillCircle(39, 28, 4);
+    g.fillStyle(0x451a03, 1);
+    g.fillCircle(26, 29, 2);
+    g.fillCircle(40, 29, 2);
+
+    g.generateTexture("tex_caramel_sticky", 64, 64);
+    g.destroy();
+  }
+
+  static createStrawberryShooterTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Hard candy crystalline strawberry
+    g.fillStyle(0xe11d48, 1);
+    g.fillTriangle(32, 54, 14, 24, 50, 24);
+    g.fillCircle(22, 22, 11);
+    g.fillCircle(42, 22, 11);
+
+    // White confectioner glaze highlights
+    g.fillStyle(0xffffff, 0.6);
+    g.fillCircle(26, 20, 3);
+    g.fillCircle(30, 32, 2);
+
+    // Toxic magenta syrup glint
+    g.fillStyle(0x9333ea, 1);
+    g.fillCircle(32, 53, 5); // Candy shooting nozzle
+
+    // Sharp sniper eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(24, 26, 4);
+    g.fillCircle(40, 26, 4);
+    g.fillStyle(0x4c0519, 1);
+    g.fillCircle(26, 26, 2);
+    g.fillCircle(42, 26, 2);
+
+    g.generateTexture("tex_strawberry_shooter", 64, 64);
+    g.destroy();
+  }
+
+  static createBubblegumJumperTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Translucent bouncy bubblegum sphere
+    g.fillStyle(0xf43f5e, 1);
+    g.fillCircle(32, 30, 20);
+
+    // White gloss highlight
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(24, 20, 5);
+
+    // Springy curled coiled base
+    g.fillStyle(0xbe123c, 1);
+    g.fillRoundedRect(22, 48, 20, 8, 4);
+    g.fillRoundedRect(26, 44, 12, 6, 2);
+
+    // Playful bubbly eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(25, 28, 4);
+    g.fillCircle(39, 28, 4);
+    g.fillStyle(0x881337, 1);
+    g.fillCircle(27, 28, 2);
+    g.fillCircle(41, 28, 2);
+
+    // Cheerful mouth
+    g.fillStyle(0x881337, 1);
+    g.fillCircle(32, 36, 3);
+
+    g.generateTexture("tex_bubblegum_jumper", 64, 64);
+    g.destroy();
+  }
+
+  static createCandyCatapultBossTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    // Heavy Waffle / Cookie Chassis
+    g.fillStyle(0x78350f, 1);
+    g.fillRoundedRect(10, 48, 68, 22, 6);
+    g.fillStyle(0xd97706, 1);
+    g.fillRect(14, 52, 60, 4); // Waffle pattern trim
+
+    // Peppermint Wheels with candy stripes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(18, 68, 10);
+    g.fillCircle(70, 68, 10);
+    g.fillStyle(0xef4444, 1);
+    g.fillCircle(18, 68, 5);
+    g.fillCircle(70, 68, 5);
+
+    // Catapult Arm (Waffle arm + Ice cream scoop spoon)
+    g.fillStyle(0xb45309, 1);
+    g.fillRect(24, 16, 8, 38);
+    g.fillStyle(0xf59e0b, 1);
+    g.fillCircle(28, 14, 12); // Scoop bowl
+
+    // Giant Toxic Sugar Bomb loaded in scoop
+    g.fillStyle(0x4a044e, 1);
+    g.fillCircle(28, 12, 9);
+    g.fillStyle(0xd946ef, 0.8);
+    g.fillCircle(26, 9, 3);
+
+    // General Confeito in Commander Seat
+    g.fillStyle(0x1e1b4b, 1); // Dark navy candy coat
+    g.fillRoundedRect(44, 24, 24, 26, 4);
+
+    // Commander Bicorne Hat
+    g.fillStyle(0x0f172a, 1);
+    g.fillEllipse(56, 20, 16, 6);
+    g.fillStyle(0xf59e0b, 1);
+    g.fillCircle(56, 18, 3); // Gold cockade
+
+    // General Face
+    g.fillStyle(0xfecdd3, 1);
+    g.fillCircle(56, 26, 6);
+    g.fillStyle(0x1e1b4b, 1);
+    g.fillCircle(54, 25, 1.5);
+    g.fillCircle(58, 25, 1.5);
+
+    // Licorice mustache
+    g.fillStyle(0x0f172a, 1);
+    g.fillRect(52, 29, 8, 2);
+
+    g.generateTexture("tex_candy_catapult_boss", 88, 88);
+    g.destroy();
+  }
+
+  static createBubbleSnareTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0xf43f5e, 0.45);
+    g.fillCircle(24, 24, 22);
+    g.lineStyle(2, 0xffffff, 0.8);
+    g.strokeCircle(24, 24, 22);
+    g.fillStyle(0xffffff, 0.8);
+    g.fillCircle(16, 16, 4);
+    g.generateTexture("tex_bubble_snare", 48, 48);
+    g.destroy();
+  }
+
+  static createCaramelTrailTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0xb45309, 0.55);
+    g.fillEllipse(30, 14, 28, 10);
+    g.fillCircle(12, 16, 5);
+    g.fillCircle(46, 12, 6);
+    g.generateTexture("tex_caramel_trail", 60, 28);
+    g.destroy();
+  }
+
+  static createToxicPuddleTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x701a75, 0.55);
+    g.fillEllipse(32, 16, 30, 12);
+    g.fillStyle(0xd946ef, 0.7);
+    g.fillCircle(20, 14, 3);
+    g.fillCircle(38, 18, 4);
+    g.generateTexture("tex_toxic_puddle", 64, 32);
+    g.destroy();
+  }
+
+  static createCatapultBombTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(0x4a044e, 1);
+    g.fillCircle(16, 16, 14);
+    g.fillStyle(0xd946ef, 0.9);
+    g.fillCircle(12, 11, 4);
+    g.fillStyle(0xf43f5e, 0.8);
+    g.fillCircle(21, 19, 3);
+    g.generateTexture("tex_catapult_bomb", 32, 32);
     g.destroy();
   }
 }
