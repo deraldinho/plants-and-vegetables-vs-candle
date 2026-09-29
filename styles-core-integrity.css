@@ -1,4 +1,14 @@
-/* Core Integrity overrides: global rules that must not depend on mobile media queries. */
+/* Core Integrity & Design System Overrides
+   Combines Biomorphic Neo-Glassmorphism and Mobile Touch-First Excellence */
+
+:root {
+  --glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.1) 100%);
+  --glass-specular-border: 1.5px solid rgba(255, 255, 255, 0.75);
+  --emerald-sheen: #2d8a57;
+  --emerald-shadow: #14472c;
+  --touch-target-min: 48px;
+}
+
 #gameContainer.board-wrap {
   aspect-ratio: 1000 / 620;
 }
@@ -11,34 +21,65 @@
   pointer-events: auto;
 }
 
+/* Glassmorphism Refinements */
+.status-bar,
+.wave-preview,
+.habit-panel,
+.enemy-guide,
+.upgrade-panel,
+.overlay-card {
+  box-shadow: 0 16px 32px rgba(11, 43, 31, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+/* Tactile Button Feedback */
+button {
+  min-height: var(--touch-target-min);
+  touch-action: manipulation;
+  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.12s ease;
+}
+
+button:active {
+  transform: translateY(2px) !important;
+}
+
+/* Fertilizer Card Polish */
 .defender-card.fertilizer {
   background: linear-gradient(180deg, #8d6e63 0%, #5d4037 100%);
   color: #ffe27a;
   border-color: #ffd54f;
+  box-shadow: 0 5px 0 #3e2723;
 }
 
 .defender-card.fertilizer:hover {
   background: linear-gradient(180deg, #a1887f 0%, #6d4c41 100%);
+  filter: brightness(1.05);
 }
 
 .defender-card.fertilizer.selected {
   border-color: #ffd54f;
   background: linear-gradient(180deg, #a1887f 0%, #6d4c41 100%);
-  box-shadow: 0 2px 0 #8d6e63 !important;
+  box-shadow: 0 2px 0 #3e2723 !important;
+  transform: translateY(3px);
 }
 
+/* Deck Builder UI - Ergonomics & Visual Polish */
 .deck-selector {
   margin: 14px 0;
   padding: 12px;
   border: 2px dashed rgba(255, 255, 255, 0.4);
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+  background: rgba(14, 43, 30, 0.35);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .deck-selector legend {
-  padding: 0 8px;
+  padding: 0 10px;
   color: #ffe27a;
   font-weight: 700;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .deck-slots-grid,
@@ -52,19 +93,23 @@
 
 .deck-slot-item,
 .card-picker-item {
-  width: 60px;
-  height: 75px;
+  width: 62px;
+  height: 76px;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
   padding: 4px;
   border: 2px solid #5a8264;
-  border-radius: 8px;
-  background: rgba(23, 53, 42, 0.9);
+  border-radius: 12px;
+  background: rgba(19, 48, 36, 0.92);
   color: white;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s, border-color 0.2s;
+  touch-action: manipulation;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .deck-slot-item:hover,
@@ -73,24 +118,145 @@
   border-color: #ffe27a;
 }
 
+.deck-slot-item:active,
+.card-picker-item:active {
+  transform: translateY(1px);
+}
+
 .card-picker-item.selected {
   border-color: #ffd43b;
-  background: rgba(76, 175, 80, 0.4);
-  box-shadow: 0 0 10px #ffd43b;
+  background: rgba(46, 125, 50, 0.55);
+  box-shadow: 0 0 12px rgba(255, 212, 59, 0.65), 0 4px 8px rgba(0, 0, 0, 0.25);
 }
 
 .card-picker-item.locked-card {
-  opacity: 0.5;
+  opacity: 0.55;
   filter: grayscale(0.8);
-  cursor: not-allowed;
+  border-color: rgba(140, 160, 150, 0.4);
 }
 
 .card-picker-icon {
-  font-size: 1.6rem;
+  font-size: 1.65rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .card-picker-cost {
   color: #fff06a;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 800;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+
+/* Touch & Mobile First Ergonomics (Viewport <= 600px) */
+@media (max-width: 600px) {
+  body {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .game-shell {
+    padding: 6px;
+  }
+
+  .hero {
+    margin-bottom: 6px;
+  }
+
+  /* Compact Modal Optimization: Prevents CTA overflow */
+  .overlay-card {
+    padding: 14px 10px;
+    max-height: 94vh;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .overlay-mascot-img {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 6px;
+  }
+
+  .overlay-card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 4px;
+  }
+
+  .overlay-card p {
+    font-size: 0.82rem;
+    margin: 2px 0 8px;
+  }
+
+  .mode-selector {
+    margin: 8px 0;
+    padding: 6px;
+  }
+
+  .mode-selector > div {
+    gap: 6px;
+  }
+
+  .mode-selector button {
+    min-height: 48px;
+    padding: 6px;
+  }
+
+  .deck-selector {
+    margin: 8px 0;
+    padding: 8px 6px;
+  }
+
+  .deck-slots-grid,
+  .available-cards-grid {
+    gap: 6px;
+  }
+
+  .deck-slot-item,
+  .card-picker-item {
+    width: 54px;
+    height: 68px;
+    border-radius: 10px;
+  }
+
+  .card-picker-icon {
+    font-size: 1.45rem;
+  }
+
+  .card-picker-cost {
+    font-size: 0.68rem;
+  }
+
+  .overlay-actions {
+    margin-top: 10px;
+    gap: 8px;
+    position: sticky;
+    bottom: 0;
+    background: inherit;
+    padding-top: 6px;
+  }
+
+  .primary-button,
+  .secondary-button {
+    min-height: 48px;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+
+  /* Defender Cards Touch Target */
+  .defender-card {
+    min-height: 54px;
+    padding: 6px 4px;
+  }
+
+  .card-icon {
+    font-size: 1.6rem;
+  }
+
+  /* Control buttons touch size */
+  .game-controls > button,
+  .icon-button {
+    min-height: 48px;
+    min-width: 48px;
+  }
 }

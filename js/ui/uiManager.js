@@ -463,7 +463,7 @@ class UIManager {
         cardEl.className = `card-picker-item ${isSelected ? "selected" : ""}`;
         cardEl.title = isSelected ? "Clique para remover do baralho" : "Clique para adicionar ao baralho";
         cardEl.innerHTML = `<span class="card-picker-icon">${def.icon}</span><span class="card-picker-cost">${def.cost}☀️</span>`;
-        cardEl.addEventListener("click", () => {
+        this.addTouchClick(cardEl, () => {
           const result = isSelected ? this.deckService.remove(key) : this.deckService.add(key);
           if (!result.ok) {
             if (result.reason === "slots") this.showToast(`Limite de ${maxSlots} slots atingido! Avance ondas para liberar mais! 🌻`);
@@ -479,7 +479,7 @@ class UIManager {
         cardEl.className = "card-picker-item locked-card";
         cardEl.title = `Clique para desbloquear por ${def.seedPrice} Sementes 🌻`;
         cardEl.innerHTML = `<span class="card-picker-icon">${def.icon}</span><span class="card-picker-cost">${def.seedPrice}🌻 🔒</span>`;
-        cardEl.addEventListener("click", () => {
+        this.addTouchClick(cardEl, () => {
           const currentSeeds = readNumber(STORAGE_KEYS.sunflowerSeeds);
           if (currentSeeds < def.seedPrice) {
             this.showToast(`Faltam sementes! Custo: ${def.seedPrice} 🌻 (Você tem ${currentSeeds} 🌻)`);
