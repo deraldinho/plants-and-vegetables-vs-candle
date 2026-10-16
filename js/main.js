@@ -14,6 +14,7 @@ window.phaserConfig = {
   scene: [MainScene]
 };
 
-window.deckService = new DeckService();
+window.economyService = new EconomyService();
+window.deckService = new DeckService(window.economyService);
 window.uiManager = new UIManager(window.deckService);
 window.uiManager.updateDefenderTrayUI();

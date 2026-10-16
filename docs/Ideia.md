@@ -164,6 +164,7 @@ Planejado:
 - finales recorrentes do Infinito recebem recompensa de finale pela mesma `WaveRules`;
 - usada para desbloquear plantas permanentemente;
 - Pimenta segue esse contrato de desbloqueio e não é mais injetada no deck por hábito.
+- ✅ **Owner único `EconomyService` (S4.1)**: saldo de Sementes, `grantSeeds`/`spendSeeds` (nunca negativo) e `unlock` atômico e persistente; UI e cena não gravam mais o `localStorage` diretamente.
 
 ### 🥗 Hábito “Comer vegetais” — ✅
 
@@ -276,6 +277,14 @@ Modo Infinito
 
 O progresso visual considera a fila procedural e summons dinâmicos e nunca mostra `resolved > total`.
 
+### Orçamento de ameaça (S3)
+
+- ✅ Cada inimigo tem custo `ENEMIES[type].threat`.
+- ✅ `WaveRules.threatBudget(wave, mode)` define o orçamento da onda; `WaveRules.escortBudget(wave, mode)` define quanto vai para a escolta comum (bosses/finales entram por script).
+- ✅ `WaveRules.availableEnemyPool(wave)` centraliza o destravamento do pool.
+- ✅ `WaveComposer.composeWave(wave, seed, mode)` gasta o orçamento em **pacotes sinérgicos** (`sticky_pack`, `shield_wall`, `support_line`, `rush`, `artillery`), garantindo estreias intencionais (Chiclete Saltador na onda 5, Gummy Brigadeiro na onda 6).
+- ✅ Determinismo preservado por seed; `generateProceduralWave` mantido como wrapper de compatibilidade.
+
 ---
 
 ## 7. 🧱 Core Integrity S2
@@ -301,8 +310,8 @@ O progresso visual considera a fila procedural e summons dinâmicos e nunca most
 
 ## 8. Próximos blocos
 
-1. ⏳ Threat Budget para composição intencional de ondas.
-2. ⏳ Loja de Sementes e inventário de consumíveis.
+1. ✅ Threat Budget para composição intencional de ondas (S3).
+2. 🟡 Loja de Sementes e inventário de consumíveis (S4.1: owner da economia ✅; inventário/skins pendentes).
 3. ⏳ Novos Candies Level 2.
 4. ⏳ Armor Break/Stun e novos efeitos quando houver mecânicas que realmente os usem.
 5. ⏳ Balanceamento completo por dificuldade e campanha.

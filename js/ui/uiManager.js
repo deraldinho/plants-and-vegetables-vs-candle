@@ -431,6 +431,31 @@ class UIManager {
     this.showToast(active ? "Adubo desativado" : "Saco de Adubo selecionado! 🎒 Toque em uma planta para Nível Máximo por 8s");
   }
 
+  purchaseUnlock(key) {
+    const def = DEFENDERS[key];
+    const economy = window.economyService;
+    if (!def || !economy) return;
+
+    const result = economy.unlock(key);
+    if (!result.ok) {
+      if (result.reason === "insufficient") {
+        this.showToast(`Faltam sementes! Custo: ${def.seedPrice} 🌻 (Você tem ${economy.getSeeds()} 🌻)`);
+      } else if (result.reason === "already") {
+        this.showToast(`${def.name} já está desbloqueada!`);
+      } else if (result.reason === "free") {
+        this.showToast(`${def.name} já vem liberada de graça!`);
+      } else {
+        this.showToast("Não foi possível concluir este desbloqueio.");
+      }
+      return;
+    }
+
+    if (this.activeScene) this.activeScene.gameState.pepperUnlocked = this.deckService.isUnlocked("pepper");
+    this.showToast(`🎉 ${def.name} desbloqueada para o seu baralho!`);
+    this.renderDeckBuilder();
+    if (this.activeScene) this.syncUi(this.activeScene.gameState);
+  }
+
   renderDeckBuilder() {
     if (!this.ui.deckSlotsGrid || !this.ui.availableCardsGrid) return;
     this.refreshDeckFromService();
@@ -479,20 +504,7 @@ class UIManager {
         cardEl.className = "card-picker-item locked-card";
         cardEl.title = `Clique para desbloquear por ${def.seedPrice} Sementes 🌻`;
         cardEl.innerHTML = `<span class="card-picker-icon">${def.icon}</span><span class="card-picker-cost">${def.seedPrice}🌻 🔒</span>`;
-        this.addTouchClick(cardEl, () => {
-          const currentSeeds = readNumber(STORAGE_KEYS.sunflowerSeeds);
-          if (currentSeeds < def.seedPrice) {
-            this.showToast(`Faltam sementes! Custo: ${def.seedPrice} 🌻 (Você tem ${currentSeeds} 🌻)`);
-            return;
-          }
-
-          writeStorage(STORAGE_KEYS.sunflowerSeeds, currentSeeds - def.seedPrice);
-          saveUnlockedCards([...readUnlockedCards(), key]);
-          if (this.activeScene) this.activeScene.gameState.pepperUnlocked = this.deckService.isUnlocked("pepper");
-          this.showToast(`🎉 ${def.name} desbloqueada para o seu baralho!`);
-          this.renderDeckBuilder();
-          if (this.activeScene) this.syncUi(this.activeScene.gameState);
-        });
+        this.addTouchClick(cardEl, () => this.purchaseUnlock(key));
       }
 
       this.ui.availableCardsGrid.appendChild(cardEl);
@@ -655,7 +667,7 @@ class UIManager {
     const threat = WaveRules.getThreatLevelInfo(state.wave, state.mode);
     this.ui.wave.textContent = `Onda ${state.wave} ${threat.icon} ${threat.name} (${biome.icon} ${biome.name})`;
     if (this.ui.seed) this.ui.seed.textContent = state.seed || "------";
-    if (this.ui.seeds) this.ui.seeds.textContent = readNumber(STORAGE_KEYS.sunflowerSeeds) || 0;
+    if (this.ui.seeds) this.ui.seeds.textContent = window.economyService?.getSeeds() ?? (readNumber(STORAGE_KEYS.sunflowerSeeds) || 0);
     this.ui.score.textContent = state.score;
     this.ui.bestScore.textContent = this.activeScene
       ? (state.mode === "endless" && this.activeScene.bestEndlessWave > 0 ? `${this.activeScene.bestScore} (Onda ${this.activeScene.bestEndlessWave})` : this.activeScene.bestScore)

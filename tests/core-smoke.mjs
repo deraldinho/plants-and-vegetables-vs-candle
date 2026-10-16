@@ -7,6 +7,7 @@ const configSource = read("../js/config.js");
 const waveRulesSource = read("../js/core/WaveRules.js");
 const waveSource = read("../js/utils/waveGenerator.js");
 const deckSource = read("../js/core/DeckService.js");
+const economySource = read("../js/core/EconomyService.js");
 const statusSource = read("../js/core/StatusEffectSystem.js");
 const defenderSource = read("../js/entities/DefenderSystem.js");
 const enemySource = read("../js/entities/EnemySystem.js");
@@ -14,6 +15,7 @@ const projectileSource = read("../js/entities/ProjectileSystem.js");
 const effectsSource = read("../js/entities/EffectsSystem.js");
 const sceneSource = read("../js/scenes/MainScene.js");
 const mainSource = read("../js/main.js");
+const uiSource = read("../js/ui/uiManager.js");
 
 const storage = new Map();
 const context = vm.createContext({
@@ -24,11 +26,11 @@ const context = vm.createContext({
   }
 });
 
-vm.runInContext(`${configSource}\n${waveRulesSource}\n;globalThis.__core = { CAMPAIGN_MAX_WAVES, DEFENDERS, ENEMIES, MODES, WaveRules, isBossWaveNumber, getThreatLevelInfo };`, context);
-vm.runInContext(`${waveSource}\n;globalThis.__waves = { generateProceduralWave };`, context);
+vm.runInContext(`${configSource}\n${waveRulesSource}\n${economySource}\n;globalThis.__core = { CAMPAIGN_MAX_WAVES, DEFENDERS, ENEMIES, MODES, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService };`, context);
+vm.runInContext(`${waveSource}\n;globalThis.__waves = { generateProceduralWave, composeWave };`, context);
 
-const { CAMPAIGN_MAX_WAVES, DEFENDERS, ENEMIES, WaveRules, isBossWaveNumber, getThreatLevelInfo } = context.__core;
-const { generateProceduralWave } = context.__waves;
+const { CAMPAIGN_MAX_WAVES, DEFENDERS, ENEMIES, MODES, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService } = context.__core;
+const { generateProceduralWave, composeWave } = context.__waves;
 
 assert.equal(CAMPAIGN_MAX_WAVES, 26, "campaign must have 26 waves");
 assert.equal(DEFENDERS.banana.melee, true, "banana must remain a melee defender");
@@ -59,6 +61,99 @@ assert.deepEqual(new Set(finaleBosses.map(item => item.row)), new Set([0, 1, 2, 
 
 const endlessFinale = generateProceduralWave(52, 582914, "endless");
 assert.equal(endlessFinale.filter(item => ENEMIES[item.type]?.boss).length, 5, "endless wave 52 must contain all five bosses");
+
+// --- S3 Threat Budget / Wave Composition ---
+assert.equal(typeof WaveRules.threatBudget, "function", "WaveRules must own the wave threat budget");
+assert.equal(typeof WaveRules.availableEnemyPool, "function", "WaveRules must own wave gating");
+assert.equal(typeof WaveRules.threatOf, "function", "threat cost lookup must be centralized");
+assert.equal(typeof composeWave, "function", "the threat-budget composer must be exported");
+
+for (const type of Object.keys(ENEMIES)) {
+  assert.ok(Number.isFinite(ENEMIES[type].threat) && ENEMIES[type].threat > 0, `enemy ${type} needs a positive threat cost`);
+}
+for (const mode of Object.keys(MODES)) {
+  assert.ok(Number.isFinite(MODES[mode].threatMult) && MODES[mode].threatMult > 0, `mode ${mode} needs a threat multiplier`);
+}
+
+for (const mode of ["easy", "normal", "hard", "endless"]) {
+  let previous = 0;
+  for (let wave = 1; wave <= 40; wave++) {
+    const budget = WaveRules.threatBudget(wave, mode);
+    assert.ok(budget >= previous, `budget must be non-decreasing (${mode} wave ${wave})`);
+    previous = budget;
+  }
+}
+assert.ok(WaveRules.threatBudget(10, "hard") > WaveRules.threatBudget(10, "normal"), "hard budget must exceed normal");
+assert.ok(WaveRules.threatBudget(10, "normal") > WaveRules.threatBudget(10, "easy"), "normal budget must exceed easy");
+
+assert.deepEqual(composeWave(9, 582914, "normal"), composeWave(9, 582914, "normal"), "composition must be seed-deterministic");
+
+const MAX_SINGLE_THREAT = Math.max(...Object.values(ENEMIES).map(def => def.threat));
+assert.equal(typeof WaveRules.escortBudget, "function", "escort budget policy must be owned by WaveRules");
+for (let wave = 1; wave <= CAMPAIGN_MAX_WAVES; wave++) {
+  const items = composeWave(wave, 582914, "normal");
+  const escorts = items.filter(item => !ENEMIES[item.type].boss);
+  const escortSpent = escorts.reduce((sum, item) => sum + ENEMIES[item.type].threat, 0);
+  const escortBudget = WaveRules.escortBudget(wave, "normal");
+  assert.ok(escortSpent <= escortBudget + 1e-6, `wave ${wave} escort must not exceed its threat budget`);
+  assert.ok(escortSpent >= escortBudget - MAX_SINGLE_THREAT - 0.5, `wave ${wave} escort must spend its threat budget`);
+
+  const pool = new Set(WaveRules.availableEnemyPool(wave));
+  for (const item of items) {
+    if (ENEMIES[item.type].boss) {
+      assert.ok(WaveRules.isBoss(wave, "normal"), `bosses may only appear on boss waves (wave ${wave})`);
+    } else {
+      assert.ok(pool.has(item.type), `wave ${wave} must not include locked enemy ${item.type}`);
+    }
+    assert.equal(item.spawned, false, "queued enemies must start unspawned");
+    assert.ok(Number.isFinite(item.at), "queued enemies need a finite spawn time");
+    assert.ok(Number.isInteger(item.row) && item.row >= 0 && item.row < 5, "queued enemies need a valid lane");
+  }
+}
+
+const wave5Composition = composeWave(5, 582914, "normal");
+assert.ok(wave5Composition.some(item => item.type === "bubblegum_jumper"), "wave 5 must debut the rush combo");
+assert.ok(wave5Composition.some(item => item.type === "marshmallow"), "wave 5 rush combo needs fast pressure");
+const wave6Composition = composeWave(6, 582914, "normal");
+assert.ok(wave6Composition.some(item => item.type === "gummy_brigadeiro"), "wave 6 must debut the artillery combo");
+assert.ok(wave6Composition.some(item => item.type === "strawberry_shooter"), "wave 6 artillery needs a ranged partner");
+
+assert.doesNotMatch(waveSource, /Math\.random\s*\(/, "wave composition must be seed-owned");
+
+// --- S4.1 EconomyService ---
+assert.match(economySource, /class EconomyService/, "the economy needs a single owner");
+assert.equal(typeof EconomyService, "function", "EconomyService must be constructible");
+
+const economy = new EconomyService();
+assert.equal(economy.getSeeds(), 0, "a fresh wallet starts empty");
+assert.equal(economy.grantSeeds(100), 100, "grantSeeds must return the new balance");
+assert.equal(new EconomyService().getSeeds(), 100, "wallet must persist across instances");
+assert.equal(economy.spendSeeds(-5).ok, false, "negative spends must be rejected");
+assert.equal(economy.spendSeeds(0).ok, false, "zero spends must be rejected");
+assert.equal(economy.spendSeeds(1000).ok, false, "overspending must be rejected");
+assert.equal(economy.getSeeds(), 100, "rejected spends must not change the balance");
+
+assert.equal(economy.unlock("inexistente").reason, "unknown", "unknown defenders must be rejected");
+assert.equal(economy.unlock("corn").reason, "free", "free defenders are not purchasable");
+const cantAfford = economy.unlock("cauliflower");
+assert.equal(cantAfford.ok, false, "unlock must fail without enough seeds");
+assert.equal(cantAfford.reason, "insufficient", "failed unlock must report insufficient seeds");
+assert.equal(economy.isUnlocked("cauliflower"), false, "failed unlock must not grant the defender");
+assert.equal(economy.getSeeds(), 100, "failed unlock must not debit the wallet");
+
+economy.grantSeeds(100);
+const unlockPepper = economy.unlock("pepper");
+assert.equal(unlockPepper.ok, true, "unlock must succeed with enough seeds");
+assert.equal(unlockPepper.cost, DEFENDERS.pepper.seedPrice, "unlock must charge the seed price");
+assert.equal(economy.getSeeds(), 200 - DEFENDERS.pepper.seedPrice, "unlock must debit the wallet");
+assert.equal(new EconomyService().isUnlocked("pepper"), true, "unlock must persist across instances");
+assert.equal(economy.unlock("pepper").reason, "already", "double unlock must be rejected");
+assert.equal(economy.isUnlocked("corn"), true, "free defenders are unlocked by default");
+assert.ok(economy.getSeeds() >= 0, "balance must never go negative");
+
+assert.doesNotMatch(uiSource, /writeStorage\(STORAGE_KEYS\.sunflowerSeeds/, "UI must not write the wallet directly");
+assert.doesNotMatch(sceneSource, /writeStorage\(STORAGE_KEYS\.sunflowerSeeds/, "scene must not write the wallet directly");
+assert.match(deckSource, /economy/, "deck admission must consume the economy owner");
 
 assert.match(deckSource, /class DeckService/, "DeckService must own deck persistence and validation");
 assert.match(deckSource, /getMaxSlots\(\)/, "deck slot limit must be enforced by the deck owner");

@@ -395,8 +395,7 @@ class MainScene extends Phaser.Scene {
     this.gameState.score += bonus * 5;
 
     const seedGain = WaveRules.seedReward(this.gameState.wave, this.gameState.mode);
-    const currentSeeds = readNumber(STORAGE_KEYS.sunflowerSeeds) || 0;
-    writeStorage(STORAGE_KEYS.sunflowerSeeds, currentSeeds + seedGain);
+    this.grantSeeds(seedGain);
 
     this.effectsSystem.spawnFloater(500, 180, `🎉 ONDA COMPLETA! +${bonus}☀️ +${seedGain}🌻`, "#ffe27a", 1.4);
     this.soundManager.beep(660, 0.15, "triangle", 0.05);
@@ -459,6 +458,11 @@ class MainScene extends Phaser.Scene {
     const threat = WaveRules.getThreatLevelInfo(this.gameState.wave, this.gameState.mode);
     this.effectsSystem.spawnFloater(500, 200, `${threat.icon} ONDA ${this.gameState.wave} - ${threat.name}!`, threat.color, 1.5);
     this.soundManager.beep(560, 0.11, "triangle");
+  }
+
+  grantSeeds(amount) {
+    const economy = window.economyService;
+    return economy ? economy.grantSeeds(amount) : 0;
   }
 
   upgradeDefenderPower(defender) {

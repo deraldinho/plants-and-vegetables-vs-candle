@@ -137,6 +137,53 @@ try {
   assert.equal(threatChecks.wave52Icon, "👑", "wave 52 must be classified as finale");
   assert.equal(threatChecks.wave52Reward, 100, "endless wave 52 must receive finale progression reward");
 
+  const threatBudgetCheck = await page.evaluate(() => {
+    const deterministic = JSON.stringify(composeWave(9, 582914, "normal")) === JSON.stringify(composeWave(9, 582914, "normal"));
+    const wave6 = composeWave(6, 582914, "normal").map(item => item.type);
+    const queue = window.uiManager.activeScene.gameState.spawnQueue;
+    return {
+      composeType: typeof composeWave,
+      budgetType: typeof WaveRules.threatBudget,
+      escortBudgetType: typeof WaveRules.escortBudget,
+      wave2Budget: WaveRules.threatBudget(2, "normal"),
+      wave1Budget: WaveRules.threatBudget(1, "normal"),
+      deterministic,
+      wave6HasArtillery: wave6.includes("gummy_brigadeiro") && wave6.includes("strawberry_shooter"),
+      queueHasThreat: queue.every(item => Number.isFinite(item.threat))
+    };
+  });
+  assert.equal(threatBudgetCheck.composeType, "function", "composeWave must load in the browser");
+  assert.equal(threatBudgetCheck.budgetType, "function", "WaveRules.threatBudget must load in the browser");
+  assert.equal(threatBudgetCheck.escortBudgetType, "function", "WaveRules.escortBudget must load in the browser");
+  assert.ok(threatBudgetCheck.wave2Budget > threatBudgetCheck.wave1Budget, "threat budget must grow with waves");
+  assert.equal(threatBudgetCheck.deterministic, true, "wave composition must be seed-deterministic in the browser");
+  assert.equal(threatBudgetCheck.wave6HasArtillery, true, "wave 6 must debut the artillery combo in the browser");
+  assert.equal(threatBudgetCheck.queueHasThreat, true, "spawn queue items must expose their threat cost");
+
+  const economyCheck = await page.evaluate(() => {
+    const economy = window.economyService;
+    const before = economy.getSeeds();
+    const granted = economy.grantSeeds(37);
+    const insufficient = economy.unlock("cauliflower");
+    return {
+      hasEconomy: Boolean(economy),
+      deckUsesEconomy: window.deckService.economy === economy,
+      before,
+      granted,
+      insufficientOk: insufficient.ok,
+      insufficientReason: insufficient.reason,
+      severeUnlocked: economy.isUnlocked("cauliflower"),
+      nonNegative: economy.getSeeds() >= 0
+    };
+  });
+  assert.equal(economyCheck.hasEconomy, true, "economyService must boot in the browser");
+  assert.equal(economyCheck.deckUsesEconomy, true, "deck admission must consume the economy owner");
+  assert.equal(economyCheck.granted, economyCheck.before + 37, "grantSeeds must add to the wallet");
+  assert.equal(economyCheck.insufficientOk, false, "unlock must reject insufficient seeds in the browser");
+  assert.equal(economyCheck.insufficientReason, "insufficient", "unlock must report insufficient seeds");
+  assert.equal(economyCheck.severeUnlocked, false, "failed unlock must not grant the defender");
+  assert.equal(economyCheck.nonNegative, true, "wallet must never go negative");
+
   const artillery = await page.evaluate(() => {
     const scene = window.uiManager.activeScene;
     const defender = scene.gameState.defenders[0];

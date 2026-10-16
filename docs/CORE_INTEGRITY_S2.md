@@ -997,9 +997,9 @@ Documentação                           ✅
 Com S2 estabilizado, a ordem recomendada é:
 
 ```text
-S3 — Threat Budget / Wave Composition
+S3 — Threat Budget / Wave Composition   ✅ (2026-10-16)
  ↓
-S4 — Economia / Loja / Inventário
+S4 — Economia / Loja / Inventário          🟡 S4.1 ✅ (2026-10-16)
  ↓
 S5 — Novos Candies Level 2
  ↓
@@ -1008,13 +1008,23 @@ S6 — Balanceamento da campanha
 S7 — Polish visual / áudio / UX
 ```
 
-### Threat Budget
+### Threat Budget — ✅ implementado (2026-10-16)
 
-Objetivo:
+`WaveRules` passa a ser owner do orçamento; `WaveComposer` (`js/utils/waveGenerator.js`)
+gasta o orçamento em combos intencionais.
 
-- deixar ondas orientadas por orçamento de ameaça;
-- montar combinações intencionais;
-- evitar balanceamento apenas por quantidade de inimigos.
+- `ENEMIES[type].threat`: custo determinístico por inimigo.
+- `MODES[mode].threatMult`: escalonamento por dificuldade.
+- `WaveRules.threatBudget(wave, mode)`: orçamento da onda.
+- `WaveRules.escortBudget(wave, mode)`: fatia destinada à escolta comum.
+- `WaveRules.availableEnemyPool(wave)`: gating do pool (antes embutido no gerador).
+- `composeWave(wave, seed, mode)`: composição pura e determinística; `generateProceduralWave`
+  permanece como wrapper de compatibilidade.
+
+Invariantes cobertos por `tests/core-smoke.mjs`: budget monotônico e ordenado por modo,
+soma de ameaça dentro do budget, gating por onda, estreias intencionais (rush na onda 5,
+artillery na 6), determinismo por seed e ausência de `Math.random`. Specs:
+`docs/specs/2026-10-16-threat-budget-spec.md` e `...-design.md`.
 
 ### Economia / Loja
 

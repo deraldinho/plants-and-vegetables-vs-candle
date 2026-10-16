@@ -1,7 +1,8 @@
 "use strict";
 
 class DeckService {
-  constructor() {
+  constructor(economy = null) {
+    this.economy = economy || (typeof window !== "undefined" ? window.economyService : null) || null;
     this.defaultDeck = ["potato", "garlic", "corn", "carrot", "broccoli"];
     this.activeDeck = this.load();
   }
@@ -11,6 +12,7 @@ class DeckService {
   }
 
   isUnlocked(type) {
+    if (this.economy?.isUnlocked) return this.economy.isUnlocked(type);
     const def = DEFENDERS[type];
     if (!def) return false;
     return def.seedPrice === 0 || readUnlockedCards().includes(type);

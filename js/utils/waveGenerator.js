@@ -15,54 +15,112 @@ function getBiomeForWave(waveNumber) {
   return BIOMES[index] || BIOMES[0];
 }
 
-function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
-  const rand = mulberry32(seed + waveNumber * 10007);
-  const list = [];
-  const add = (at, type, row) => list.push({ at, type, row, spawned: false });
+// S3 — Threat Budget: pacotes sinérgicos intencionais.
+// Cada combo combina inimigos que formam uma ameaça coordenada; o premium é o
+// custo extra de enfrentar a sinergia em vez de inimigos isolados.
+const WAVE_COMBOS = [
+  { id: "sticky_pack", minWave: 3, premium: 0.4, members: ["gum", "caramel_sticky"] },
+  { id: "shield_wall", minWave: 4, premium: 0.5, members: ["chocolate", "caramel_sticky"] },
+  { id: "support_line", minWave: 4, premium: 0.4, members: ["soda", "cupcake"] },
+  { id: "rush", minWave: 5, premium: 0.3, members: ["marshmallow", "marshmallow", "bubblegum_jumper"] },
+  { id: "artillery", minWave: 6, premium: 0.6, members: ["gummy_brigadeiro", "strawberry_shooter"] }
+];
 
-  const isFinaleWave = WaveRules.isFinale(waveNumber, mode);
-  const isBossWave = WaveRules.isBoss(waveNumber, mode);
+const MAX_WAVE_ITEMS = 120;
+const MAX_COMPOSE_STEPS = 600;
 
-  const enemyPool = ["gummy", "marshmallow", "lollipop"];
-  if (waveNumber >= 2) enemyPool.push("soda");
-  if (waveNumber >= 3) enemyPool.push("cupcake", "gum");
-  if (waveNumber >= 4) enemyPool.push("chocolate", "caramel_sticky");
-  if (waveNumber >= 5) enemyPool.push("bubblegum_jumper");
-  if (waveNumber >= 6) enemyPool.push("gummy_brigadeiro", "strawberry_shooter");
+function comboCost(combo) {
+  return combo.members.reduce((sum, type) => sum + WaveRules.threatOf(type), 0) + combo.premium;
+}
 
-  const count = isFinaleWave ? 45 : Math.min(6 + Math.floor(waveNumber * 2.2), 44);
-  const spacing = isFinaleWave ? 0.4 : Math.max(0.35, 1.4 - waveNumber * 0.03);
+function cheapestThreat(pool) {
+  return pool.reduce((min, type) => Math.min(min, WaveRules.threatOf(type)), Infinity);
+}
 
-  for (let i = 0; i < count; i++) {
-    const at = 1.5 + i * spacing + rand() * 0.3;
-    const typeIndex = Math.floor(rand() * enemyPool.length);
-    const type = enemyPool[typeIndex];
-    const row = Math.floor(rand() * 5);
-    add(at, type, row);
+function composeWave(waveNumber, seed = 582914, mode = "normal") {
+  const wave = Math.max(1, Number.isFinite(waveNumber) ? Math.floor(waveNumber) : 1);
+  const rand = mulberry32(((seed >>> 0) + wave * 10007) >>> 0);
+  const isFinale = WaveRules.isFinale(wave, mode);
+  const isBossWave = WaveRules.isBoss(wave, mode);
+
+  const pool = WaveRules.availableEnemyPool(wave);
+  const combos = WAVE_COMBOS.filter(combo =>
+    wave >= combo.minWave && combo.members.every(type => pool.includes(type))
+  );
+
+  let budget = WaveRules.escortBudget(wave, mode);
+  const types = [];
+
+  // Estreias forçadas: o pacote desbloqueado nesta onda é garantido.
+  for (const combo of combos) {
+    if (combo.minWave !== wave) continue;
+    const cost = comboCost(combo);
+    if (cost <= budget) {
+      budget -= cost;
+      for (const member of combo.members) types.push(member);
+    }
   }
 
-  if (waveNumber === 6) {
-    add(6.25, "gummy_brigadeiro", Math.floor(rand() * 5));
-    add(7.0, "strawberry_shooter", Math.floor(rand() * 5));
+  const minCost = cheapestThreat(pool);
+  const singles = pool
+    .map(type => ({ type, cost: WaveRules.threatOf(type) }))
+    .sort((a, b) => a.cost - b.cost || a.type.localeCompare(b.type));
+
+  let steps = 0;
+  while (budget >= minCost && types.length < MAX_WAVE_ITEMS && steps < MAX_COMPOSE_STEPS) {
+    steps++;
+    const affordableCombos = combos.filter(combo => comboCost(combo) <= budget);
+    const affordableSingles = singles.filter(entry => entry.cost <= budget);
+    if (affordableSingles.length === 0 && affordableCombos.length === 0) break;
+
+    const preferCombo = affordableCombos.length > 0 && (rand() < 0.6 || affordableSingles.length === 0);
+    if (preferCombo) {
+      const combo = affordableCombos[Math.floor(rand() * affordableCombos.length)];
+      budget -= comboCost(combo);
+      for (const member of combo.members) types.push(member);
+    } else {
+      const entry = affordableSingles[Math.floor(rand() * affordableSingles.length)];
+      budget -= entry.cost;
+      types.push(entry.type);
+    }
   }
 
-  if (isFinaleWave) {
-    const bossTime = 15.0;
-    add(bossTime, "candle", 0);
-    add(bossTime, "gum_boss", 1);
-    add(bossTime, "confeiteiro", 2);
-    add(bossTime, "cake_robot", 3);
-    add(bossTime, "lollipop_boss", 4);
+  // Bosses/finales por script (mesma regra de WaveRules). Ficam fora do budget
+  // de escolta, pois a própria ameaça do chefe já é contabilizada pelo seu `threat`.
+  if (isFinale) {
+    ["candle", "gum_boss", "confeiteiro", "cake_robot", "lollipop_boss"].forEach((type, row) => {
+      types.push({ type, row });
+    });
   } else if (isBossWave) {
-    const bossRow = Math.floor(rand() * 5);
-    const at = Math.min(10.0, 2.0 + (count * spacing) * 0.25);
-    const cycle = waveNumber % 25;
-    if (cycle === 5) add(at, "candle", bossRow);
-    else if (cycle === 10) add(at, "candy_catapult_boss", bossRow);
-    else if (cycle === 15) add(at, "lollipop_boss", bossRow);
-    else if (cycle === 20) add(at, "cake_robot", bossRow);
-    else if (cycle === 0) add(at, "confeiteiro", bossRow);
+    const cycle = wave % 25;
+    let bossType = "confeiteiro";
+    if (cycle === 5) bossType = "candle";
+    else if (cycle === 10) bossType = "candy_catapult_boss";
+    else if (cycle === 15) bossType = "lollipop_boss";
+    else if (cycle === 20) bossType = "cake_robot";
+    types.push({ type: bossType, row: Math.floor(rand() * 5) });
   }
+
+  // Distribui linhas (anti-repetição imediata) e tempos determinísticos.
+  const spacing = isFinale ? 0.4 : Math.max(0.35, 1.5 - wave * 0.035);
+  const list = [];
+  let lastRow = -1;
+  types.forEach((entry, index) => {
+    const at = 1.5 + index * spacing + rand() * 0.25;
+    if (typeof entry === "object") {
+      list.push({ at, type: entry.type, row: entry.row, spawned: false, threat: WaveRules.threatOf(entry.type) });
+      return;
+    }
+    let row = Math.floor(rand() * 5);
+    if (row === lastRow) row = (row + 1) % 5;
+    lastRow = row;
+    list.push({ at, type: entry, row, spawned: false, threat: WaveRules.threatOf(entry) });
+  });
 
   return list.sort((a, b) => a.at - b.at);
+}
+
+// Compatibilidade: consumidores legados continuam usando este contrato.
+function generateProceduralWave(waveNumber, seed = 582914, mode = "normal") {
+  return composeWave(waveNumber, seed, mode);
 }
