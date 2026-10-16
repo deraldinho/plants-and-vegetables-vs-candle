@@ -184,6 +184,67 @@ try {
   assert.equal(economyCheck.severeUnlocked, false, "failed unlock must not grant the defender");
   assert.equal(economyCheck.nonNegative, true, "wallet must never go negative");
 
+  const storeCheck = await page.evaluate(() => {
+    const economy = window.economyService;
+    const ui = window.uiManager;
+
+    localStorage.removeItem(STORAGE_KEYS.inventory);
+    localStorage.removeItem(STORAGE_KEYS.sunflowerSeeds);
+    economy.grantSeeds(100);
+    ui.renderStore();
+    ui.renderConsumableTray();
+
+    const storeRows = document.querySelectorAll("#storeItemsGrid .store-item").length;
+    const trayHiddenBefore = document.getElementById("consumableTray").hidden;
+
+    const buyButton = document.querySelector('#storeItemsGrid .store-buy-button[data-item="sun_pack"]');
+    buyButton.click();
+
+    const seedsAfterBuy = economy.getSeeds();
+    const ownedAfterBuy = economy.getItem("sun_pack");
+    const trayHiddenAfterBuy = document.getElementById("consumableTray").hidden;
+
+    const scene = ui.activeScene;
+    const hasSceneUse = typeof scene.useConsumable === "function";
+    const sunBefore = scene.gameState.sun;
+    ui.useConsumable("sun_pack");
+    const sunAfter = scene.gameState.sun;
+    const ownedAfterUse = economy.getItem("sun_pack");
+    const trayHiddenAfterUse = document.getElementById("consumableTray").hidden;
+
+    economy.spendSeeds(economy.getSeeds());
+    ui.renderStore();
+    const disabledWhenBroke = document.querySelector('#storeItemsGrid .store-buy-button[data-item="sun_pack"]').disabled;
+
+    return {
+      storeRows,
+      itemCount: Object.keys(ITEMS).length,
+      trayHiddenBefore,
+      seedsAfterBuy,
+      ownedAfterBuy,
+      trayHiddenAfterBuy,
+      sunPackPrice: ITEMS.sun_pack.price,
+      sunPackValue: ITEMS.sun_pack.value,
+      hasSceneUse,
+      sunGain: sunAfter - sunBefore,
+      ownedAfterUse,
+      trayHiddenAfterUse,
+      disabledWhenBroke,
+      walletNonNegative: economy.getSeeds() >= 0
+    };
+  });
+  assert.equal(storeCheck.storeRows, storeCheck.itemCount, "the store must render every catalog item");
+  assert.equal(storeCheck.trayHiddenBefore, true, "an empty backpack must keep the consumable tray hidden");
+  assert.equal(storeCheck.ownedAfterBuy, 1, "buying through the store must add the item to the inventory");
+  assert.equal(storeCheck.seedsAfterBuy, 100 - storeCheck.sunPackPrice, "the purchase must debit exactly the item price");
+  assert.equal(storeCheck.trayHiddenAfterBuy, false, "owning an item must reveal the consumable tray");
+  assert.equal(storeCheck.hasSceneUse, true, "the scene must own the consumable effect");
+  assert.equal(storeCheck.sunGain, storeCheck.sunPackValue, "the consumable must apply its sun effect");
+  assert.equal(storeCheck.ownedAfterUse, 0, "using a consumable must consume exactly one unit");
+  assert.equal(storeCheck.trayHiddenAfterUse, true, "an emptied backpack must hide the consumable tray again");
+  assert.equal(storeCheck.disabledWhenBroke, true, "the store must disable purchases without enough seeds");
+  assert.equal(storeCheck.walletNonNegative, true, "the wallet must never go negative after spending");
+
   const artillery = await page.evaluate(() => {
     const scene = window.uiManager.activeScene;
     const defender = scene.gameState.defenders[0];

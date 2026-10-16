@@ -134,3 +134,66 @@ Novos: `js/core/EconomyService.js`, `docs/specs/2026-10-16-economy-service-spec.
 ## 6. Próxima ação
 
 S4.2 — inventário de consumíveis (ex.: Adubo) e loja, ou o bloco que o PO priorizar.
+
+---
+
+# Walkthrough — S4.2 Loja + Inventário de consumíveis
+
+**Data:** 2026-10-16
+**Checkpoint:** S4.2 — loja de Sementes e mochila utilizável em partida
+**Status:** GREEN
+
+## 1. Entregue
+
+- `ITEMS` em `js/config.js` (catálogo) + `STORAGE_KEYS.inventory` + `readInventory`/`saveInventory`.
+- `EconomyService` ganhou o inventário: `getInventory`, `getItem`, `getItemCost`, `grantItem`,
+  `consumeItem`, `buyItem` (compra = débito + item, atômica; nunca negativo).
+- `MainScene.useConsumable(id)` é o owner do efeito (`sun` +75 / `repair` +150, com teto de vida).
+- `uiManager`: `renderStore`/`purchaseItem` (loja no overlay) e
+  `renderConsumableTray`/`syncConsumableTray`/`useConsumable` (mochila no HUD).
+- `index.html`: `#storeItemsGrid` no overlay e `#consumableTray` (oculta enquanto o inventário
+  estiver vazio). CSS novo em `styles-core-integrity.css`.
+
+## 2. Evidência de testes
+
+| Comando | Resultado |
+|---|---|
+| `node --check` (5 arquivos) | OK |
+| `npm run test:core` | **GAME_CORE_SMOKE_PASS** |
+| `npm run test:browser` (seed 582914) | **GAMEPLAY_BROWSER_SMOKE_PASS** |
+
+Core (RED antes da implementação): catálogo válido; inventário expõe todos os itens; consumo sem
+estoque e acima do saldo rejeitados sem alterar o inventário; `buyItem` sem sementes não gasta nem
+concede; compra debita `price * qty` e persiste; UI/cena não gravam `inventory` diretamente;
+`MainScene` consome via owner; sem `Math.random`.
+
+Browser: loja renderiza todos os itens; mochila oculta com inventário vazio; compra via UI debita o
+preço exato e adiciona o item; usar o consumível aplica +75 de Energia e consome 1; mochila volta a
+ocultar ao esvaziar; botão de compra desabilitado sem sementes; saldo nunca negativo.
+
+## 3. Atlas UI Quality Gate
+
+- runId: `2026-10-16T16-52-35-320Z-6632` (390x844 / 768x1024 / 1440x900).
+- Mudança visual intencional: nova loja no overlay; mochila não aparece sem itens.
+- Probes limpos (sem overflow em todos os viewports, 0 controles sem rótulo, foco visível).
+- Revisão visual independente: **APPROVED**, 0 issues.
+- `--finalize` → **status GREEN, exit 0**.
+- ⚠️ A seção deste walkthrough foi escrita **após** o finalize (docs entram no fingerprint do gate).
+  Delta apenas documental; o app validado é o mesmo das capturas.
+
+## 4. Riscos / impacto
+
+- Aditivo: nenhum caminho existente passa a depender do inventário; Adubo grátis continua grátis.
+- Preços calibrados ao `seedReward` (10/25/100), sem criar atalho de progressão.
+
+## 5. Arquivos
+
+Modificados: `js/config.js`, `js/core/EconomyService.js`, `js/scenes/MainScene.js`,
+`js/ui/uiManager.js`, `index.html`, `styles-core-integrity.css`, `tests/core-smoke.mjs`,
+`tests/browser-smoke.mjs`, `README.md`, `docs/Ideia.md`, `docs/CORE_INTEGRITY_S2.md`,
+`docs/DOCUMENTATION.md`.
+Novos: `docs/specs/2026-10-16-store-inventory-spec.md`, `docs/specs/2026-10-16-store-inventory-design.md`.
+
+## 6. Próxima ação
+
+S4.3 — skins/cosméticos (dependem de assets), ou novo bloco a critério do PO.

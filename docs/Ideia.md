@@ -27,7 +27,7 @@ Este documento é o backlog autoritativo de ideias de gameplay, progressão, pla
 - ✅ Slot 6 liberado ao atingir onda 10.
 - ✅ Slot 7 liberado ao atingir onda 20.
 - ✅ Slot 8 disponível na progressão pós-campanha do modo Infinito ao atingir onda 30.
-- 🟡 Desbloqueio permanente por Sementes já existe; falta evoluir a loja e o inventário.
+- ✅ Desbloqueio permanente por Sementes; loja de consumíveis e inventário em partida implementados (S4.1/S4.2).
 
 ---
 
@@ -171,13 +171,20 @@ Planejado:
 - não altera o deck nem ignora limite de slots;
 - concede +25% de velocidade de ataque por 15 segundos na partida.
 
-### 🛒 Loja de Sementes — ⏳
+### 🛒 Loja de Sementes — ✅ (consumíveis)
 
-Planejado:
+Implementado (S4.2):
+
+- **Loja no menu**: compra de consumíveis com Sementes 🌻, com custo, descrição e quantidade;
+- **Inventário persistente** (`STORAGE_KEYS.inventory`) com compra/consumo atômicos no `EconomyService`;
+- **Mochila em partida**: barra de consumíveis que só aparece quando você possui itens; botões desabilitados fora da partida ou com quantidade 0;
+- itens atuais: **Refresco de Orvalho** ☀️ (+75 Energia) e **Remendo da Casa** 🏠 (+150 vida).
+- Aditivo: nada passa a depender do inventário e o Adubo grátis continua grátis.
+
+Ainda planejado (S4.3+):
 
 - skins e variações visuais;
-- power-ups iniciais;
-- Adubo extra;
+- power-ups iniciais mais elaborados;
 - desbloqueios antecipados;
 - cosméticos sem alterar balanceamento competitivo.
 
@@ -311,7 +318,7 @@ O progresso visual considera a fila procedural e summons dinâmicos e nunca most
 ## 8. Próximos blocos
 
 1. ✅ Threat Budget para composição intencional de ondas (S3).
-2. 🟡 Loja de Sementes e inventário de consumíveis (S4.1: owner da economia ✅; inventário/skins pendentes).
+2. 🟡 Loja de Sementes e inventário de consumíveis (S4.1 owner da economia ✅; S4.2 loja + inventário ✅; skins/cosméticos pendentes — S4.3).
 3. ⏳ Novos Candies Level 2.
 4. ⏳ Armor Break/Stun e novos efeitos quando houver mecânicas que realmente os usem.
 5. ⏳ Balanceamento completo por dificuldade e campanha.

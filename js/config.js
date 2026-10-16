@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   bestEndlessWave: "healthy-family-home.best-endless-wave",
   sunflowerSeeds: "healthy-family-home.sunflower-seeds",
   unlockedCards: "healthy-family-home.unlocked-cards",
+  inventory: "healthy-family-home.inventory",
   deckSlots: "healthy-family-home.deck-slots",
   activeDeck: "healthy-family-home.active-deck",
   soundOn: "healthy-family-home.sound-on"
@@ -72,6 +73,11 @@ const KNOCKBACK_RESISTANCE = {
   lollipop_boss: 0,
   confeiteiro: 0,
   cake_robot: 0
+};
+
+const ITEMS = {
+  sun_pack: { name: "Refresco de Orvalho", icon: "☀️", price: 15, effect: "sun", value: 75, description: "+75 de Energia Solar na partida" },
+  reinforce: { name: "Remendo da Casa", icon: "🏠", price: 20, effect: "repair", value: 150, description: "recupera 150 de vida da Casa" }
 };
 
 const MODES = {
@@ -138,4 +144,30 @@ function readDeckSlots() {
 
 function saveDeckSlots(slotsCount) {
   writeStorage(STORAGE_KEYS.deckSlots, Math.min(8, Math.max(5, Number(slotsCount) || 5)));
+}
+
+function readInventory() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.inventory);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const clean = {};
+        for (const [id, count] of Object.entries(parsed)) {
+          if (ITEMS[id] && Number.isFinite(count) && count > 0) clean[id] = Math.floor(count);
+        }
+        return clean;
+      }
+    }
+  } catch (_) {}
+  return {};
+}
+
+function saveInventory(inventory) {
+  const clean = {};
+  for (const id of Object.keys(ITEMS)) {
+    const count = Math.floor(Number(inventory?.[id]) || 0);
+    if (count > 0) clean[id] = count;
+  }
+  writeStorage(STORAGE_KEYS.inventory, JSON.stringify(clean));
 }

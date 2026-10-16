@@ -260,3 +260,121 @@ button:active {
     min-width: 48px;
   }
 }
+
+/* Loja de Sementes (S4.2) */
+.store-selector {
+  margin: 14px 0;
+  padding: 12px;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  background: rgba(14, 43, 30, 0.35);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.store-selector legend {
+  padding: 0 10px;
+  color: #ffe27a;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.store-items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.store-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 2px solid #5a8264;
+  border-radius: 12px;
+  background: rgba(19, 48, 36, 0.92);
+  color: #fff;
+}
+
+.store-item-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.store-item-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.store-item-copy strong { font-size: 0.92rem; }
+.store-item-copy small { color: #bfe3c9; font-size: 0.72rem; }
+
+.store-item-owned {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff06a;
+}
+
+.store-buy-button {
+  min-height: 44px;
+  min-width: 72px;
+  padding: 6px 12px;
+  border: 2px solid #ffd43b;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #4caf50 0%, #2e7d32 100%);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.store-buy-button:hover:not(:disabled) { transform: translateY(-2px); }
+.store-buy-button:disabled { opacity: 0.45; filter: grayscale(0.6); cursor: not-allowed; }
+.store-buy-button:focus-visible { outline: 3px solid #ffe27a; outline-offset: 2px; }
+
+/* Mochila de consumíveis (S4.2) */
+.consumable-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.consumable-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 6px 34px 6px 10px;
+  border: 2px solid #5a8264;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #1f4a37 0%, #133024 100%);
+  color: #fff;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.consumable-card:hover:not(:disabled) { transform: translateY(-2px); border-color: #ffe27a; }
+.consumable-card:focus-visible { outline: 3px solid #ffe27a; outline-offset: 2px; }
+.consumable-card:disabled { opacity: 0.5; filter: grayscale(0.6); cursor: not-allowed; }
+
+.consumable-count {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  min-width: 22px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #ffd43b;
+  color: #17351f;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-align: center;
+}

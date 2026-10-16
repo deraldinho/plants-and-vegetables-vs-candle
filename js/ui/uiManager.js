@@ -59,6 +59,8 @@ class UIManager {
       seeds: document.getElementById("seedsValue"),
       deckSlotsGrid: document.getElementById("deckSlotsGrid"),
       availableCardsGrid: document.getElementById("availableCardsGrid"),
+      storeItemsGrid: document.getElementById("storeItemsGrid"),
+      consumableTray: document.getElementById("consumableTray"),
       cards: [...document.querySelectorAll(".defender-card[data-defender]")],
       habits: [...document.querySelectorAll(".habit")]
     };
@@ -68,6 +70,8 @@ class UIManager {
     this.renderBestiary();
     this.initModeSelector();
     this.renderDeckBuilder();
+    this.renderStore();
+    this.renderConsumableTray();
   }
 
   // Helper: registra click + touchstart sem o delay de 300ms do mobile.
@@ -132,6 +136,7 @@ class UIManager {
       if (this.ui.restartButton) this.ui.restartButton.hidden = true;
       this.renderResults(state, false);
       this.ui.overlayButton.textContent = "Tentar Novamente";
+      this.renderStore();
       this.ui.overlay.classList.add("visible");
     };
 
@@ -142,6 +147,7 @@ class UIManager {
       if (this.ui.restartButton) this.ui.restartButton.hidden = true;
       this.renderResults(state, true);
       this.ui.overlayButton.textContent = "Jogar Novamente";
+      this.renderStore();
       this.ui.overlay.classList.add("visible");
     };
   }
@@ -456,6 +462,154 @@ class UIManager {
     if (this.activeScene) this.syncUi(this.activeScene.gameState);
   }
 
+  // --- Loja + Inventário de consumíveis (S4.2) ---
+
+  renderStore() {
+    const grid = this.ui.storeItemsGrid;
+    if (!grid) return;
+    const economy = window.economyService;
+    const seeds = economy ? economy.getSeeds() : readNumber(STORAGE_KEYS.sunflowerSeeds);
+
+    grid.innerHTML = "";
+    for (const id of Object.keys(ITEMS)) {
+      const item = ITEMS[id];
+      const owned = economy ? economy.getItem(id) : 0;
+
+      const row = document.createElement("div");
+      row.className = "store-item";
+      row.dataset.item = id;
+
+      const icon = document.createElement("span");
+      icon.className = "store-item-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = item.icon;
+
+      const copy = document.createElement("span");
+      copy.className = "store-item-copy";
+      const name = document.createElement("strong");
+      name.textContent = item.name;
+      const desc = document.createElement("small");
+      desc.textContent = item.description;
+      copy.append(name, desc);
+
+      const ownedEl = document.createElement("span");
+      ownedEl.className = "store-item-owned";
+      ownedEl.textContent = `x${owned}`;
+
+      const buy = document.createElement("button");
+      buy.type = "button";
+      buy.className = "store-buy-button";
+      buy.dataset.item = id;
+      buy.textContent = `${item.price} 🌻`;
+      buy.disabled = seeds < item.price;
+      buy.setAttribute("aria-label", `Comprar ${item.name} por ${item.price} sementes de girassol`);
+      this.addTouchClick(buy, () => this.purchaseItem(id));
+
+      row.append(icon, copy, ownedEl, buy);
+      grid.appendChild(row);
+    }
+  }
+
+  purchaseItem(id) {
+    const item = ITEMS[id];
+    const economy = window.economyService;
+    if (!item || !economy) return;
+
+    const result = economy.buyItem(id, 1);
+    if (!result.ok) {
+      if (result.reason === "insufficient") {
+        this.showToast(`Sementes insuficientes! ${item.name} custa ${item.price} 🌻`);
+      } else {
+        this.showToast("Não foi possível concluir esta compra.");
+      }
+      return;
+    }
+
+    this.showToast(`🛒 ${item.name} na mochila! (x${result.count})`);
+    this.renderStore();
+    this.syncConsumableTray(this.activeScene?.gameState);
+    if (this.activeScene) this.syncUi(this.activeScene.gameState);
+  }
+
+  renderConsumableTray() {
+    const tray = this.ui.consumableTray;
+    if (!tray) return;
+
+    tray.innerHTML = "";
+    this.consumableButtons = {};
+    for (const id of Object.keys(ITEMS)) {
+      const item = ITEMS[id];
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "consumable-card";
+      button.dataset.item = id;
+
+      const icon = document.createElement("span");
+      icon.className = "card-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = item.icon;
+
+      const copy = document.createElement("span");
+      copy.className = "card-copy";
+      const name = document.createElement("strong");
+      name.textContent = item.name;
+      const desc = document.createElement("small");
+      desc.textContent = item.description;
+      copy.append(name, desc);
+
+      const count = document.createElement("span");
+      count.className = "consumable-count";
+      count.textContent = "x0";
+
+      button.append(icon, copy, count);
+      this.addTouchClick(button, () => this.useConsumable(id));
+      tray.appendChild(button);
+      this.consumableButtons[id] = { button, count };
+    }
+
+    this.syncConsumableTray(this.activeScene?.gameState);
+  }
+
+  // Atualiza apenas o estado dos botões (sem reconstruir o DOM a cada frame).
+  syncConsumableTray(state) {
+    const tray = this.ui.consumableTray;
+    if (!tray || !this.consumableButtons) return;
+
+    const economy = window.economyService;
+    const inventory = economy ? economy.getInventory() : {};
+    const playing = Boolean(state && state.phase === "playing" && !state.paused);
+    let anyOwned = false;
+
+    for (const id of Object.keys(ITEMS)) {
+      const refs = this.consumableButtons[id];
+      if (!refs) continue;
+      const count = inventory[id] || 0;
+      refs.count.textContent = `x${count}`;
+      refs.button.disabled = count <= 0 || !playing;
+      refs.button.setAttribute("aria-label", `Usar ${ITEMS[id].name} — ${ITEMS[id].description} (${count} disponível)`);
+      if (count > 0) anyOwned = true;
+    }
+
+    tray.hidden = !anyOwned;
+  }
+
+  useConsumable(id) {
+    const item = ITEMS[id];
+    if (!item || !this.activeScene) return;
+
+    const result = this.activeScene.useConsumable(id);
+    if (!result || !result.ok) {
+      if (result?.reason === "insufficient") this.showToast(`Sem ${item.name} na mochila! Compre na loja 🛒`);
+      else if (result?.reason === "phase") this.showToast("Só é possível usar consumíveis durante a partida!");
+      return;
+    }
+
+    this.showToast(`${item.icon} ${item.name} usado! (restam x${result.count})`);
+    this.syncConsumableTray(this.activeScene.gameState);
+    this.syncUi(this.activeScene.gameState);
+  }
+
   renderDeckBuilder() {
     if (!this.ui.deckSlotsGrid || !this.ui.availableCardsGrid) return;
     this.refreshDeckFromService();
@@ -673,6 +827,7 @@ class UIManager {
       ? (state.mode === "endless" && this.activeScene.bestEndlessWave > 0 ? `${this.activeScene.bestScore} (Onda ${this.activeScene.bestEndlessWave})` : this.activeScene.bestScore)
       : 0;
     this.updateCards(state);
+    this.syncConsumableTray(state);
     if (state.defenders.length > 0 && state.tutorialStep === 0) state.tutorialStep = 1;
     if (state.stats.sunCollected > 50 && state.tutorialStep === 1) state.tutorialStep = 2;
     this.updateTutorial(state);

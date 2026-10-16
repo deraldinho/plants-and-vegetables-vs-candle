@@ -40,6 +40,7 @@ http://localhost:8080/?seed=582914
 - Ondas procedurais e runtime de gameplay reproduzíveis por seed.
 - **Threat Budget (S3)**: ondas compostas por orçamento de ameaça com pacotes sinérgicos intencionais (escudo+trilha, artilharia+veneno, pressão de velocidade) e estreias garantidas de elites.
 - **Economia (S4.1)**: `EconomyService` é o owner único das Sementes de Girassol e dos desbloqueios; compras são atômicas e não criam bypass de progressão.
+- **Loja & Inventário (S4.2)**: compra de consumíveis com Sementes e mochila utilizável em partida (barra só aparece quando há itens); aditivo, sem alterar o balanceamento.
 - Deck Builder persistente com 5 slots iniciais; 6º slot na onda 10, 7º na 20 e 8º na progressão pós-campanha do modo Infinito.
 - Sementes de Girassol persistentes para desbloqueio permanente de plantas, incluindo a Pimenta.
 - Melhorias individuais, habilidades especiais, Pá, Saco de Adubo e bônus de hábitos saudáveis.
@@ -118,4 +119,4 @@ Os smokes cobrem regras de onda, deck, posicionamento, Adubo temporário, Acid D
 
 ## Planejamento
 
-O backlog autoritativo está em [`docs/Ideia.md`](docs/Ideia.md). Com o **Core Integrity S2**, o **Threat Budget (S3)** e o owner de economia **EconomyService (S4.1)** implementados, os próximos blocos são o inventário de consumíveis e a loja (S4.2+), novos Candies Level 2, balanceamento e polish audiovisual.
+O backlog autoritativo está em [`docs/Ideia.md`](docs/Ideia.md). Com o **Core Integrity S2**, o **Threat Budget (S3)**, o owner de economia **EconomyService (S4.1)** e a **Loja + Inventário de consumíveis (S4.2)** implementados, os próximos blocos são skins/cosméticos (S4.3), novos Candies Level 2, balanceamento e polish audiovisual.

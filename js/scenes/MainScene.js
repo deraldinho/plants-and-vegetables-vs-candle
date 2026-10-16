@@ -465,6 +465,29 @@ class MainScene extends Phaser.Scene {
     return economy ? economy.grantSeeds(amount) : 0;
   }
 
+  useConsumable(id) {
+    if (this.gameState.phase !== "playing" || this.gameState.paused) return { ok: false, reason: "phase" };
+    const item = ITEMS[id];
+    const economy = window.economyService;
+    if (!item || !economy) return { ok: false, reason: "unknown" };
+
+    const consumed = economy.consumeItem(id, 1);
+    if (!consumed.ok) return consumed;
+
+    if (item.effect === "sun") {
+      this.gameState.sun += item.value;
+      this.effectsSystem?.burst?.(500, 300, "#ffd60a", 26);
+      this.effectsSystem?.spawnFloater?.(500, 250, `${item.icon} +${item.value} ENERGIA!`, "#ffd60a", 1.3);
+    } else if (item.effect === "repair") {
+      this.gameState.houseHp = Math.min(this.gameState.maxHouseHp, this.gameState.houseHp + item.value);
+      this.effectsSystem?.burst?.(180, 300, "#69c743", 26);
+      this.effectsSystem?.spawnFloater?.(180, 250, `${item.icon} +${item.value} CASA!`, "#69c743", 1.3);
+    }
+
+    this.soundManager?.beep?.(720, 0.12, "sine", 0.06);
+    return { ok: true, item: id, count: consumed.count };
+  }
+
   upgradeDefenderPower(defender) {
     return this.defenderSystem.upgradeDefenderPower(defender);
   }

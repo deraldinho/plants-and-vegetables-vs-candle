@@ -26,10 +26,10 @@ const context = vm.createContext({
   }
 });
 
-vm.runInContext(`${configSource}\n${waveRulesSource}\n${economySource}\n;globalThis.__core = { CAMPAIGN_MAX_WAVES, DEFENDERS, ENEMIES, MODES, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService };`, context);
+vm.runInContext(`${configSource}\n${waveRulesSource}\n${economySource}\n;globalThis.__core = { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService };`, context);
 vm.runInContext(`${waveSource}\n;globalThis.__waves = { generateProceduralWave, composeWave };`, context);
 
-const { CAMPAIGN_MAX_WAVES, DEFENDERS, ENEMIES, MODES, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService } = context.__core;
+const { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService } = context.__core;
 const { generateProceduralWave, composeWave } = context.__waves;
 
 assert.equal(CAMPAIGN_MAX_WAVES, 26, "campaign must have 26 waves");
@@ -154,6 +154,63 @@ assert.ok(economy.getSeeds() >= 0, "balance must never go negative");
 assert.doesNotMatch(uiSource, /writeStorage\(STORAGE_KEYS\.sunflowerSeeds/, "UI must not write the wallet directly");
 assert.doesNotMatch(sceneSource, /writeStorage\(STORAGE_KEYS\.sunflowerSeeds/, "scene must not write the wallet directly");
 assert.match(deckSource, /economy/, "deck admission must consume the economy owner");
+
+// --- S4.2 Store + Inventory ---
+storage.delete(STORAGE_KEYS.sunflowerSeeds);
+storage.delete(STORAGE_KEYS.inventory);
+
+assert.match(configSource, /const ITEMS = \{/, "the item catalog must live in config");
+for (const [id, item] of Object.entries(ITEMS)) {
+  assert.ok(item.name && item.icon, `${id} must expose a name and icon`);
+  assert.ok(Number.isFinite(item.price) && item.price > 0, `${id} must have a positive seed price`);
+  assert.ok(["sun", "repair"].includes(item.effect), `${id} must declare a known effect`);
+  assert.ok(Number.isFinite(item.value) && item.value > 0, `${id} must have a positive effect value`);
+}
+
+const store = new EconomyService();
+assert.deepEqual(Object.keys(store.getInventory()).sort(), Object.keys(ITEMS).sort(), "inventory must expose every catalog item");
+assert.equal(store.getItem("sun_pack"), 0, "a fresh player owns no consumables");
+assert.equal(store.getItemCost("sun_pack"), ITEMS.sun_pack.price, "the store must expose the item cost");
+assert.equal(store.getItemCost("inexistente"), null, "unknown items must have no cost");
+assert.equal(store.grantItem("inexistente", 3), 0, "unknown items must not be granted");
+assert.equal(store.consumeItem("inexistente").reason, "unknown", "unknown items must not be consumed");
+assert.equal(store.consumeItem("sun_pack").ok, false, "consuming without stock must fail");
+assert.equal(store.consumeItem("sun_pack").reason, "insufficient", "consuming without stock must report insufficient");
+assert.equal(store.consumeItem("sun_pack", 0).reason, "invalid", "consuming zero must be rejected");
+assert.equal(store.grantItem("sun_pack", 2), 2, "grantItem must return the resulting count");
+assert.equal(new EconomyService().getItem("sun_pack"), 2, "inventory must persist across instances");
+assert.equal(store.consumeItem("sun_pack", 5).reason, "insufficient", "over-consuming must fail");
+assert.equal(store.getItem("sun_pack"), 2, "failed consume must not change the inventory");
+assert.equal(store.consumeItem("sun_pack").count, 1, "consumeItem must decrement and report the count");
+assert.equal(store.getItem("sun_pack"), 1, "consumeItem must persist the decrement");
+
+storage.delete(STORAGE_KEYS.inventory);
+const broker = new EconomyService();
+assert.equal(broker.buyItem("sun_pack").reason, "insufficient", "buying without seeds must be rejected");
+assert.equal(broker.getItem("sun_pack"), 0, "failed purchase must not grant the item");
+assert.equal(broker.getSeeds(), 0, "failed purchase must not spend seeds");
+assert.equal(broker.buyItem("inexistente").reason, "unknown", "buying unknown items must be rejected");
+assert.equal(broker.buyItem("sun_pack", 0).reason, "invalid", "buying zero items must be rejected");
+
+broker.grantSeeds(100);
+const beforeBuy = broker.getSeeds();
+const bought = broker.buyItem("reinforce", 2);
+assert.equal(bought.ok, true, "buying with enough seeds must succeed");
+assert.equal(bought.cost, ITEMS.reinforce.price * 2, "the purchase must charge price * amount");
+assert.equal(broker.getSeeds(), beforeBuy - bought.cost, "the purchase must debit exactly the cost");
+assert.equal(broker.getItem("reinforce"), 2, "the purchase must add the items to the inventory");
+assert.equal(new EconomyService().getItem("reinforce"), 2, "purchases must persist across instances");
+assert.ok(broker.getSeeds() >= 0, "the wallet must never go negative");
+
+assert.doesNotMatch(uiSource, /writeStorage\(STORAGE_KEYS\.inventory/, "UI must not write the inventory directly");
+assert.doesNotMatch(sceneSource, /writeStorage\(STORAGE_KEYS\.inventory/, "scene must not write the inventory directly");
+assert.match(sceneSource, /useConsumable\s*\(/, "MainScene must own the consumable effect");
+assert.match(sceneSource, /consumeItem\s*\(/, "MainScene must consume through the economy owner");
+assert.match(uiSource, /purchaseItem\s*\(/, "UIManager must purchase through the economy owner");
+assert.match(uiSource, /renderConsumableTray|syncConsumableTray/, "UIManager must render the consumable tray");
+assert.match(uiSource, /ITEMS/, "the store must be driven by the ITEMS catalog");
+assert.doesNotMatch(uiSource, /Math\.random\s*\(/, "the store must be deterministic");
+assert.doesNotMatch(sceneSource, /Math\.random\s*\(/, "consumables must be deterministic");
 
 assert.match(deckSource, /class DeckService/, "DeckService must own deck persistence and validation");
 assert.match(deckSource, /getMaxSlots\(\)/, "deck slot limit must be enforced by the deck owner");

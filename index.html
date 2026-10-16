@@ -73,6 +73,8 @@
       </button>
     </section>
 
+    <section id="consumableTray" class="consumable-tray" aria-label="Consumíveis da mochila" hidden></section>
+
     <section id="wavePreview" class="wave-preview" aria-live="polite">
       <div class="wave-preview-copy">
         <span id="wavePreviewMode" class="eyebrow">Próxima ameaça</span>
@@ -106,6 +108,11 @@
             <legend>🃏 Monte seu Baralho de Sementes</legend>
             <div id="deckSlotsGrid" class="deck-slots-grid"></div>
             <div id="availableCardsGrid" class="available-cards-grid"></div>
+          </fieldset>
+
+          <fieldset id="storeSelector" class="store-selector">
+            <legend>🛒 Loja de Sementes — consumíveis</legend>
+            <div id="storeItemsGrid" class="store-items-grid"></div>
           </fieldset>
           <div id="resultSummary" class="result-summary" hidden>
             <div id="resultStars" class="result-stars" aria-label="Estrelas conquistadas"></div>
@@ -173,9 +180,9 @@
     </footer>
   </main>
   <script src="js/vendor/phaser.min.js"></script>
-  <script src="js/config.js?v=6"></script>
+  <script src="js/config.js?v=7"></script>
   <script src="js/core/WaveRules.js?v=2"></script>
-  <script src="js/core/EconomyService.js?v=1"></script>
+  <script src="js/core/EconomyService.js?v=2"></script>
   <script src="js/core/DeckService.js?v=3"></script>
   <script src="js/utils/waveGenerator.js?v=6"></script>
   <script src="js/utils/textureGenerator.js?v=5"></script>
@@ -185,8 +192,8 @@
   <script src="js/entities/ProjectileSystem.js?v=5"></script>
   <script src="js/entities/DefenderSystem.js?v=5"></script>
   <script src="js/entities/EnemySystem.js?v=5"></script>
-  <script src="js/ui/uiManager.js?v=7"></script>
-  <script src="js/scenes/MainScene.js?v=6"></script>
+  <script src="js/ui/uiManager.js?v=8"></script>
+  <script src="js/scenes/MainScene.js?v=7"></script>
   <script src="js/main.js?v=6"></script>
 </body>
 </html>
