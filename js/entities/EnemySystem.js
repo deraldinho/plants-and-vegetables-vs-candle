@@ -92,6 +92,15 @@ class EnemySystem {
     } else if (type === "bubblegum_jumper") {
       this.scene.effectsSystem.spawnFloater(720, y - 38, "🫧 CHICLETE SALTADOR: SALTO ACROBÁTICO!", "#ff5d8f", 1.15);
       this.scene.soundManager.beep(420, 0.12, "sine", 0.05);
+    } else if (type === "jelly_bomb") {
+      this.scene.effectsSystem.spawnFloater(720, y - 38, "🍬 BOMBA DE GELATINA: CUIDADO COM A EXPLOSÃO!", "#9c27b0", 1.15);
+      this.scene.soundManager.beep(200, 0.15, "square", 0.04);
+    } else if (type === "macaron_parry") {
+      this.scene.effectsSystem.spawnFloater(720, y - 38, "🥮 MACARON DEFLETOR: CUIDADO COM O REBOTE!", "#d81b60", 1.15);
+      this.scene.soundManager.beep(300, 0.12, "sine", 0.04);
+    } else if (type === "toffee_tank") {
+      this.scene.effectsSystem.spawnFloater(720, y - 38, "🍫 TANQUE DE TAFFY: BLINDADO E PESADO!", "#4e342e", 1.15);
+      this.scene.soundManager.beep(140, 0.18, "sawtooth", 0.04);
     }
 
     return enemy;

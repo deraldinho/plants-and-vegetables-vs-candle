@@ -39,6 +39,9 @@ class TextureGenerator {
     this.createChocolateTexture(scene);
     this.createSodaTexture(scene);
     this.createGumTexture(scene);
+    this.createJellyBombTexture(scene);
+    this.createMacaronParryTexture(scene);
+    this.createToffeeTankTexture(scene);
     this.createCandleTexture(scene);
 
     // Bosses & Effects
@@ -487,6 +490,93 @@ class TextureGenerator {
     g.fillCircle(38, 32, 2);
 
     g.generateTexture("tex_gum", 64, 64);
+    g.destroy();
+  }
+
+  static createJellyBombTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Gelatinous Body
+    g.fillStyle(0x9c27b0, 0.95);
+    g.fillRoundedRect(12, 16, 40, 36, 10);
+
+    // Jelly Wobble Highlight
+    g.fillStyle(0xe1bee7, 0.6);
+    g.fillCircle(20, 22, 6);
+    g.fillCircle(44, 30, 5);
+
+    // Lit Fuse
+    g.lineStyle(3, 0x3e2723, 1);
+    g.lineBetween(32, 16, 38, 6);
+    g.fillStyle(0xff4500, 1);
+    g.fillCircle(39, 4, 5);
+    g.fillStyle(0xffd700, 1);
+    g.fillCircle(39, 4, 2.5);
+
+    // Eyes
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(22, 30, 3);
+    g.fillCircle(42, 30, 3);
+
+    g.generateTexture("tex_jelly_bomb", 64, 64);
+    g.destroy();
+  }
+
+  static createMacaronParryTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Macaron Shells
+    g.fillStyle(0xd81b60, 1);
+    g.fillCircle(22, 32, 14);
+    g.fillCircle(42, 32, 14);
+
+    // Cream Filling
+    g.fillStyle(0xffe0f2, 1);
+    g.fillCircle(32, 32, 10);
+
+    // Deflector Badge
+    g.fillStyle(0xffd700, 1);
+    g.fillCircle(32, 32, 5);
+    g.lineStyle(2, 0x000000, 1);
+    g.strokeCircle(32, 32, 5);
+
+    // Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(25, 28, 3);
+    g.fillCircle(39, 28, 3);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(26, 28, 1.5);
+    g.fillCircle(40, 28, 1.5);
+
+    g.generateTexture("tex_macaron_parry", 64, 64);
+    g.destroy();
+  }
+
+  static createToffeeTankTexture(scene) {
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+
+    // Taffy Body
+    g.fillStyle(0x4e342e, 1);
+    g.fillRoundedRect(10, 22, 44, 30, 8);
+
+    // Armor Bands
+    g.fillStyle(0xb0bec5, 1);
+    g.fillRect(12, 24, 10, 6);
+    g.fillRect(42, 24, 10, 6);
+
+    // Treads
+    g.fillStyle(0x212121, 1);
+    g.fillRoundedRect(10, 44, 44, 10, 4);
+
+    // Eyes
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(24, 34, 3);
+    g.fillCircle(40, 34, 3);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(25, 34, 1.5);
+    g.fillCircle(41, 34, 1.5);
+
+    g.generateTexture("tex_toffee_tank", 64, 64);
     g.destroy();
   }
 

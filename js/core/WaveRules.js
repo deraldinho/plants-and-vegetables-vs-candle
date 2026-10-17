@@ -35,6 +35,9 @@ const WaveRules = Object.freeze({
     if (wave >= 4) pool.push("chocolate", "caramel_sticky");
     if (wave >= 5) pool.push("bubblegum_jumper");
     if (wave >= 6) pool.push("gummy_brigadeiro", "strawberry_shooter");
+    if (wave >= 7) pool.push("jelly_bomb");
+    if (wave >= 8) pool.push("macaron_parry");
+    if (wave >= 9) pool.push("toffee_tank");
     return pool;
   },
 

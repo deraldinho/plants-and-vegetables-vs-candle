@@ -26,7 +26,7 @@ const context = vm.createContext({
   }
 });
 
-vm.runInContext(`${configSource}\n${waveRulesSource}\n${economySource}\n;globalThis.__core = { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, SKINS, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService };`, context);
+vm.runInContext(`${configSource}\n${waveRulesSource}\n${economySource}\n;globalThis.__core = { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, SKINS, KNOCKBACK_RESISTANCE, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService };`, context);
 vm.runInContext(`${waveSource}\n;globalThis.__waves = { generateProceduralWave, composeWave };`, context);
 
 const { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, SKINS, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService } = context.__core;
@@ -300,5 +300,38 @@ assert.doesNotMatch(mainSource, /__projectileShieldAudit/, "bootstrap must not c
 const gameplayRandomSources = [defenderSource, enemySource, projectileSource, effectsSource, sceneSource].join("\n");
 assert.doesNotMatch(gameplayRandomSources, /Math\.random\s*\(/, "gameplay runtime randomness must be seed-owned");
 assert.match(sceneSource, /URLSearchParams[\s\S]*seed/, "a seed query parameter must support deterministic replay");
+
+// --- Novos Candies Level 2 ---
+const { ENEMIES: level2Enemies, KNOCKBACK_RESISTANCE: kbr } = context.__core;
+assert.ok(level2Enemies.jelly_bomb, "jelly_bomb deve existir no catálogo de inimigos");
+assert.ok(level2Enemies.macaron_parry, "macaron_parry deve existir no catálogo de inimigos");
+assert.ok(level2Enemies.toffee_tank, "toffee_tank deve existir no catálogo de inimigos");
+
+for (const [id, enemy] of Object.entries(level2Enemies)) {
+  if (enemy.description && enemy.description.includes("Level 2")) {
+    assert.ok(Number.isFinite(enemy.hp) && enemy.hp > 0, `${id} deve ter hp válido`);
+    assert.ok(Number.isFinite(enemy.speed) && enemy.speed > 0, `${id} deve ter speed válido`);
+    assert.ok(Number.isFinite(enemy.threat) && enemy.threat > 0, `${id} deve ter threat válido`);
+    assert.ok(enemy.icon, `${id} deve ter ícone`);
+    assert.ok(enemy.name, `${id} deve ter nome`);
+  }
+}
+
+const pool7 = WaveRules.availableEnemyPool(7);
+const pool8 = WaveRules.availableEnemyPool(8);
+const pool9 = WaveRules.availableEnemyPool(9);
+assert.ok(pool7.includes("jelly_bomb"), "jelly_bomb deve entrar no pool a partir da onda 7");
+assert.ok(pool8.includes("macaron_parry"), "macaron_parry deve entrar no pool a partir da onda 8");
+assert.ok(pool9.includes("toffee_tank"), "toffee_tank deve entrar no pool a partir da onda 9");
+assert.ok(!pool7.includes("macaron_parry"), "macaron_parry não deve estar no pool da onda 7");
+assert.ok(!pool8.includes("toffee_tank"), "toffee_tank não deve estar no pool da onda 8");
+
+assert.ok(kbr.jelly_bomb !== undefined, "jelly_bomb deve ter knockback resistance");
+assert.ok(kbr.macaron_parry !== undefined, "macaron_parry deve ter knockback resistance");
+assert.ok(kbr.toffee_tank !== undefined, "toffee_tank deve ter knockback resistance");
+
+assert.ok(WaveRules.threatOf("jelly_bomb") > 0, "threatOf jelly_bomb deve ser positivo");
+assert.ok(WaveRules.threatOf("macaron_parry") > 0, "threatOf macaron_parry deve ser positivo");
+assert.ok(WaveRules.threatOf("toffee_tank") > 0, "threatOf toffee_tank deve ser positivo");
 
 console.log("GAME_CORE_SMOKE_PASS");
