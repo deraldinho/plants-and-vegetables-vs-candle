@@ -145,8 +145,9 @@ h2 { margin: 0; }
   position: relative; overflow: hidden; border: 5px solid var(--green-dark); border-radius: 22px;
   background: #8ed163; box-shadow: var(--shadow);
   pointer-events: auto;
+  touch-action: manipulation;
 }
-canvas { display: block; width: 100%; height: auto; touch-action: none; cursor: crosshair; pointer-events: auto; }
+canvas { display: block; width: 100%; height: auto; touch-action: manipulation; cursor: crosshair; pointer-events: auto; }
 
 /* Overlay & Modals - Glassmorphism */
 .overlay {
