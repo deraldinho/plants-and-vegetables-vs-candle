@@ -53,7 +53,10 @@ const WaveRules = Object.freeze({
   seedReward(waveNumber, mode = "normal") {
     if (this.isFinale(waveNumber, mode)) return 100;
     if (this.isBoss(waveNumber, mode)) return 25;
-    return 10;
+    // O threatBudget cresce exponencialmente com a onda (BASE + GROWTH * wave^EXP).
+    // A recompensa de sementes acompanha suavemente para nao defasar as ondas finais:
+    // comeca em 10 (onda 1) e sobe ~0.75 por onda, arredondado. Nunca abaixo de 10.
+    return Math.max(10, Math.round(10 + (waveNumber - 1) * 0.75));
   },
 
   getThreatLevelInfo(waveNumber, mode = "normal") {

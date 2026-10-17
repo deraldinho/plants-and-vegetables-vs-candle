@@ -336,7 +336,8 @@ O progresso visual considera a fila procedural e summons dinâmicos e nunca most
 
 1. ✅ Threat Budget para composição intencional de ondas (S3).
 2. ✅ S4 concluído: owner da economia (S4.1), loja + inventário de consumíveis (S4.2) e cosméticos/skins (S4.3).
-3. ⏳ Novos Candies Level 2.
-4. ⏳ Armor Break/Stun e novos efeitos quando houver mecânicas que realmente os usem.
-5. ⏳ Balanceamento completo por dificuldade e campanha.
-6. ⏳ Polish audiovisual, animações específicas e feedback de status.
+3. ✅ Novos Candies Level 2 (jelly_bomb, macaron_parry, toffee_tank; ondas 7/8/9).
+4. ✅ Adequação mobile iOS/Android (overlay de orientação, pausa/retoma ao girar, meta tags PWA).
+5. 🟡 Balanceamento inicial (seedReward escala suavemente com a onda; threatBudget já cresce exponencialmente). Completo por dificuldade e campanha pendente.
+6. ⏳ Armor Break/Stun e novos efeitos quando houver mecânicas que realmente os usem.
+7. ⏳ Polish audiovisual, animações específicas e feedback de status.

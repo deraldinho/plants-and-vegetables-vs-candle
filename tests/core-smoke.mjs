@@ -334,4 +334,57 @@ assert.ok(WaveRules.threatOf("jelly_bomb") > 0, "threatOf jelly_bomb deve ser po
 assert.ok(WaveRules.threatOf("macaron_parry") > 0, "threatOf macaron_parry deve ser positivo");
 assert.ok(WaveRules.threatOf("toffee_tank") > 0, "threatOf toffee_tank deve ser positivo");
 
+// --- Balanceamento (preços / recompensas) ---
+// threatBudget cresce com a onda; seedReward deve acompanhar para nao defasar ondas finais.
+for (let w = 1; w <= CAMPAIGN_MAX_WAVES; w += 1) {
+  const t1 = WaveRules.threatBudget(w, "normal");
+  const t2 = WaveRules.threatBudget(w + 1, "normal");
+  assert.ok(Number.isFinite(t1) && t1 >= 0, `threatBudget onda ${w} deve ser finita e nao negativa`);
+  assert.ok(t2 >= t1, `threatBudget deve nao decrescer da onda ${w} para ${w + 1}`);
+  const r = WaveRules.seedReward(w, "normal");
+  assert.ok(Number.isFinite(r) && r > 0, `seedReward onda ${w} deve ser positivo`);
+}
+for (let w = 1; w < CAMPAIGN_MAX_WAVES; w += 1) {
+  // compara apenas transicoes entre ondas da mesma categoria (normal->normal),
+  // pois boss/finale sao saltos esperados e especiais.
+  if (WaveRules.isBoss(w, "normal") || WaveRules.isFinale(w, "normal")) continue;
+  if (WaveRules.isBoss(w + 1, "normal") || WaveRules.isFinale(w + 1, "normal")) continue;
+  assert.ok(
+    WaveRules.seedReward(w + 1, "normal") >= WaveRules.seedReward(w, "normal"),
+    `seedReward deve nao decrescer da onda ${w} para ${w + 1}`
+  );
+}
+assert.equal(WaveRules.seedReward(1, "normal"), 10, "onda 1 normal deve pagar 10 sementes");
+assert.ok(
+  WaveRules.seedReward(24, "normal") > WaveRules.seedReward(1, "normal"),
+  "onda normal alta (24) deve pagar mais que a onda 1 (threat cresce, recompensa tambem)"
+);
+assert.equal(
+  WaveRules.seedReward(24, "normal"),
+  WaveRules.seedReward(24, "normal"),
+  "seedReward deve ser deterministico por onda"
+);
+assert.equal(WaveRules.seedReward(52, "endless"), 100, "finale endless deve pagar 100 sementes");
+
+for (const [id, def] of Object.entries(DEFENDERS)) {
+  assert.ok(Number.isFinite(def.seedPrice) && def.seedPrice >= 0, `${id} seedPrice deve ser >= 0`);
+  assert.ok(Number.isFinite(def.cost) && def.cost >= 0, `${id} cost deve ser >= 0`);
+}
+for (const [id, item] of Object.entries(ITEMS)) {
+  assert.ok(Number.isFinite(item.price) && item.price >= 0, `${id} price deve ser >= 0`);
+  assert.ok(Number.isFinite(item.value) && item.value > 0, `${id} value deve ser positivo`);
+}
+const skinPrices = Object.values(SKINS).map((s) => s.price);
+assert.equal(skinPrices[0], 0, "skin classic deve ser gratuita");
+for (let i = 1; i < skinPrices.length; i += 1) {
+  assert.ok(skinPrices[i] >= skinPrices[i - 1], "precos de skins devem ser nao decrescentes");
+}
+
+const wallet = new EconomyService();
+storage.delete(STORAGE_KEYS.sunflowerSeeds);
+assert.equal(wallet.canAfford(0), false, "canAfford(0) deve ser false");
+assert.equal(wallet.spendSeeds(0).reason, "invalid", "spendSeeds(0) deve ser invalido");
+wallet.grantSeeds(-5);
+assert.equal(wallet.getSeeds(), 0, "grantSeeds negativo nao reduz o saldo");
+
 console.log("GAME_CORE_SMOKE_PASS");
