@@ -98,10 +98,10 @@ Navegue para `http://localhost:8080` em qualquer navegador web moderno.
 
 ```text
 js/
- ├── config.js              # Tabelas de dados (DEFENDERS, ENEMIES, MODES, BIOMES, KNOCKBACK_RESISTANCE)
+ ├── config.js              # Tabelas de dados (DEFENDERS, ENEMIES, MODES, BIOMES, ITEMS, SKINS, KNOCKBACK_RESISTANCE)
  ├── main.js                # Instanciação do Phaser.Game e UIManager
  ├── core/
- │    ├── EconomyService.js  # Owner das Sementes 🌻, desbloqueios e inventário de consumíveis
+ │    ├── EconomyService.js  # Owner das Sementes 🌻, desbloqueios, inventário e cosméticos
  │    ├── DeckService.js     # Owner do deck selecionado, slots e persistência
  │    ├── WaveRules.js       # Owner de ondas/boss/finale/recompensa e threat budget
  │    └── StatusEffectSystem.js # Owner de efeitos temporários e DoTs

@@ -53,6 +53,7 @@ class DefenderSystem {
     const textureKey = (type === "potato" && defender.armed) ? "tex_potato_armed" : "tex_" + type;
     defender.sprite = this.scene.add.sprite(x, y - 4, textureKey).setOrigin(0.5);
     defender.textObj = defender.sprite;
+    this.applyDefenderTint(defender);
     this.scene.gameState.defenders.push(defender);
     this.scene.gameState.stats.defendersPlaced += 1;
 
@@ -60,6 +61,15 @@ class DefenderSystem {
     this.scene.effectsSystem.sparkleBurst(x, y, "#b7df54", 10);
     this.scene.soundManager.beep(330, 0.07, "sine", 0.04);
     return true;
+  }
+
+  // S4.3 — cosmético: aplica o tint da skin equipada (classic ⇒ sem tint).
+  // Ponto único de aplicação; substitui clearTint/setTint avulsos.
+  applyDefenderTint(defender) {
+    if (!defender || !defender.sprite) return;
+    const tint = this.scene.getSkinTint ? this.scene.getSkinTint() : null;
+    if (tint === null || tint === undefined) defender.sprite.clearTint();
+    else defender.sprite.setTint(tint);
   }
 
   damageDefender(defender, amount, options = {}) {
@@ -266,7 +276,7 @@ class DefenderSystem {
       case "watermelon": {
         defender.cooldownLeft = 0;
         defender.digesting = false;
-        if (defender.sprite) defender.sprite.clearTint();
+        this.applyDefenderTint(defender);
         defender.hp = Math.min(defender.maxHp, defender.hp + 80);
         this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 25, "DIGESTÃO RÁPIDA! +80 HP 🍉", "#ff3b5c", 1.15);
         this.scene.effectsSystem.burst(defender.x, defender.y, "#ff3b5c", 15);
@@ -516,7 +526,7 @@ class DefenderSystem {
       if (defender.type === "watermelon") {
         if (defender.digesting && defender.cooldownLeft <= 0) {
           defender.digesting = false;
-          if (defender.sprite) defender.sprite.clearTint();
+          this.applyDefenderTint(defender);
           this.scene.effectsSystem.spawnFloater(defender.x, defender.y - 30, "Digestão pronta! 🍉", "#ff3b5c", 1.1);
         }
 

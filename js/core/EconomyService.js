@@ -105,6 +105,52 @@ class EconomyService {
     return { ok: true, item: id, amount: value, cost, balance: spend.balance, count };
   }
 
+  // --- Cosméticos / skins (S4.3) ---
+
+  getOwnedSkins() {
+    return [...readCosmetics().owned];
+  }
+
+  isSkinOwned(id) {
+    return readCosmetics().owned.includes(id);
+  }
+
+  getEquippedSkin() {
+    return readCosmetics().equipped;
+  }
+
+  getEquippedSkinTint() {
+    const skin = SKINS[this.getEquippedSkin()];
+    return skin ? skin.tint : null;
+  }
+
+  getSkinCost(id) {
+    return SKINS[id] ? SKINS[id].price : null;
+  }
+
+  unlockSkin(id) {
+    if (!SKINS[id]) return { ok: false, reason: "unknown" };
+    const cost = SKINS[id].price;
+    if (cost === 0) return { ok: false, reason: "free" };
+    if (this.isSkinOwned(id)) return { ok: false, reason: "already" };
+
+    const spend = this.spendSeeds(cost);
+    if (!spend.ok) return { ok: false, reason: "insufficient", cost, balance: spend.balance };
+
+    const cosmetics = readCosmetics();
+    saveCosmetics({ owned: [...cosmetics.owned, id], equipped: cosmetics.equipped });
+    return { ok: true, skin: id, cost, balance: spend.balance };
+  }
+
+  equipSkin(id) {
+    if (!SKINS[id]) return { ok: false, reason: "unknown" };
+    if (!this.isSkinOwned(id)) return { ok: false, reason: "locked" };
+
+    const cosmetics = readCosmetics();
+    saveCosmetics({ owned: cosmetics.owned, equipped: id });
+    return { ok: true, equipped: id };
+  }
+
   unlock(type) {
     if (!DEFENDERS[type]) return { ok: false, reason: "unknown" };
     const cost = DEFENDERS[type].seedPrice;

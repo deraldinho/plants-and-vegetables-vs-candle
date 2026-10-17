@@ -488,6 +488,15 @@ class MainScene extends Phaser.Scene {
     return { ok: true, item: id, count: consumed.count };
   }
 
+  getSkinTint() {
+    const economy = window.economyService;
+    return economy?.getEquippedSkinTint ? economy.getEquippedSkinTint() : null;
+  }
+
+  refreshDefenderSkins() {
+    for (const defender of this.gameState.defenders) this.defenderSystem?.applyDefenderTint?.(defender);
+  }
+
   upgradeDefenderPower(defender) {
     return this.defenderSystem.upgradeDefenderPower(defender);
   }

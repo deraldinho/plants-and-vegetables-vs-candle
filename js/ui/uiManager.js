@@ -60,6 +60,7 @@ class UIManager {
       deckSlotsGrid: document.getElementById("deckSlotsGrid"),
       availableCardsGrid: document.getElementById("availableCardsGrid"),
       storeItemsGrid: document.getElementById("storeItemsGrid"),
+      skinItemsGrid: document.getElementById("skinItemsGrid"),
       consumableTray: document.getElementById("consumableTray"),
       cards: [...document.querySelectorAll(".defender-card[data-defender]")],
       habits: [...document.querySelectorAll(".habit")]
@@ -71,6 +72,7 @@ class UIManager {
     this.initModeSelector();
     this.renderDeckBuilder();
     this.renderStore();
+    this.renderSkins();
     this.renderConsumableTray();
   }
 
@@ -137,6 +139,7 @@ class UIManager {
       this.renderResults(state, false);
       this.ui.overlayButton.textContent = "Tentar Novamente";
       this.renderStore();
+      this.renderSkins();
       this.ui.overlay.classList.add("visible");
     };
 
@@ -148,6 +151,7 @@ class UIManager {
       this.renderResults(state, true);
       this.ui.overlayButton.textContent = "Jogar Novamente";
       this.renderStore();
+      this.renderSkins();
       this.ui.overlay.classList.add("visible");
     };
   }
@@ -529,6 +533,103 @@ class UIManager {
     this.renderStore();
     this.syncConsumableTray(this.activeScene?.gameState);
     if (this.activeScene) this.syncUi(this.activeScene.gameState);
+  }
+
+  // --- Cosméticos (S4.3) ---
+
+  renderSkins() {
+    const grid = this.ui.skinItemsGrid;
+    if (!grid) return;
+
+    const economy = window.economyService;
+    const seeds = economy ? economy.getSeeds() : readNumber(STORAGE_KEYS.sunflowerSeeds);
+    const equipped = economy ? economy.getEquippedSkin() : "classic";
+    const owned = economy ? economy.getOwnedSkins() : ["classic"];
+
+    grid.innerHTML = "";
+    for (const id of Object.keys(SKINS)) {
+      const skin = SKINS[id];
+      const isOwned = owned.includes(id);
+      const isEquipped = equipped === id;
+
+      const row = document.createElement("div");
+      row.className = isEquipped ? "store-item skin-item equipped" : "store-item skin-item";
+      row.dataset.skin = id;
+
+      const icon = document.createElement("span");
+      icon.className = "store-item-icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.textContent = skin.icon;
+
+      const copy = document.createElement("span");
+      copy.className = "store-item-copy";
+      const name = document.createElement("strong");
+      name.textContent = skin.name;
+      const desc = document.createElement("small");
+      desc.textContent = skin.description;
+      copy.append(name, desc);
+
+      const state = document.createElement("span");
+      state.className = "skin-state";
+      state.textContent = isEquipped ? "equipada" : (isOwned ? "comprada" : "🔒");
+
+      const action = document.createElement("button");
+      action.type = "button";
+      action.className = "store-buy-button";
+      action.dataset.skin = id;
+      if (isEquipped) {
+        action.textContent = "Equipada";
+        action.disabled = true;
+        action.setAttribute("aria-pressed", "true");
+        action.setAttribute("aria-label", `${skin.name} (equipada)`);
+      } else if (isOwned) {
+        action.textContent = "Equipar";
+        action.setAttribute("aria-pressed", "false");
+        action.setAttribute("aria-label", `Equipar ${skin.name}`);
+        this.addTouchClick(action, () => this.equipSkin(id));
+      } else {
+        action.textContent = `${skin.price} 🌻`;
+        action.disabled = seeds < skin.price;
+        action.setAttribute("aria-label", `Comprar ${skin.name} por ${skin.price} sementes de girassol`);
+        this.addTouchClick(action, () => this.purchaseSkin(id));
+      }
+
+      row.append(icon, copy, state, action);
+      grid.appendChild(row);
+    }
+  }
+
+  purchaseSkin(id) {
+    const skin = SKINS[id];
+    const economy = window.economyService;
+    if (!skin || !economy) return;
+
+    const result = economy.unlockSkin(id);
+    if (!result.ok) {
+      if (result.reason === "insufficient") this.showToast(`Sementes insuficientes! ${skin.name} custa ${skin.price} 🌻`);
+      else this.showToast("Não foi possível concluir esta compra.");
+      return;
+    }
+
+    this.showToast(`🎨 ${skin.name} desbloqueada!`);
+    this.renderSkins();
+    if (this.activeScene) this.syncUi(this.activeScene.gameState);
+  }
+
+  equipSkin(id) {
+    const skin = SKINS[id];
+    const economy = window.economyService;
+    if (!skin || !economy) return;
+
+    const result = economy.equipSkin(id);
+    if (!result.ok) {
+      this.showToast("Você ainda não possui este cosmético.");
+      return;
+    }
+
+    this.activeScene?.refreshDefenderSkins?.();
+    this.showToast(`${skin.icon} ${skin.name} equipada!`);
+    this.renderSkins();
   }
 
   renderConsumableTray() {

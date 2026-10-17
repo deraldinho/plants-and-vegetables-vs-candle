@@ -26,10 +26,10 @@ const context = vm.createContext({
   }
 });
 
-vm.runInContext(`${configSource}\n${waveRulesSource}\n${economySource}\n;globalThis.__core = { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService };`, context);
+vm.runInContext(`${configSource}\n${waveRulesSource}\n${economySource}\n;globalThis.__core = { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, SKINS, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService };`, context);
 vm.runInContext(`${waveSource}\n;globalThis.__waves = { generateProceduralWave, composeWave };`, context);
 
-const { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService } = context.__core;
+const { CAMPAIGN_MAX_WAVES, STORAGE_KEYS, DEFENDERS, ENEMIES, MODES, ITEMS, SKINS, WaveRules, isBossWaveNumber, getThreatLevelInfo, EconomyService } = context.__core;
 const { generateProceduralWave, composeWave } = context.__waves;
 
 assert.equal(CAMPAIGN_MAX_WAVES, 26, "campaign must have 26 waves");
@@ -211,6 +211,61 @@ assert.match(uiSource, /renderConsumableTray|syncConsumableTray/, "UIManager mus
 assert.match(uiSource, /ITEMS/, "the store must be driven by the ITEMS catalog");
 assert.doesNotMatch(uiSource, /Math\.random\s*\(/, "the store must be deterministic");
 assert.doesNotMatch(sceneSource, /Math\.random\s*\(/, "consumables must be deterministic");
+
+// --- S4.3 Cosmetics (defender skins) ---
+assert.match(configSource, /const SKINS = \{/, "the skin catalog must live in config");
+for (const [id, skin] of Object.entries(SKINS)) {
+  assert.ok(skin.name && skin.icon, `${id} must expose a name and icon`);
+  assert.ok(Number.isFinite(skin.price) && skin.price >= 0, `${id} must have a non-negative price`);
+  assert.ok(skin.tint === null || Number.isFinite(skin.tint), `${id} must declare a numeric tint or null`);
+}
+assert.equal(SKINS.classic.price, 0, "the classic skin must be free");
+assert.equal(SKINS.classic.tint, null, "the classic skin must not tint defenders");
+
+storage.delete(STORAGE_KEYS.cosmetics);
+storage.delete(STORAGE_KEYS.sunflowerSeeds);
+
+const wardrobe = new EconomyService();
+assert.equal(wardrobe.getEquippedSkin(), "classic", "the classic skin must be equipped by default");
+assert.equal(wardrobe.getEquippedSkinTint(), null, "the default skin must leave defenders untouched");
+assert.equal(wardrobe.isSkinOwned("classic"), true, "the classic skin must be owned by default");
+assert.equal(wardrobe.isSkinOwned("golden"), false, "paid skins must start locked");
+assert.ok(wardrobe.getOwnedSkins().includes("classic"), "owned skins must include the classic skin");
+
+assert.equal(wardrobe.unlockSkin("inexistente").reason, "unknown", "unknown skins must be rejected");
+assert.equal(wardrobe.unlockSkin("classic").reason, "free", "free skins are not purchasable");
+assert.equal(wardrobe.unlockSkin("golden").reason, "insufficient", "skins must not unlock without seeds");
+assert.equal(wardrobe.isSkinOwned("golden"), false, "failed unlock must not grant the skin");
+assert.equal(wardrobe.getSeeds(), 0, "failed unlock must not spend seeds");
+assert.equal(wardrobe.equipSkin("golden").reason, "locked", "unowned skins must not be equippable");
+assert.equal(wardrobe.getEquippedSkin(), "classic", "failed equip must not change the equipped skin");
+assert.equal(wardrobe.equipSkin("inexistente").reason, "unknown", "equipping unknown skins must be rejected");
+
+wardrobe.grantSeeds(200);
+const beforeSkin = wardrobe.getSeeds();
+const unlockGolden = wardrobe.unlockSkin("golden");
+assert.equal(unlockGolden.ok, true, "unlocking a skin with enough seeds must succeed");
+assert.equal(unlockGolden.cost, SKINS.golden.price, "the skin purchase must charge the price");
+assert.equal(wardrobe.getSeeds(), beforeSkin - SKINS.golden.price, "the skin purchase must debit the wallet");
+assert.equal(wardrobe.unlockSkin("golden").reason, "already", "double unlock must be rejected");
+assert.equal(new EconomyService().isSkinOwned("golden"), true, "skin ownership must persist");
+
+const equipGolden = wardrobe.equipSkin("golden");
+assert.equal(equipGolden.ok, true, "equipping an owned skin must succeed");
+assert.equal(wardrobe.getEquippedSkin(), "golden", "the equipped skin must change");
+assert.equal(wardrobe.getEquippedSkinTint(), SKINS.golden.tint, "the equipped tint must be exposed");
+assert.equal(new EconomyService().getEquippedSkin(), "golden", "the equipped skin must persist");
+assert.ok(wardrobe.getSeeds() >= 0, "the wallet must never go negative");
+
+assert.match(configSource, /function readCosmetics\(/, "cosmetics persistence must live in config");
+assert.match(defenderSource, /applyDefenderTint\s*\(/, "the defender system must own the tint application");
+assert.match(defenderSource, /getSkinTint/, "the defender system must read the skin tint from the scene");
+assert.match(sceneSource, /getSkinTint\s*\(/, "the scene must expose the skin tint");
+assert.match(sceneSource, /refreshDefenderSkins\s*\(/, "the scene must refresh placed defenders on equip");
+assert.match(uiSource, /purchaseSkin\s*\(|equipSkin\s*\(/, "the UI must buy/equip skins through the owner");
+assert.match(uiSource, /SKINS/, "the cosmetics UI must be driven by the SKINS catalog");
+assert.doesNotMatch(uiSource, /writeStorage\(STORAGE_KEYS\.cosmetics/, "UI must not write cosmetics directly");
+assert.doesNotMatch(sceneSource, /writeStorage\(STORAGE_KEYS\.cosmetics/, "scene must not write cosmetics directly");
 
 assert.match(deckSource, /class DeckService/, "DeckService must own deck persistence and validation");
 assert.match(deckSource, /getMaxSlots\(\)/, "deck slot limit must be enforced by the deck owner");

@@ -999,7 +999,7 @@ Com S2 estabilizado, a ordem recomendada é:
 ```text
 S3 — Threat Budget / Wave Composition   ✅ (2026-10-16)
  ↓
-S4 — Economia / Loja / Inventário          🟡 S4.1+S4.2 ✅ (2026-10-16)
+S4 — Economia / Loja / Inventário          ✅ S4.1–S4.3 (2026-10-16)
  ↓
 S5 — Novos Candies Level 2
  ↓
@@ -1039,7 +1039,7 @@ Status (2026-10-16):
 
 - ✅ **S4.1** — `EconomyService` como owner único do saldo e dos desbloqueios (compra atômica, saldo nunca negativo).
 - ✅ **S4.2** — loja de consumíveis + inventário persistente (`ITEMS` em `config.js`, `buyItem`/`consumeItem` no owner, mochila em partida com efeitos `sun`/`repair`); aditivo, sem bypass.
-- ⏳ **S4.3** — skins/cosméticos (dependem de assets).
+- ✅ **S4.3** — cosméticos (`SKINS`): skins compradas com Sementes aplicam apenas recolor (tint) nos defensores via ponto único (`DefenderSystem.applyDefenderTint`); cosmético puro, sem tocar em balanceamento.
 
 ### Candies Level 2
 

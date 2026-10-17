@@ -195,14 +195,18 @@ try {
     ui.renderConsumableTray();
 
     const storeRows = document.querySelectorAll("#storeItemsGrid .store-item").length;
-    const trayHiddenBefore = document.getElementById("consumableTray").hidden;
+    const trayVisible = () => {
+      const el = document.getElementById("consumableTray");
+      return getComputedStyle(el).display !== "none" && el.getClientRects().length > 0;
+    };
+    const trayVisibleBefore = trayVisible();
 
     const buyButton = document.querySelector('#storeItemsGrid .store-buy-button[data-item="sun_pack"]');
     buyButton.click();
 
     const seedsAfterBuy = economy.getSeeds();
     const ownedAfterBuy = economy.getItem("sun_pack");
-    const trayHiddenAfterBuy = document.getElementById("consumableTray").hidden;
+    const trayVisibleAfterBuy = trayVisible();
 
     const scene = ui.activeScene;
     const hasSceneUse = typeof scene.useConsumable === "function";
@@ -210,7 +214,7 @@ try {
     ui.useConsumable("sun_pack");
     const sunAfter = scene.gameState.sun;
     const ownedAfterUse = economy.getItem("sun_pack");
-    const trayHiddenAfterUse = document.getElementById("consumableTray").hidden;
+    const trayVisibleAfterUse = trayVisible();
 
     economy.spendSeeds(economy.getSeeds());
     ui.renderStore();
@@ -219,31 +223,84 @@ try {
     return {
       storeRows,
       itemCount: Object.keys(ITEMS).length,
-      trayHiddenBefore,
+      trayVisibleBefore,
       seedsAfterBuy,
       ownedAfterBuy,
-      trayHiddenAfterBuy,
+      trayVisibleAfterBuy,
       sunPackPrice: ITEMS.sun_pack.price,
       sunPackValue: ITEMS.sun_pack.value,
       hasSceneUse,
       sunGain: sunAfter - sunBefore,
       ownedAfterUse,
-      trayHiddenAfterUse,
+      trayVisibleAfterUse,
       disabledWhenBroke,
       walletNonNegative: economy.getSeeds() >= 0
     };
   });
   assert.equal(storeCheck.storeRows, storeCheck.itemCount, "the store must render every catalog item");
-  assert.equal(storeCheck.trayHiddenBefore, true, "an empty backpack must keep the consumable tray hidden");
+  assert.equal(storeCheck.trayVisibleBefore, false, "an empty backpack must actually hide the consumable tray");
   assert.equal(storeCheck.ownedAfterBuy, 1, "buying through the store must add the item to the inventory");
   assert.equal(storeCheck.seedsAfterBuy, 100 - storeCheck.sunPackPrice, "the purchase must debit exactly the item price");
-  assert.equal(storeCheck.trayHiddenAfterBuy, false, "owning an item must reveal the consumable tray");
+  assert.equal(storeCheck.trayVisibleAfterBuy, true, "owning an item must reveal the consumable tray");
   assert.equal(storeCheck.hasSceneUse, true, "the scene must own the consumable effect");
   assert.equal(storeCheck.sunGain, storeCheck.sunPackValue, "the consumable must apply its sun effect");
   assert.equal(storeCheck.ownedAfterUse, 0, "using a consumable must consume exactly one unit");
-  assert.equal(storeCheck.trayHiddenAfterUse, true, "an emptied backpack must hide the consumable tray again");
+  assert.equal(storeCheck.trayVisibleAfterUse, false, "an emptied backpack must hide the consumable tray again");
   assert.equal(storeCheck.disabledWhenBroke, true, "the store must disable purchases without enough seeds");
   assert.equal(storeCheck.walletNonNegative, true, "the wallet must never go negative after spending");
+
+  const skinCheck = await page.evaluate(() => {
+    const economy = window.economyService;
+    const ui = window.uiManager;
+    const scene = ui.activeScene;
+
+    localStorage.removeItem(STORAGE_KEYS.cosmetics);
+    localStorage.removeItem(STORAGE_KEYS.sunflowerSeeds);
+    economy.grantSeeds(200);
+    ui.renderSkins();
+
+    const skinRows = document.querySelectorAll("#skinItemsGrid .skin-item").length;
+    const equippedBefore = economy.getEquippedSkin();
+
+    document.querySelector('#skinItemsGrid .store-buy-button[data-skin="golden"]').click();
+    ui.renderSkins();
+    const ownedAfterBuy = economy.isSkinOwned("golden");
+    const seedsAfterBuy = economy.getSeeds();
+
+    document.querySelector('#skinItemsGrid .store-buy-button[data-skin="golden"]').click();
+
+    const equippedAfter = economy.getEquippedSkin();
+    const defenderTints = scene.gameState.defenders
+      .filter(d => d.sprite && !d.removed)
+      .map(d => d.sprite.tintTopLeft);
+    const lockedEquip = economy.equipSkin("candy");
+
+    return {
+      skinRows,
+      catalogSize: Object.keys(SKINS).length,
+      equippedBefore,
+      ownedAfterBuy,
+      seedsAfterBuy,
+      goldenPrice: SKINS.golden.price,
+      goldenTint: SKINS.golden.tint,
+      equippedAfter,
+      tint: economy.getEquippedSkinTint(),
+      defenderCount: defenderTints.length,
+      defenderTintsMatch: defenderTints.length > 0 && defenderTints.every(t => t === SKINS.golden.tint),
+      lockedReason: lockedEquip.reason,
+      walletNonNegative: economy.getSeeds() >= 0
+    };
+  });
+  assert.equal(skinCheck.skinRows, skinCheck.catalogSize, "the cosmetics shelf must render every skin");
+  assert.equal(skinCheck.equippedBefore, "classic", "the classic skin must be equipped by default in the browser");
+  assert.equal(skinCheck.ownedAfterBuy, true, "buying a skin through the UI must grant it");
+  assert.equal(skinCheck.seedsAfterBuy, 200 - skinCheck.goldenPrice, "the skin purchase must debit exactly the price");
+  assert.equal(skinCheck.equippedAfter, "golden", "equipping through the UI must change the equipped skin");
+  assert.equal(skinCheck.tint, skinCheck.goldenTint, "the equipped skin tint must be exposed");
+  assert.ok(skinCheck.defenderCount > 0, "the smoke must have placed defenders before checking skins");
+  assert.equal(skinCheck.defenderTintsMatch, true, "placed defenders must receive the equipped skin tint");
+  assert.equal(skinCheck.lockedReason, "locked", "unowned skins must not be equippable");
+  assert.equal(skinCheck.walletNonNegative, true, "the wallet must never go negative after cosmetics");
 
   const artillery = await page.evaluate(() => {
     const scene = window.uiManager.activeScene;

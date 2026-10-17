@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   sunflowerSeeds: "healthy-family-home.sunflower-seeds",
   unlockedCards: "healthy-family-home.unlocked-cards",
   inventory: "healthy-family-home.inventory",
+  cosmetics: "healthy-family-home.cosmetics",
   deckSlots: "healthy-family-home.deck-slots",
   activeDeck: "healthy-family-home.active-deck",
   soundOn: "healthy-family-home.sound-on"
@@ -78,6 +79,14 @@ const KNOCKBACK_RESISTANCE = {
 const ITEMS = {
   sun_pack: { name: "Refresco de Orvalho", icon: "☀️", price: 15, effect: "sun", value: 75, description: "+75 de Energia Solar na partida" },
   reinforce: { name: "Remendo da Casa", icon: "🏠", price: 20, effect: "repair", value: 150, description: "recupera 150 de vida da Casa" }
+};
+
+const SKINS = {
+  classic: { name: "Horta Clássica", icon: "🌱", price: 0, tint: null, description: "as cores originais da horta" },
+  mint: { name: "Horta Menta", icon: "🍃", price: 60, tint: 0x9ff5c8, description: "vegetais em tom de menta" },
+  golden: { name: "Horta Dourada", icon: "🌟", price: 80, tint: 0xffd700, description: "vegetais com brilho dourado" },
+  shadow: { name: "Horta Sombria", icon: "🌙", price: 100, tint: 0x8892b0, description: "vegetais em tom noturno" },
+  candy: { name: "Horta Doce", icon: "🍬", price: 120, tint: 0xffa8d8, description: "vegetais em rosa doce" }
 };
 
 const MODES = {
@@ -170,4 +179,34 @@ function saveInventory(inventory) {
     if (count > 0) clean[id] = count;
   }
   writeStorage(STORAGE_KEYS.inventory, JSON.stringify(clean));
+}
+
+function readCosmetics() {
+  const state = { owned: ["classic"], equipped: "classic" };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.cosmetics);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        if (Array.isArray(parsed.owned)) {
+          const owned = parsed.owned.filter(id => SKINS[id] && id !== "classic");
+          state.owned = ["classic", ...new Set(owned)];
+        }
+        if (SKINS[parsed.equipped] && state.owned.includes(parsed.equipped)) {
+          state.equipped = parsed.equipped;
+        }
+      }
+    }
+  } catch (_) {}
+  return state;
+}
+
+function saveCosmetics(cosmetics) {
+  const owned = Array.isArray(cosmetics?.owned)
+    ? [...new Set(cosmetics.owned.filter(id => SKINS[id] && id !== "classic"))]
+    : [];
+  const equipped = SKINS[cosmetics?.equipped] && (cosmetics.equipped === "classic" || owned.includes(cosmetics.equipped))
+    ? cosmetics.equipped
+    : "classic";
+  writeStorage(STORAGE_KEYS.cosmetics, JSON.stringify({ owned: ["classic", ...owned], equipped }));
 }

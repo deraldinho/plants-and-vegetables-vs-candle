@@ -27,7 +27,7 @@ Este documento é o backlog autoritativo de ideias de gameplay, progressão, pla
 - ✅ Slot 6 liberado ao atingir onda 10.
 - ✅ Slot 7 liberado ao atingir onda 20.
 - ✅ Slot 8 disponível na progressão pós-campanha do modo Infinito ao atingir onda 30.
-- ✅ Desbloqueio permanente por Sementes; loja de consumíveis e inventário em partida implementados (S4.1/S4.2).
+- ✅ Desbloqueio permanente por Sementes; loja de consumíveis/inventário e cosméticos (skins) implementados (S4.1–S4.3).
 
 ---
 
@@ -183,10 +183,27 @@ Implementado (S4.2):
 
 Ainda planejado (S4.3+):
 
-- skins e variações visuais;
 - power-ups iniciais mais elaborados;
 - desbloqueios antecipados;
-- cosméticos sem alterar balanceamento competitivo.
+- cosméticos de cenário/tabuleiro.
+
+### 🎨 Cosméticos (skins) — ✅
+
+Implementado (S4.3):
+
+- catálogo `SKINS` (Horta Clássica/Menta/Dourada/Sombria/Doce) comprado com Sementes 🌻;
+- cosmético **puro**: a skin equipada só aplica um recolor (tint) nos defensores, sem tocar em
+  dano, vida, cooldown ou recompensa;
+- aplicação num **ponto único** (`DefenderSystem.applyDefenderTint`), que também preserva o flash de
+  dano do Melancia;
+- equipar durante a partida atualiza os defensores já colocados;
+- persistência de posse/equipada no `EconomyService`.
+
+Ainda planejado:
+
+- assets externos (sprites novos) e montagem por peça;
+- cosméticos de cenário/tabuleiro;
+- desbloqueios antecipados.
 
 ---
 
@@ -318,7 +335,7 @@ O progresso visual considera a fila procedural e summons dinâmicos e nunca most
 ## 8. Próximos blocos
 
 1. ✅ Threat Budget para composição intencional de ondas (S3).
-2. 🟡 Loja de Sementes e inventário de consumíveis (S4.1 owner da economia ✅; S4.2 loja + inventário ✅; skins/cosméticos pendentes — S4.3).
+2. ✅ S4 concluído: owner da economia (S4.1), loja + inventário de consumíveis (S4.2) e cosméticos/skins (S4.3).
 3. ⏳ Novos Candies Level 2.
 4. ⏳ Armor Break/Stun e novos efeitos quando houver mecânicas que realmente os usem.
 5. ⏳ Balanceamento completo por dificuldade e campanha.

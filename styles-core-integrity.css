@@ -344,6 +344,8 @@ button:active {
   margin: 0 0 10px;
 }
 
+.consumable-tray[hidden] { display: none; }
+
 .consumable-card {
   position: relative;
   display: flex;
@@ -378,3 +380,18 @@ button:active {
   font-weight: 800;
   text-align: center;
 }
+
+/* Cosméticos (S4.3) */
+.skin-item.equipped {
+  border-color: #ffd43b;
+  box-shadow: inset 0 0 0 2px rgba(255, 212, 59, 0.35);
+}
+
+.skin-state {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #bfe3c9;
+  text-transform: lowercase;
+}
+
+.skin-item.equipped .skin-state { color: #ffe27a; }
