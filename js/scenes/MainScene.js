@@ -59,7 +59,23 @@ class MainScene extends Phaser.Scene {
       if (pointer.isDown) this.checkSunPickup(pointer.x, pointer.y);
     });
 
+    this.scale.on("resize", this.onResize, this);
+    this.onResize();
+
     this.startGame();
+  }
+
+  onResize() {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isPortrait = window.innerHeight > window.innerWidth;
+    const shouldPause = isMobile && isPortrait;
+    if (shouldPause && !this._orientationPaused) {
+      this._orientationPaused = true;
+      this.scene.pause();
+    } else if (!shouldPause && this._orientationPaused) {
+      this._orientationPaused = false;
+      this.scene.resume();
+    }
   }
 
   resolveSeed() {
